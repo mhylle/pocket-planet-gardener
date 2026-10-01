@@ -1,0 +1,22 @@
+<!-- The live region stays in the page so screen readers hear each change of its content. -->
+<div role="status" aria-live="polite">
+  @if (offline()) {
+    <p class="note">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path
+          d="M22.6 16.9A5 5 0 0 0 18 10h-1.3a8 8 0 0 0-7-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"
+        />
+        <path d="M1 1l22 22" />
+      </svg>
+      <span>Offline — your changes will be saved when you're back</span>
+    </p>
+  } @else if (saving()) {
+    <p class="note">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M16 16l-4-4-4 4M12 12v9" />
+        <path d="M20.4 18.4A5 5 0 0 0 18 9h-1.3A8 8 0 1 0 3 16.3" />
+      </svg>
+      <span>Saving…</span>
+    </p>
+  }
+</div>

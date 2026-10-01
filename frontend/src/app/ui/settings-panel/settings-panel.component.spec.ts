@@ -3,8 +3,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import type { Mock } from 'vitest';
 import { PlanetDto } from '../../core/models/planet';
-import { PlanetService } from '../../core/services/planet.service';
+import { PlanetSnapshotDto } from '../../core/models/planet-snapshot';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
+import { PlanetStore } from '../../core/services/planet-store.service';
 import { ViewStateService } from '../../core/services/view-state.service';
 import { SettingsPanelComponent } from './settings-panel.component';
 
@@ -14,6 +15,20 @@ const mossy: PlanetDto = {
   name: 'Mossy',
   version: 1,
   createdAt: '2026-10-01T10:00:00.000Z',
+};
+
+const mossySnapshot: PlanetSnapshotDto = {
+  ...mossy,
+  radiusLevel: 1,
+  maxPlants: 60,
+  tutorialStep: 0,
+  serverTime: '2026-10-01T10:00:00.000Z',
+  plants: [],
+  decorations: [],
+  inventory: [],
+  unlocks: [],
+  clouds: [],
+  sun: { overrideAngle: null, overrideAt: null },
 };
 
 describe('SettingsPanelComponent', () => {
@@ -33,10 +48,11 @@ describe('SettingsPanelComponent', () => {
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PlanetIdentityService).set(mossy.id);
+    TestBed.inject(PlanetStore).setSnapshot(mossySnapshot);
     TestBed.inject(ViewStateService).show('planet');
 
     fixture = TestBed.createComponent(SettingsPanelComponent);
-    fixture.componentRef.setInput('planet', mossy);
+    fixture.componentRef.setInput('planet', mossySnapshot);
     page = fixture.nativeElement;
     await fixture.whenStable();
   });
@@ -118,7 +134,7 @@ describe('SettingsPanelComponent', () => {
       expect(field().value).toBe('Mossy');
     });
 
-    it('sends the new name and keeps the returned planet', async () => {
+    it('sends the new name and keeps it in the loaded planet', async () => {
       await renameTo(' Fernhill ');
 
       const req = http.expectOne({ method: 'PATCH', url: '/api/planet/name' });
@@ -126,7 +142,7 @@ describe('SettingsPanelComponent', () => {
       req.flush({ ...mossy, name: 'Fernhill', version: 2 });
       await settle();
 
-      expect(TestBed.inject(PlanetService).planet()?.name).toBe('Fernhill');
+      expect(TestBed.inject(PlanetStore).snapshot()?.name).toBe('Fernhill');
       expect(text('.rename-note')).toBe('Name saved.');
     });
 

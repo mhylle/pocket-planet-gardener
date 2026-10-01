@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–2 implemented and validated 1 Oct 2026 (see section 9). Next: Phase 3. |
+| **Progress** | Phases 1–3 implemented and validated 1 Oct 2026 (see section 9). Next: Phase 4. |
 
 ---
 
@@ -169,12 +169,12 @@ Each has `*.module.ts`, `*.controller.ts` (where it has routes), `*.service.ts`,
 
 - **Task 3.1 — Entities + migration `GardenSchema`.** `plants(id, planet_id FK cascade, type, lat, lon, stage enum seed|sprout|young|bloom, growth numeric, water numeric, planted_at, last_harvested_at null, harvest_ready bool)`, `decorations(id, planet_id, type, lat, lon)`, `inventory_items(id, planet_id, item_type, kind seed|decoration, count, unique(planet_id, item_type))`, `unlocks(planet_id, item_type, unlocked_at, PK)`.
   **AC:** up/down clean; indexes on `planet_id`; relations typed `Relation<T>`.
-- **Task 3.2 — `PlanetSnapshotDto` + `PlanetStateService.getSnapshot(planetId)`.** Assembles planet, plants, decorations, inventory, unlocks, clouds, sun angle, `serverTime`, `version`. Later modules add data via a `SnapshotContributor` list, not by editing this method.
+- **Task 3.2 — `PlanetSnapshotDto` + `PlanetStateService.getSnapshot(planetId)`.** Assembles planet, plants, decorations, inventory, unlocks, clouds, sun override, `serverTime`, `version`. The snapshot is a superset of `PlanetDto` (same top-level `id`, `code`, `name`, `version`, `createdAt`), so existing clients keep working. Later modules add data via a `SnapshotContributor` list, not by editing this method.
   **AC:** unit: contributors called in registration order and their output merged; e2e `GET /api/planet` returns the snapshot.
-- **Task 3.3 — `PlanetStateService.mutate(planetId, expectedVersion, apply)` (D-2).** Transaction, `SELECT … FOR UPDATE`, run `SimulationStep` list (empty until Phase 6), version check → `ConflictException`, `apply(ctx)`, run `PostMutationEvaluator` list, pass facts to `FactSink` list, `version++`, return snapshot plus `events` and `newlyUnlocked`.
+- **Task 3.3 — `PlanetStateService.mutate(planetId, expectedVersion, apply)` (D-2).** Transaction, `SELECT … FOR UPDATE`, version check → `ConflictException`, run `SimulationStep` list (empty until Phase 6), `apply(ctx)`, run `PostMutationEvaluator` list, pass facts to `FactSink` list, `version++` (only when a command was applied — see 3.4), return snapshot plus `events` and `newlyUnlocked`.
   **AC:** unit with in-memory fakes: mismatch throws 409 and `apply` never runs; success increments `version` by exactly 1; evaluators run after `apply`; an exception in `apply` rolls back (e2e: failing command leaves `version` unchanged).
-- **Task 3.4 — `POST /api/planet/sync { expectedVersion }`.** Runs `mutate` with a no-op apply, updates `last_seen_at`, returns `{ snapshot, events }`.
-  **AC:** e2e: matching version → 200; stale → 409 `{ message: 'reload' }`; missing header → 400.
+- **Task 3.4 — `POST /api/planet/sync { expectedVersion }`.** Runs the `mutate` pipeline without a command: checks the version, advances the simulation and evaluators, but does **not** bump `version` (refined 1 Oct 2026: a heartbeat bumping the version would make two open tabs force each other to reload; only player commands count as changes for ACC-04 AC2). Updates `last_seen_at`, returns `{ snapshot, events }`.
+  **AC:** e2e: matching version → 200 and `version` unchanged; stale → 409 `{ message: 'reload' }`; missing header → 400.
 - **Task 3.5 — Frontend `PlanetStore` + `SyncService`.** Signals: `snapshot`, `version`, `pendingCommands`, `offline`, `reloadRequired`. Commands queue with `expectedVersion`, send serially, retry with backoff on network error (ACC-03 AC2), heartbeat every `syncIntervalSeconds`. `SaveIndicatorComponent` (icon + text, `aria-live="polite"`).
   **AC:** spec: command enqueued while HTTP fails → `pendingCommands() > 0` and indicator visible; later success drains the queue and hides it (AC3); 409 sets `reloadRequired` and a reload banner shows (ACC-04 AC2); heartbeat fires at the configured interval with fake timers.
 
@@ -490,6 +490,23 @@ Carried into later phases:
 - `BLOCKED_NAMES` holds multi-word names; Task 11.3 can pass it to `validateName`, which matches phrases across separators. Task 17.5's tone check must skip it.
 - three.js is not yet imported by app code, so the raised bundle budget is first exercised in Phase 4.
 - `AiModule` is not imported by `AppModule` until the gateway (Phase 10).
+
+### Phase 3 — done (1 Oct 2026)
+
+All tasks 3.1–3.5 implemented. Gates: backend `npm run lint` 0 (no rewrites), `tsc --noEmit` 0, unit 236/236, e2e 58/58; frontend build 0 (175 kB initial), tests 129/129; `GardenSchema` reverts and re-applies cleanly, no schema drift; live two-client check (A syncs v1 → 200, version bumped elsewhere, B syncs v1 → 409 `reload`, A syncs v2 → 200); browser run against the real backend: heartbeat every ~10 s with 200 and `version` unchanged while `last_seen_at` advances, offline indicator appears when sync is unreachable and clears on recovery, a version bump elsewhere shows the reload banner and stops the heartbeat, Reload recovers on the new version. **Not run:** backend `npm run build` (same reason as Phases 1–2).
+
+Deviations and refinements:
+- A sync checks the version but never bumps it, and the version check runs before the simulation steps (Tasks 3.3/3.4 text updated).
+- `GET`, `POST` and `PATCH /api/planet` return the snapshot, a superset of `PlanetDto`.
+- `stage`/`kind` are varchar + TS unions, coordinates and levels `double precision`; `decorations` gained `placed_at`.
+- `PlanetStateService.sync()` is the only place that sets `lastSeenAt`; hooks still see the previous value (Phase 9 relies on that).
+- Frontend: `PlanetService.planet` replaced by `PlanetStore.snapshot`; commands and heartbeat share one request lane; 0/502/503/504 count as offline with 1 s → 30 s backoff.
+
+Carried into later phases:
+- The sync response has no `newlyUnlocked`; Phase 12 decides whether an unlock during a sync must be announced.
+- Rename still bypasses `mutate()`/`SyncService` and does not bump the version.
+- Sync events are discarded by the frontend until Phase 9 consumes them.
+- e2e probe controllers reach `PlanetStateService` through `ModuleRef` (AppModule does not re-export PlanetsModule).
 
 ---
 

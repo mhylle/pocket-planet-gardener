@@ -2,16 +2,26 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
-import { PlanetDto } from './core/models/planet';
+import { PlanetSnapshotDto } from './core/models/planet-snapshot';
 import { DRIFTED_AWAY_NOTICE } from './core/services/planet.service';
 import { ViewStateService } from './core/services/view-state.service';
 
-const mossy: PlanetDto = {
+const mossy: PlanetSnapshotDto = {
   id: '6f1c2d3e-0000-4000-8000-000000000001',
   code: 'MOSS2345',
   name: 'Mossy',
   version: 1,
   createdAt: '2026-10-01T10:00:00.000Z',
+  radiusLevel: 1,
+  maxPlants: 60,
+  tutorialStep: 0,
+  serverTime: '2026-10-01T10:00:00.000Z',
+  plants: [],
+  decorations: [],
+  inventory: [],
+  unlocks: [],
+  clouds: [],
+  sun: { overrideAngle: null, overrideAt: null },
 };
 
 describe('App', () => {
@@ -92,6 +102,8 @@ describe('App', () => {
 
     page.querySelector<HTMLButtonElement>('app-planet-name-form button')!.click();
     http.expectOne({ method: 'POST', url: '/api/planet' }).flush(mossy);
+    await settle();
+    http.expectOne({ method: 'GET', url: '/api/planet' }).flush(mossy);
     await settle();
 
     expect(heading(page)).toBe('Mossy');

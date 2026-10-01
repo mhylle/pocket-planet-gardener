@@ -10,25 +10,33 @@ import {
 } from '@nestjs/common';
 import { CreatePlanetDto } from './dto/create-planet.dto';
 import { DeletePlanetDto } from './dto/delete-planet.dto';
-import type { PlanetDto } from './dto/planet.dto';
+import type { PlanetSnapshotDto } from './dto/planet-snapshot.dto';
 import { RenamePlanetDto } from './dto/rename-planet.dto';
+import { SyncPlanetDto } from './dto/sync-planet.dto';
 import { CurrentPlanet } from './planet-context/current-planet.decorator';
 import { NoPlanet } from './planet-context/no-planet.decorator';
+import {
+  PlanetStateService,
+  type SyncResult,
+} from './planet-state/planet-state.service';
 import { PlanetsService } from './planets.service';
 
 @Controller('planet')
 export class PlanetsController {
-  constructor(private readonly planetsService: PlanetsService) {}
+  constructor(
+    private readonly planetsService: PlanetsService,
+    private readonly planetState: PlanetStateService,
+  ) {}
 
   /** Creates a planet. Not planet-scoped: the caller has none yet. */
   @NoPlanet()
   @Post()
-  create(@Body() body: CreatePlanetDto): Promise<PlanetDto> {
+  create(@Body() body: CreatePlanetDto): Promise<PlanetSnapshotDto> {
     return this.planetsService.create(body.name);
   }
 
   @Get()
-  get(@CurrentPlanet() planetId: string): Promise<PlanetDto> {
+  get(@CurrentPlanet() planetId: string): Promise<PlanetSnapshotDto> {
     return this.planetsService.get(planetId);
   }
 
@@ -36,8 +44,18 @@ export class PlanetsController {
   rename(
     @CurrentPlanet() planetId: string,
     @Body() body: RenamePlanetDto,
-  ): Promise<PlanetDto> {
+  ): Promise<PlanetSnapshotDto> {
     return this.planetsService.rename(planetId, body.name);
+  }
+
+  /** The heartbeat (D-3). A 200, not a 201: it creates nothing. */
+  @Post('sync')
+  @HttpCode(200)
+  sync(
+    @CurrentPlanet() planetId: string,
+    @Body() body: SyncPlanetDto,
+  ): Promise<SyncResult> {
+    return this.planetState.sync(planetId, body.expectedVersion);
   }
 
   /** The id of the planet with this code, to open it on another device. */

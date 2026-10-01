@@ -2,8 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PlanetDto } from '../models/planet';
+import { PlanetSnapshotDto } from '../models/planet-snapshot';
 import { DRIFTED_AWAY_NOTICE, PlanetService } from './planet.service';
 import { PlanetIdentityService } from './planet-identity.service';
+import { PlanetStore } from './planet-store.service';
+import { PLANET_CLOSED_MESSAGE, SyncService } from './sync.service';
 import { ViewStateService } from './view-state.service';
 
 const mossy: PlanetDto = {
@@ -14,11 +17,26 @@ const mossy: PlanetDto = {
   createdAt: '2026-10-01T10:00:00.000Z',
 };
 
+const mossySnapshot: PlanetSnapshotDto = {
+  ...mossy,
+  radiusLevel: 1,
+  maxPlants: 60,
+  tutorialStep: 0,
+  serverTime: '2026-10-01T10:00:00.000Z',
+  plants: [],
+  decorations: [],
+  inventory: [{ itemType: 'clover', kind: 'seed', count: 3 }],
+  unlocks: [],
+  clouds: [],
+  sun: { overrideAngle: null, overrideAt: null },
+};
+
 describe('PlanetService', () => {
   let http: HttpTestingController;
   let planets: PlanetService;
   let identity: PlanetIdentityService;
   let views: ViewStateService;
+  let store: PlanetStore;
 
   beforeEach(() => {
     localStorage.clear();
@@ -29,6 +47,7 @@ describe('PlanetService', () => {
     planets = TestBed.inject(PlanetService);
     identity = TestBed.inject(PlanetIdentityService);
     views = TestBed.inject(ViewStateService);
+    store = TestBed.inject(PlanetStore);
   });
 
   afterEach(() => http.verify());
@@ -40,7 +59,8 @@ describe('PlanetService', () => {
   }
 
   describe('create', () => {
-    it('posts the trimmed name, stores the id and shows the planet', async () => {
+    it('posts the trimmed name, stores the id and shows the planet page to load it', async () => {
+      store.setSnapshot({ ...mossySnapshot, id: 'an-earlier-planet' });
       const done = planets.create('  Mossy  ');
 
       const req = http.expectOne({ method: 'POST', url: '/api/planet' });
@@ -50,7 +70,7 @@ describe('PlanetService', () => {
 
       expect(identity.planetId()).toBe(mossy.id);
       expect(localStorage.getItem('ppg.planetId')).toBe(mossy.id);
-      expect(planets.planet()).toEqual(mossy);
+      expect(store.snapshot()).toBeNull();
       expect(views.view()).toBe('planet');
     });
 
@@ -60,7 +80,7 @@ describe('PlanetService', () => {
 
       await expect(done).rejects.toMatchObject({ status: 400 });
       expect(identity.planetId()).toBeNull();
-      expect(planets.planet()).toBeNull();
+      expect(store.snapshot()).toBeNull();
       expect(views.view()).toBe('create-planet');
     });
   });
@@ -68,15 +88,16 @@ describe('PlanetService', () => {
   describe('load', () => {
     beforeEach(() => identity.set(mossy.id));
 
-    it('fetches the stored planet with its id in the header', async () => {
+    it('fetches the stored planet with its id in the header into the store', async () => {
       const done = planets.load();
 
       const req = http.expectOne({ method: 'GET', url: '/api/planet' });
       expect(req.request.headers.get('X-Planet-Id')).toBe(mossy.id);
-      req.flush(mossy);
+      req.flush(mossySnapshot);
       await done;
 
-      expect(planets.planet()).toEqual(mossy);
+      expect(store.snapshot()).toEqual(mossySnapshot);
+      expect(store.version()).toBe(1);
     });
 
     it.each([404, 400])('forgets the id and shows create-planet on %i', async (status) => {
@@ -87,7 +108,7 @@ describe('PlanetService', () => {
 
       expect(identity.planetId()).toBeNull();
       expect(localStorage.getItem('ppg.planetId')).toBeNull();
-      expect(planets.planet()).toBeNull();
+      expect(store.snapshot()).toBeNull();
       expect(planets.notice()).toBe(DRIFTED_AWAY_NOTICE);
       expect(views.view()).toBe('create-planet');
     });
@@ -101,16 +122,17 @@ describe('PlanetService', () => {
     });
   });
 
-  it('rename patches the trimmed name and keeps the returned planet', async () => {
+  it('rename patches the trimmed name and keeps the rest of the snapshot', async () => {
     identity.set(mossy.id);
+    store.setSnapshot(mossySnapshot);
     const done = planets.rename(' Fernhill ');
 
     const req = http.expectOne({ method: 'PATCH', url: '/api/planet/name' });
     expect(req.request.body).toEqual({ name: 'Fernhill' });
-    req.flush({ ...mossy, name: 'Fernhill', version: 2 });
+    req.flush({ ...mossy, name: 'Fernhill' });
     await done;
 
-    expect(planets.planet()?.name).toBe('Fernhill');
+    expect(store.snapshot()).toEqual({ ...mossySnapshot, name: 'Fernhill' });
   });
 
   describe('openByCode', () => {
@@ -143,14 +165,31 @@ describe('PlanetService', () => {
 
   it('leave forgets the planet without calling the server', () => {
     identity.set(mossy.id);
+    store.setSnapshot(mossySnapshot);
     views.show('planet');
 
     planets.leave();
 
     expect(localStorage.getItem('ppg.planetId')).toBeNull();
-    expect(planets.planet()).toBeNull();
+    expect(store.snapshot()).toBeNull();
     expect(planets.notice()).toBeNull();
     expect(views.view()).toBe('create-planet');
+  });
+
+  it('drops unsaved commands when the planet closes, so they never reach another one', async () => {
+    identity.set(mossy.id);
+    store.setSnapshot(mossySnapshot);
+    const unsaved = TestBed.inject(SyncService)
+      .send({ method: 'POST', path: '/garden/plant', body: { type: 'clover' } })
+      .catch((error: unknown) => error);
+    http.expectOne('/api/garden/plant').error(new ProgressEvent('error'));
+    expect(store.offline()).toBe(true);
+
+    planets.leave();
+
+    expect(await unsaved).toMatchObject({ message: PLANET_CLOSED_MESSAGE });
+    expect(store.pendingCommands()).toBe(0);
+    expect(store.offline()).toBe(false);
   });
 
   describe('deletePlanet', () => {

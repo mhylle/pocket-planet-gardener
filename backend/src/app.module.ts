@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
 import { GameConfigModule } from './game-config/game-config.module';
+import { GardenModule } from './garden/garden.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { PlanetsModule } from './planets/planets.module';
 
 @Module({
@@ -27,6 +29,8 @@ import { PlanetsModule } from './planets/planets.module';
     GameConfigModule,
     CatalogueModule,
     PlanetsModule,
+    GardenModule,
+    InventoryModule,
   ],
 })
 export class AppModule {}

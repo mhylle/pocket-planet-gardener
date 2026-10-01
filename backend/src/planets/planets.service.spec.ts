@@ -3,12 +3,13 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { QueryFailedError, type Repository } from 'typeorm';
+import { type DataSource, QueryFailedError, type Repository } from 'typeorm';
 import { FakeClock } from '../../test/support/fake-clock';
 import { SeededRandom } from '../../test/support/seeded-random';
 import { RandomService } from '../common/random.service';
 import { GameConfigService } from '../game-config/game-config.service';
 import { generatePlanetCode, isPlanetCode } from './planet-code';
+import { PlanetStateService } from './planet-state/planet-state.service';
 import type { Planet } from './planet.entity';
 import { PlanetsService } from './planets.service';
 
@@ -42,6 +43,11 @@ class FakePlanetRepository {
     }
     const row = {
       version: 1,
+      radiusLevel: 1,
+      tutorialStep: 0,
+      clouds: [],
+      sunOverrideAngle: null,
+      sunOverrideAt: null,
       createdAt: CREATED_AT,
       ...entity,
       id: entity.id ?? `planet-${this.nextId++}`,
@@ -63,6 +69,19 @@ class FakePlanetRepository {
     this.rows.delete(id);
     return Promise.resolve();
   }
+}
+
+/**
+ * The slice of DataSource that PlanetStateService reads a snapshot through:
+ * the planet comes from the fake table, and it has no garden yet.
+ */
+function snapshotSource(repo: FakePlanetRepository): DataSource {
+  const manager = {
+    findOneBy: (_entity: unknown, where: { id: string }) =>
+      repo.findOneBy(where),
+    find: () => Promise.resolve([]),
+  };
+  return { manager } as unknown as DataSource;
 }
 
 /** Always draws the lowest value, so every code is AAAAAAAA. */
@@ -92,6 +111,7 @@ function buildService(
     clock,
     random,
     config,
+    new PlanetStateService(snapshotSource(repo), clock),
   );
   return { service, repo, clock };
 }
@@ -125,8 +145,8 @@ describe('PlanetsService', () => {
       expect(repo.rows.get(planet.id)?.name).toBe('Moonbeam');
     });
 
-    it('returns the public shape with version 1', async () => {
-      const { service } = buildService();
+    it('returns the snapshot of the new planet, at version 1', async () => {
+      const { service, clock } = buildService();
 
       const planet = await service.create('Moonbeam');
 
@@ -136,6 +156,16 @@ describe('PlanetsService', () => {
         name: 'Moonbeam',
         version: 1,
         createdAt: CREATED_AT.toISOString(),
+        radiusLevel: 1,
+        maxPlants: 60,
+        tutorialStep: 0,
+        serverTime: clock.now().toISOString(),
+        plants: [],
+        decorations: [],
+        inventory: [],
+        unlocks: [],
+        clouds: [],
+        sun: { overrideAngle: null, overrideAt: null },
       });
     });
 

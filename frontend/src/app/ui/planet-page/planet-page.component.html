@@ -1,7 +1,9 @@
 @if (planet(); as planet) {
   <section class="planet-page" aria-labelledby="planet-name">
+    <app-reload-banner />
     <div class="bar">
       <h2 id="planet-name">{{ planet.name }}</h2>
+      <app-save-indicator />
       <button
         type="button"
         class="secondary"

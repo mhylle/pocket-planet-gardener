@@ -1,18 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { PlanetDto } from '../../core/models/planet';
-import { PlanetService } from '../../core/services/planet.service';
+import { PlanetSnapshotDto } from '../../core/models/planet-snapshot';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
+import { PlanetStore } from '../../core/services/planet-store.service';
+import { SyncService } from '../../core/services/sync.service';
 import { ViewStateService } from '../../core/services/view-state.service';
 import { PlanetPageComponent } from './planet-page.component';
 
-const mossy: PlanetDto = {
+const mossy: PlanetSnapshotDto = {
   id: '6f1c2d3e-0000-4000-8000-000000000001',
   code: 'MOSS2345',
   name: 'Mossy',
   version: 1,
   createdAt: '2026-10-01T10:00:00.000Z',
+  radiusLevel: 1,
+  maxPlants: 60,
+  tutorialStep: 0,
+  serverTime: '2026-10-01T10:00:00.000Z',
+  plants: [],
+  decorations: [],
+  inventory: [],
+  unlocks: [],
+  clouds: [],
+  sun: { overrideAngle: null, overrideAt: null },
 };
 
 describe('PlanetPageComponent', () => {
@@ -31,7 +42,10 @@ describe('PlanetPageComponent', () => {
     TestBed.inject(ViewStateService).show('planet');
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    vi.useRealTimers();
+  });
 
   function render() {
     fixture = TestBed.createComponent(PlanetPageComponent);
@@ -49,10 +63,8 @@ describe('PlanetPageComponent', () => {
   const failWith = (status: number) =>
     http.expectOne('/api/planet').flush({ statusCode: status }, { status, statusText: 'Error' });
 
-  it('shows a planet that is already known without asking the server again', async () => {
-    const created = TestBed.inject(PlanetService).create('Mossy');
-    http.expectOne({ method: 'POST', url: '/api/planet' }).flush(mossy);
-    await created;
+  it('shows a planet that is already loaded without asking the server again', async () => {
+    TestBed.inject(PlanetStore).setSnapshot(mossy);
 
     render();
     await fixture.whenStable();
@@ -115,5 +127,90 @@ describe('PlanetPageComponent', () => {
     settings.click();
     await fixture.whenStable();
     expect(page.querySelector('app-settings-panel')).toBeNull();
+  });
+
+  describe('saving and sync', () => {
+    const PLANT = '/api/garden/plant';
+    const SYNC = '/api/planet/sync';
+    const note = () => page.querySelector('app-save-indicator')!.textContent!.trim();
+    const plant = () =>
+      TestBed.inject(SyncService).send({
+        method: 'POST',
+        path: '/garden/plant',
+        body: { type: 'clover' },
+      });
+    const unreachable = () => http.expectOne(PLANT).error(new ProgressEvent('error'));
+
+    beforeEach(() => TestBed.inject(PlanetStore).setSnapshot(mossy));
+
+    it('shows a calm note while the connection is down and hides it once saved (ACC-03)', async () => {
+      vi.useFakeTimers();
+      render();
+      const saved = plant();
+      fixture.detectChanges();
+      expect(note()).toBe('Saving…');
+
+      unreachable();
+      fixture.detectChanges();
+      expect(note()).toBe("Offline — your changes will be saved when you're back");
+
+      vi.advanceTimersByTime(1000);
+      unreachable();
+      vi.advanceTimersByTime(2000);
+      unreachable();
+      vi.advanceTimersByTime(4000);
+      http
+        .expectOne(PLANT)
+        .flush({ snapshot: { ...mossy, name: 'Mossy Hill', version: 2 }, events: [] });
+      await saved;
+      fixture.detectChanges();
+
+      expect(note()).toBe('');
+      expect(heading()).toBe('Mossy Hill');
+    });
+
+    it('asks for a reload when another device changed the planet (ACC-04 AC2)', async () => {
+      render();
+      await fixture.whenStable();
+      expect(page.querySelector('app-reload-banner [role="alert"]')).toBeNull();
+
+      const refused = plant().catch((error: unknown) => error);
+      http
+        .expectOne(PLANT)
+        .flush({ statusCode: 409, message: 'reload' }, { status: 409, statusText: 'Conflict' });
+      await refused;
+      await fixture.whenStable();
+
+      expect(page.querySelector('app-reload-banner [role="alert"]')?.textContent).toContain(
+        'This planet changed on another device',
+      );
+    });
+
+    it('syncs once the planet is shown and stops when the page closes', () => {
+      vi.useFakeTimers();
+      render();
+
+      vi.advanceTimersByTime(10_000);
+      http.expectOne({ method: 'POST', url: SYNC }).flush({ snapshot: mossy, events: [] });
+
+      fixture.destroy();
+      vi.advanceTimersByTime(60_000);
+      http.expectNone(SYNC);
+    });
+
+    it('does not sync while the planet is still loading', async () => {
+      TestBed.inject(PlanetStore).clear();
+      vi.useFakeTimers();
+      render();
+
+      vi.advanceTimersByTime(10_000);
+      http.expectNone(SYNC);
+      http.expectOne('/api/planet').flush(mossy);
+      await vi.advanceTimersByTimeAsync(0);
+      fixture.detectChanges();
+
+      vi.advanceTimersByTime(10_000);
+      http.expectOne(SYNC).flush({ snapshot: mossy, events: [] });
+    });
   });
 });

@@ -10,6 +10,24 @@ import { FakeAiService } from './support/fake-ai';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const NOT_COSY = "That name isn't very cosy. How about another?";
+// Create, get and rename all answer with the snapshot, a superset of PlanetDto.
+const SNAPSHOT_KEYS = [
+  'clouds',
+  'code',
+  'createdAt',
+  'decorations',
+  'id',
+  'inventory',
+  'maxPlants',
+  'name',
+  'plants',
+  'radiusLevel',
+  'serverTime',
+  'sun',
+  'tutorialStep',
+  'unlocks',
+  'version',
+];
 
 // Uses the dev database and empties the planets table.
 describe('Planets (e2e)', () => {
@@ -59,13 +77,7 @@ describe('Planets (e2e)', () => {
       expect(planet.name).toBe('Moonbeam');
       expect(planet.version).toBe(1);
       expect(new Date(planet.createdAt).toISOString()).toBe(planet.createdAt);
-      expect(Object.keys(planet).sort()).toEqual([
-        'code',
-        'createdAt',
-        'id',
-        'name',
-        'version',
-      ]);
+      expect(Object.keys(planet).sort()).toEqual(SNAPSHOT_KEYS);
     });
 
     it('starts the simulation at the request time', async () => {
@@ -151,7 +163,11 @@ describe('Planets (e2e)', () => {
 
       const res = await getPlanet(planet.id).expect(200);
 
-      expect(res.body).toEqual(planet);
+      // Only the server time has moved on since the create.
+      expect(res.body).toEqual({
+        ...planet,
+        serverTime: expect.any(String) as string,
+      });
     });
 
     it('needs the X-Planet-Id header', async () => {
@@ -169,6 +185,7 @@ describe('Planets (e2e)', () => {
         code: planet.code,
         name: 'Sunpatch',
       });
+      expect(Object.keys(res.body as object).sort()).toEqual(SNAPSHOT_KEYS);
 
       const fetched = await getPlanet(planet.id).expect(200);
       expect((fetched.body as PlanetDto).name).toBe('Sunpatch');

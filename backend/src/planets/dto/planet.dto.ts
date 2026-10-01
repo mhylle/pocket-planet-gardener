@@ -1,6 +1,6 @@
 import type { Planet } from '../planet.entity';
 
-/** A planet as served by POST/GET /api/planet and PATCH /api/planet/name. */
+/** The planet's identity fields. The routes serve the snapshot, which starts with them. */
 export interface PlanetDto {
   id: string;
   // Typed on another device to open this planet (ACC-04).

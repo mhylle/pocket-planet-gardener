@@ -76,9 +76,10 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | ------ | --------------------------- | ------ | ---------------------------------------------------------------- |
 | GET    | `/api/config`               |        | The game tunables the client needs                               |
 | GET    | `/api/catalogue`            |        | Plants, decorations and species in public shape                  |
-| POST   | `/api/planet`               |        | Create a planet from `{ name }`; 201 with the planet             |
-| GET    | `/api/planet`               | yes    | The planet: `{ id, code, name, version, createdAt }`             |
-| PATCH  | `/api/planet/name`          | yes    | Rename it from `{ name }`; 200 with the planet                   |
+| POST   | `/api/planet`               |        | Create a planet from `{ name }`; 201 with its snapshot           |
+| GET    | `/api/planet`               | yes    | The planet's snapshot, see below                                 |
+| PATCH  | `/api/planet/name`          | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
+| POST   | `/api/planet/sync`          | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }` |
 | GET    | `/api/planet/by-code/:code` |        | `{ id }` of the planet with that code (any case); 404 if none    |
 | DELETE | `/api/planet`               | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
 
@@ -86,6 +87,19 @@ On a planet-scoped route a missing or malformed `X-Planet-Id` is a 400 and an
 unknown one is a 404 `This planet has drifted away`. The PoC has no accounts
 and no authentication (decision D-0 in the plan): anyone who has a planet's
 id or code can open, change or delete that planet.
+
+The client syncs every `GAME_SYNC_INTERVAL_SECONDS`. A sync advances the
+planet to now and answers with the snapshot and the events that happened, but
+it never bumps `version`: only the player's commands do. An `expectedVersion`
+that is not the planet's current one is a 409 `reload` that changes nothing,
+because another tab or device has changed the planet since.
+
+The snapshot is the whole planet. It keeps the fields served before it,
+`id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
+and adds `radiusLevel`, `maxPlants`, `tutorialStep`, `serverTime`, `plants`,
+`decorations`, `inventory` (only stacks with a count above 0), `unlocks`,
+`clouds` and `sun` (`{ overrideAngle, overrideAt }`). Plants and decorations
+come oldest first; inventory and unlocks are sorted by item type.
 
 A planet name must be 2 to 24 characters (`GAME_PLANET_NAME_MIN` and
 `GAME_PLANET_NAME_MAX`) and pass a small offensive-word filter. A refused
@@ -137,6 +151,7 @@ backend/src
 │   ├── planet-code.ts       8-character planet codes (pure helper)
 │   ├── name-rules.ts        length and offensive-word checks for names (pure helper)
 │   ├── dto/
+│   ├── planet-state/        the snapshot and mutate(), the one path every command takes (D-2)
 │   └── planet-context/      PlanetGuard (X-Planet-Id), @CurrentPlanet(), @NoPlanet()
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list

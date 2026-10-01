@@ -1,10 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { DataSource } from 'typeorm';
+import { Decoration } from '../garden/decoration.entity';
+import { Plant } from '../garden/plant.entity';
+import { InventoryItem } from '../inventory/inventory-item.entity';
+import { Unlock } from '../inventory/unlock.entity';
 import { Planet } from '../planets/planet.entity';
 import { ChatSchema1790850718762 } from './migrations/1790850718762-ChatSchema';
 import { DropMessages1790859180028 } from './migrations/1790859180028-DropMessages';
 import { PlanetSchema1790860588377 } from './migrations/1790860588377-PlanetSchema';
+import { GardenSchema1790877455866 } from './migrations/1790877455866-GardenSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -25,6 +30,7 @@ export const MIGRATIONS = [
   ChatSchema1790850718762,
   DropMessages1790859180028,
   PlanetSchema1790860588377,
+  GardenSchema1790877455866,
 ];
 
 export default new DataSource({
@@ -34,7 +40,7 @@ export default new DataSource({
   username: env('DB_USERNAME', 'postgres'),
   password: env('DB_PASSWORD', 'postgres'),
   database: env('DB_NAME', 'app'),
-  entities: [Planet],
+  entities: [Planet, Plant, Decoration, InventoryItem, Unlock],
   migrations: MIGRATIONS,
   synchronize: false,
 });

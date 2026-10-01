@@ -8,13 +8,14 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { ClockService } from '../common/clock.service';
 import { RandomService } from '../common/random.service';
 import { GameConfigService } from '../game-config/game-config.service';
-import { PlanetDto, toPlanetDto } from './dto/planet.dto';
+import type { PlanetSnapshotDto } from './dto/planet-snapshot.dto';
 import { nameErrorMessage, validateName } from './name-rules';
 import {
   generatePlanetCode,
   isPlanetCode,
   normalisePlanetCode,
 } from './planet-code';
+import { PlanetStateService } from './planet-state/planet-state.service';
 import { Planet } from './planet.entity';
 
 // With 31^8 possible codes a fresh one almost never collides, so a few
@@ -37,10 +38,11 @@ export class PlanetsService {
     private readonly clock: ClockService,
     private readonly random: RandomService,
     private readonly config: GameConfigService,
+    private readonly planetState: PlanetStateService,
   ) {}
 
   /** A new planet with a fresh code, named under the name rules (ACC-02 AC1, AC2). */
-  async create(name: string): Promise<PlanetDto> {
+  async create(name: string): Promise<PlanetSnapshotDto> {
     const planetName = this.checkName(name);
     const now = this.clock.now();
     for (let attempt = 1; ; attempt++) {
@@ -52,7 +54,7 @@ export class PlanetsService {
           lastSimulatedAt: now,
           lastSeenAt: now,
         });
-        return toPlanetDto(planet);
+        return this.planetState.getSnapshot(planet.id);
       } catch (error) {
         // The id comes from the database, so the code is the only unique
         // column a new row can collide on: draw another.
@@ -63,16 +65,17 @@ export class PlanetsService {
     }
   }
 
-  async get(id: string): Promise<PlanetDto> {
-    return toPlanetDto(await this.load(id));
+  get(id: string): Promise<PlanetSnapshotDto> {
+    return this.planetState.getSnapshot(id);
   }
 
   /** Renames under the same rules as create (ACC-02 AC4). Leaves the version alone. */
-  async rename(id: string, name: string): Promise<PlanetDto> {
+  async rename(id: string, name: string): Promise<PlanetSnapshotDto> {
     const planetName = this.checkName(name);
     const planet = await this.load(id);
     planet.name = planetName;
-    return toPlanetDto(await this.planets.save(planet));
+    await this.planets.save(planet);
+    return this.planetState.getSnapshot(id);
   }
 
   /**
