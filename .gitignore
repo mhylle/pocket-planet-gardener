@@ -1,0 +1,9 @@
+# Local tooling and IDE state
+.idea/
+.playwright-mcp/
+.claude/
+audit/
+node_modules/
+
+# Microsoft Defender Endpoint DLP alternate data streams (invalid paths on Windows)
+*:sec.endpointdlp

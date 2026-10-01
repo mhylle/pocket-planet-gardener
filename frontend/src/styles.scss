@@ -1,0 +1,38 @@
+/* Global styles and the design tokens the chat uses. */
+:root {
+  color-scheme: light;
+
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --fg: #1f2933;
+  --fg-muted: #52606d;
+  --border: #d3dae3;
+  --accent: #0b5cad;
+  --danger-fg: #8a1c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
