@@ -1,0 +1,74 @@
+<section class="settings" aria-labelledby="settings-heading">
+  <h3 id="settings-heading">Settings</h3>
+
+  <section aria-labelledby="code-heading">
+    <h4 id="code-heading">Planet code</h4>
+    <p>
+      To open this planet on another device, type this code there. Anyone with the code can open
+      your planet, so keep it to yourself.
+    </p>
+    <div class="row">
+      <strong class="code">{{ planet().code }}</strong>
+      <button type="button" class="secondary" (click)="copyCode()">Copy</button>
+      <span class="copy-note" aria-live="polite">{{ copyNote() }}</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="rename-heading">
+    <h4 id="rename-heading">Rename</h4>
+    <app-planet-name-form
+      label="New name"
+      submitLabel="Rename"
+      [initialName]="planet().name"
+      [error]="renameError()"
+      [busy]="renaming()"
+      (save)="rename($event)"
+    />
+    <p class="hint rename-note" aria-live="polite">{{ renameNote() }}</p>
+  </section>
+
+  <section aria-labelledby="leave-heading">
+    <h4 id="leave-heading">Leave or delete</h4>
+    @switch (question()) {
+      @case ('leave') {
+        <p #prompt tabindex="-1">
+          You'll need the planet code <strong class="code">{{ planet().code }}</strong> to come back
+          to {{ planet().name }} later. Leave this planet now?
+        </p>
+        <div class="row">
+          <button type="button" (click)="leave()">Yes, leave</button>
+          <button type="button" class="secondary" (click)="ask(null)">Stay here</button>
+        </div>
+      }
+      @case ('delete') {
+        <p #prompt tabindex="-1">
+          Delete {{ planet().name }}? Its garden, creatures, chats and journal will be gone for
+          good.
+        </p>
+        <div class="row">
+          <button type="button" class="danger" (click)="ask('delete-again')">Yes, delete it</button>
+          <button type="button" class="secondary" (click)="ask(null)">Keep my planet</button>
+        </div>
+      }
+      @case ('delete-again') {
+        <p #prompt tabindex="-1">
+          One last check: a deleted planet can't come back, not even with its code.
+        </p>
+        <!-- The order is swapped from the first check so a double click cannot delete. -->
+        <div class="row">
+          <button type="button" class="secondary" (click)="ask(null)">Keep my planet</button>
+          <button type="button" class="danger" [disabled]="deleting()" (click)="deletePlanet()">
+            Delete forever
+          </button>
+        </div>
+      }
+      @default {
+        <div class="row">
+          <button type="button" class="secondary" (click)="ask('leave')">Leave this planet</button>
+          <button type="button" class="danger" (click)="ask('delete')">Delete my planet</button>
+        </div>
+      }
+    }
+    <p class="error delete-error" aria-live="polite">{{ deleteError() }}</p>
+  </section>
+</section>

@@ -1,0 +1,12 @@
+.name-form {
+  display: grid;
+  gap: 0.25rem;
+}
+
+input {
+  flex: 1 1 12rem;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}

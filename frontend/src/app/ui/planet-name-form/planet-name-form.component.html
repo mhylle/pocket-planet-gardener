@@ -1,0 +1,21 @@
+<form class="name-form" (submit)="submit($event)">
+  <label [for]="fieldId">{{ label() }}</label>
+  <div class="row">
+    <input
+      #field
+      type="text"
+      autocomplete="off"
+      [id]="fieldId"
+      [value]="name()"
+      [attr.aria-invalid]="error() ? true : null"
+      [attr.aria-describedby]="fieldId + '-rule ' + fieldId + '-error'"
+      (input)="name.set(field.value)"
+    />
+    <button type="submit" [disabled]="!valid() || busy()">{{ submitLabel() }}</button>
+  </div>
+  <p class="hint" [id]="fieldId + '-rule'">
+    <span class="count">{{ length() }} / {{ max() }}</span>
+    · between {{ min() }} and {{ max() }} characters
+  </p>
+  <p class="error" aria-live="polite" [id]="fieldId + '-error'">{{ error() }}</p>
+</form>

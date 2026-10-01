@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MessagesModule } from './messages/messages.module';
+import { CatalogueModule } from './catalogue/catalogue.module';
+import { CommonModule } from './common/common.module';
+import { GameConfigModule } from './game-config/game-config.module';
+import { PlanetsModule } from './planets/planets.module';
 
 @Module({
   imports: [
@@ -20,7 +23,10 @@ import { MessagesModule } from './messages/messages.module';
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'false') === 'true',
       }),
     }),
-    MessagesModule,
+    CommonModule,
+    GameConfigModule,
+    CatalogueModule,
+    PlanetsModule,
   ],
 })
 export class AppModule {}

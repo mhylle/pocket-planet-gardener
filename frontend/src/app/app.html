@@ -1,39 +1,14 @@
-<main class="chat">
+<main class="shell">
   <h1>Pocket Planet Gardener</h1>
-
-  <!-- Reversed flex direction keeps the newest message in view as the list grows. -->
-  <section class="conversation">
-    <div>
-      @for (message of messages(); track message.id) {
-        <p class="message" [class.assistant]="message.role === 'assistant'">
-          <span class="author">{{ message.role === 'user' ? 'You' : 'AI' }}</span>
-          <span class="text">{{ message.text }}</span>
-        </p>
-      } @empty {
-        <p class="empty">No messages yet. Ask the AI something.</p>
-      }
-
-      @if (sending()) {
-        <p class="pending">The AI is thinking…</p>
-      }
-    </div>
-  </section>
-
-  @if (error()) {
-    <p class="error" role="alert">{{ error() }}</p>
+  @switch (view()) {
+    @case ('create-planet') {
+      <app-create-planet />
+    }
+    @case ('planet') {
+      <app-planet-page />
+    }
+    @case ('admin') {
+      <section class="admin">Admin tools come later</section>
+    }
   }
-
-  <form class="message-form" (ngSubmit)="send()">
-    <input
-      name="text"
-      placeholder="Write a message"
-      maxlength="4000"
-      autocomplete="off"
-      [ngModel]="text()"
-      (ngModelChange)="text.set($event)"
-    />
-    <button type="submit" [disabled]="!text().trim() || sending()">
-      {{ sending() ? 'Sending…' : 'Send' }}
-    </button>
-  </form>
 </main>

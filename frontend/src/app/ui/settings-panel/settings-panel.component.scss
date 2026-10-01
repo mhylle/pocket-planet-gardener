@@ -1,0 +1,29 @@
+.settings {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+section section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+.code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 1.125rem;
+  letter-spacing: 0.15em;
+}
+
+.row {
+  align-items: center;
+}

@@ -1,0 +1,27 @@
+@if (planet(); as planet) {
+  <section class="planet-page" aria-labelledby="planet-name">
+    <div class="bar">
+      <h2 id="planet-name">{{ planet.name }}</h2>
+      <button
+        type="button"
+        class="secondary"
+        aria-controls="settings-panel"
+        [attr.aria-expanded]="settingsOpen()"
+        (click)="settingsOpen.set(!settingsOpen())"
+      >
+        Settings
+      </button>
+    </div>
+    @if (settingsOpen()) {
+      <app-settings-panel id="settings-panel" [planet]="planet" />
+    }
+    <div class="placeholder">Your little world will appear here soon.</div>
+  </section>
+} @else if (loadFailed()) {
+  <div class="status" role="alert">
+    <p>We couldn't reach your planet just now. It is safe and sound, so let's try again.</p>
+    <button type="button" (click)="load()">Try again</button>
+  </div>
+} @else {
+  <p class="status" role="status">Opening your planet…</p>
+}

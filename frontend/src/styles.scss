@@ -1,4 +1,4 @@
-/* Global styles and the design tokens the chat uses. */
+/* Global styles and design tokens. */
 :root {
   color-scheme: light;
 
@@ -35,4 +35,68 @@ body {
 h1 {
   margin: 0;
   font-size: 1.5rem;
+}
+
+/* Form controls shared by every screen. */
+button,
+input {
+  font: inherit;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--surface);
+  cursor: pointer;
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+button.danger {
+  border-color: var(--danger-fg);
+  background: var(--danger-fg);
+  color: var(--surface);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--fg-muted);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--fg);
+}
+
+label {
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--fg-muted);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger-fg);
 }

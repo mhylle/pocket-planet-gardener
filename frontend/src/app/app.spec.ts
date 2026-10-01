@@ -2,17 +2,23 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { App } from './app';
-import { Message } from './core/models/message';
+import { PlanetDto } from './core/models/planet';
+import { DRIFTED_AWAY_NOTICE } from './core/services/planet.service';
+import { ViewStateService } from './core/services/view-state.service';
 
-const stored: Message[] = [
-  { id: 1, role: 'user', text: 'What is 2+2?', createdAt: '2026-10-01T10:00:00Z' },
-  { id: 2, role: 'assistant', text: '2+2 is 4.', createdAt: '2026-10-01T10:00:00Z' },
-];
+const mossy: PlanetDto = {
+  id: '6f1c2d3e-0000-4000-8000-000000000001',
+  code: 'MOSS2345',
+  name: 'Mossy',
+  version: 1,
+  createdAt: '2026-10-01T10:00:00.000Z',
+};
 
 describe('App', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -22,87 +28,95 @@ describe('App', () => {
 
   afterEach(() => http.verify());
 
-  /** Renders the page and answers its initial load with the given conversation. */
-  async function render(conversation: Message[]) {
+  function render() {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    http.expectOne({ method: 'GET', url: '/api/messages' }).flush(conversation);
-    await fixture.whenStable();
     const page = fixture.nativeElement as HTMLElement;
-    return { fixture, page };
+    /** Lets pending promise callbacks run, then waits for the re-render. */
+    const settle = async () => {
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+    };
+    return { fixture, page, settle };
   }
 
-  function lines(page: HTMLElement): string[] {
-    return [...page.querySelectorAll('.message')].map(
-      (p) => `${p.querySelector('.author')?.textContent}: ${p.querySelector('.text')?.textContent}`,
-    );
-  }
+  const heading = (page: HTMLElement) => page.querySelector('h2')?.textContent?.trim();
 
-  async function type(fixture: { whenStable(): Promise<unknown> }, page: HTMLElement, text: string) {
-    const input = page.querySelector('input')!;
-    input.value = text;
+  function type(page: HTMLElement, selector: string, value: string) {
+    const input = page.querySelector<HTMLInputElement>(selector)!;
+    input.value = value;
     input.dispatchEvent(new Event('input'));
-    await fixture.whenStable();
-    page.querySelector('form')!.dispatchEvent(new Event('submit'));
-    await fixture.whenStable();
   }
 
-  it('shows the stored conversation, both sides, in order', async () => {
-    const { page } = await render(stored);
-
-    expect(lines(page)).toEqual(['You: What is 2+2?', 'AI: 2+2 is 4.']);
-  });
-
-  it('says so when there are no messages yet', async () => {
-    const { page } = await render([]);
-
-    expect(page.querySelector('.empty')?.textContent).toContain('No messages yet');
-  });
-
-  it('sends the message and appends it with the reply', async () => {
-    const { fixture, page } = await render(stored);
-
-    await type(fixture, page, '  And times 3?  ');
-    const req = http.expectOne({ method: 'POST', url: '/api/messages' });
-    expect(req.request.body).toEqual({ text: 'And times 3?' });
-    expect(page.querySelector('.pending')?.textContent).toContain('thinking');
-
-    req.flush([
-      { id: 3, role: 'user', text: 'And times 3?', createdAt: '' },
-      { id: 4, role: 'assistant', text: '4 times 3 is 12.', createdAt: '' },
-    ]);
+  it('renders the heading and makes no HTTP request without a stored planet', async () => {
+    const { fixture, page } = render();
     await fixture.whenStable();
 
-    expect(lines(page)).toEqual([
-      'You: What is 2+2?',
-      'AI: 2+2 is 4.',
-      'You: And times 3?',
-      'AI: 4 times 3 is 12.',
-    ]);
-    expect(page.querySelector('input')!.value).toBe('');
-    expect(page.querySelector('.pending')).toBeNull();
+    expect(page.querySelector('main h1')?.textContent).toBe('Pocket Planet Gardener');
+    expect(page.querySelector('app-create-planet')).not.toBeNull();
   });
 
-  it('does not send a blank message', async () => {
-    const { fixture, page } = await render([]);
+  it('opens the stored planet at startup', async () => {
+    localStorage.setItem('ppg.planetId', mossy.id);
+    const { page, settle } = render();
 
-    await type(fixture, page, '   ');
+    const req = http.expectOne({ method: 'GET', url: '/api/planet' });
+    expect(req.request.headers.get('X-Planet-Id')).toBe(mossy.id);
+    req.flush(mossy);
+    await settle();
 
-    http.expectNone({ method: 'POST', url: '/api/messages' });
-    expect(page.querySelector('button')!.disabled).toBe(true);
+    expect(heading(page)).toBe('Mossy');
   });
 
-  it('shows an error and keeps the text when the AI fails', async () => {
-    const { fixture, page } = await render(stored);
+  it('forgets a planet that drifted away and offers to create one', async () => {
+    localStorage.setItem('ppg.planetId', mossy.id);
+    const { page, settle } = render();
 
-    await type(fixture, page, 'Anyone there?');
     http
-      .expectOne({ method: 'POST', url: '/api/messages' })
-      .flush({ message: 'Could not reach the AI provider.' }, { status: 503, statusText: 'Unavailable' });
+      .expectOne('/api/planet')
+      .flush(
+        { statusCode: 404, message: 'This planet has drifted away' },
+        { status: 404, statusText: 'Not Found' },
+      );
+    await settle();
+
+    expect(localStorage.getItem('ppg.planetId')).toBeNull();
+    expect(page.querySelector('app-create-planet')).not.toBeNull();
+    expect(page.querySelector('[role="status"]')?.textContent?.trim()).toBe(DRIFTED_AWAY_NOTICE);
+  });
+
+  it('shows the new planet right after creating it', async () => {
+    const { fixture, page, settle } = render();
+    type(page, 'app-planet-name-form input', 'Mossy');
     await fixture.whenStable();
 
-    expect(page.querySelector('[role="alert"]')?.textContent).toContain('The AI did not answer');
-    expect(page.querySelector('input')!.value).toBe('Anyone there?');
-    expect(lines(page)).toHaveLength(2);
+    page.querySelector<HTMLButtonElement>('app-planet-name-form button')!.click();
+    http.expectOne({ method: 'POST', url: '/api/planet' }).flush(mossy);
+    await settle();
+
+    expect(heading(page)).toBe('Mossy');
+  });
+
+  it('opens a planet by its code and loads it', async () => {
+    const { fixture, page, settle } = render();
+    type(page, '#planet-code', 'MOSS2345');
+    await fixture.whenStable();
+
+    page.querySelector<HTMLButtonElement>('.have-code button')!.click();
+    http.expectOne('/api/planet/by-code/MOSS2345').flush({ id: mossy.id });
+    await settle();
+    http.expectOne({ method: 'GET', url: '/api/planet' }).flush(mossy);
+    await settle();
+
+    expect(heading(page)).toBe('Mossy');
+  });
+
+  it('follows the view when it changes', async () => {
+    const { fixture, page } = render();
+
+    TestBed.inject(ViewStateService).show('admin');
+    await fixture.whenStable();
+
+    expect(page.querySelector('main section')?.textContent?.trim()).toBe('Admin tools come later');
   });
 });

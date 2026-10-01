@@ -1,0 +1,31 @@
+.planet-page {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+h2 {
+  margin: 0;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 16rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--fg-muted);
+}
+
+.status {
+  margin-top: 1rem;
+}

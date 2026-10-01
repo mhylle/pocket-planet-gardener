@@ -1,0 +1,41 @@
+<section class="create-planet" aria-labelledby="create-planet-heading">
+  @if (notice(); as notice) {
+    <p class="notice" role="status">{{ notice }}</p>
+  }
+
+  <h2 id="create-planet-heading">Start your own tiny planet</h2>
+  <p>Give it a name. You can change it later in settings.</p>
+  <app-planet-name-form
+    label="Planet name"
+    submitLabel="Create my planet"
+    [error]="createError()"
+    [busy]="creating()"
+    (save)="create($event)"
+  />
+
+  <details class="have-code">
+    <summary>I already have a planet code</summary>
+    <form (submit)="openByCode($event)">
+      <label for="planet-code">Planet code</label>
+      <div class="row">
+        <input
+          #codeField
+          id="planet-code"
+          type="text"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          aria-describedby="planet-code-hint planet-code-error"
+          [value]="code()"
+          [attr.aria-invalid]="codeError() ? true : null"
+          (input)="code.set(codeField.value)"
+        />
+        <button type="submit" [disabled]="!code().trim() || opening()">Open my planet</button>
+      </div>
+      <p id="planet-code-hint" class="hint">
+        The 8-character code from your planet's settings, on any device.
+      </p>
+      <p id="planet-code-error" class="error" aria-live="polite">{{ codeError() }}</p>
+    </form>
+  </details>
+</section>
