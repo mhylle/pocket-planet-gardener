@@ -83,6 +83,18 @@ describe('PlanetPageComponent', () => {
     expect(canvas()).not.toBeNull();
   });
 
+  it('puts the clouds and the sun next after the canvas in the Tab order (GRD-02 AC4)', async () => {
+    TestBed.inject(PlanetStore).setSnapshot(mossy);
+
+    render();
+    await fixture.whenStable();
+
+    const tabStops = [...page.querySelectorAll('[tabindex="0"], button, input')];
+    const next = tabStops[tabStops.indexOf(canvas()!) + 1];
+    expect(next.getAttribute('role')).toBe('option');
+    expect(next.closest('app-sky-list')).not.toBeNull();
+  });
+
   it('shows Pip while the planet loads and until it is first drawn (NFR-03)', async () => {
     vi.useFakeTimers();
     render();

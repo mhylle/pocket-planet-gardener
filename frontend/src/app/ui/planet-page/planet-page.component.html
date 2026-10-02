@@ -16,6 +16,8 @@
     </div>
     <div class="stage">
       <app-planet-view [name]="planet.name" [radiusLevel]="planet.radiusLevel" />
+      <!-- Straight after the canvas, so Tab goes from the planet to the clouds and the sun. -->
+      <app-sky-list />
       <app-placement-hud />
       <app-inventory-panel />
       <app-receipt-toast />

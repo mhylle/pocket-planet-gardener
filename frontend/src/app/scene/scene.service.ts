@@ -22,7 +22,10 @@ export class SceneService {
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
   /** Everything on the planet. Later phases add plants, decorations and creatures here. */
   readonly planetGroup = new THREE.Group();
-  /** The warm light that plays the sun. */
+  /**
+   * The warm light that plays the sun. It sits in the planet group, because the sun stands over
+   * one of the planet's longitudes and turns with it; it shines towards the planet centre.
+   */
   readonly sunLight = new THREE.DirectionalLight(0xfff1d6, 2.4);
 
   private readonly firstFrameDrawn = signal(false);
@@ -41,7 +44,8 @@ export class SceneService {
     this.camera.position.set(0, 0, 3.5);
     this.sunLight.position.set(-3, 4, 5);
     const skyFill = new THREE.HemisphereLight(0xdcefff, 0xd8c39a, 1.3);
-    this.scene.add(skyFill, this.sunLight, this.planetGroup);
+    this.planetGroup.add(this.sunLight);
+    this.scene.add(skyFill, this.planetGroup);
   }
 
   /** The canvas width in CSS pixels. */
@@ -76,6 +80,11 @@ export class SceneService {
     this.camera.updateProjectionMatrix();
     this.renderer.resize(this.size.width, this.size.height);
     this.requestRender();
+  }
+
+  /** Gives the canvas the keyboard focus, such as when a panel over it lets go. */
+  focusCanvas(): void {
+    this.canvas?.focus();
   }
 
   /** Runs the step on every frame from now on, before the frame is drawn. */

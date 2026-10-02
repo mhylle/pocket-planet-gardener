@@ -13,6 +13,12 @@ export class GameConfigService {
   // Garden
   readonly maxPlants: number;
   readonly cloudRefillSeconds: number;
+  // Not in the SD table: the clouds and their rain (Task 7.2).
+  readonly cloudCount: number;
+  readonly cloudDriftDegreesPerMinute: number;
+  readonly rainSeconds: number;
+  readonly rainRadiusSteps: number;
+  readonly rainWaterPerSecond: number;
   readonly sunOverrideMinutes: number;
   // Not in the SD table: how long the sun takes to drift once round (Task 6.1).
   readonly sunDayMinutes: number;
@@ -57,6 +63,14 @@ export class GameConfigService {
 
     this.maxPlants = read('GAME_MAX_PLANTS', 60);
     this.cloudRefillSeconds = read('GAME_CLOUD_REFILL_SECONDS', 60);
+    this.cloudCount = read('GAME_CLOUD_COUNT', 3);
+    this.cloudDriftDegreesPerMinute = read(
+      'GAME_CLOUD_DRIFT_DEGREES_PER_MINUTE',
+      6,
+    );
+    this.rainSeconds = read('GAME_RAIN_SECONDS', 8);
+    this.rainRadiusSteps = read('GAME_RAIN_RADIUS_STEPS', 2);
+    this.rainWaterPerSecond = read('GAME_RAIN_WATER_PER_SECOND', 0.15);
     this.sunOverrideMinutes = read('GAME_SUN_OVERRIDE_MINUTES', 5);
     this.sunDayMinutes = read('GAME_SUN_DAY_MINUTES', 60);
     this.unmetNeedGrowthFactor = read('GAME_UNMET_NEED_GROWTH_FACTOR', 0.5);
@@ -102,6 +116,9 @@ export class GameConfigService {
       chatDailyLimit: this.chatDailyLimit,
       syncIntervalSeconds: this.syncIntervalSeconds,
       cloudRefillSeconds: this.cloudRefillSeconds,
+      cloudDriftDegreesPerMinute: this.cloudDriftDegreesPerMinute,
+      rainSeconds: this.rainSeconds,
+      rainRadiusSteps: this.rainRadiusSteps,
       sunOverrideMinutes: this.sunOverrideMinutes,
       sunDayMinutes: this.sunDayMinutes,
       summaryAfterMinutes: this.summaryAfterMinutes,

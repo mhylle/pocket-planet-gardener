@@ -46,9 +46,13 @@ Otherwise point the backend at your own instance by editing `backend/.env`
 
 The game's tunable parameters are `GAME_*` variables, all listed in
 `backend/.env.example` (for example `GAME_MAX_PLANTS`). Leave one unset or
-empty to use its default from section 11 of the SD. One is not in the SD:
+empty to use its default from section 11 of the SD. Some are not in the SD:
 `GAME_SUN_DAY_MINUTES` (default 60), how long the sun takes to drift once
-round the planet.
+round the planet; `GAME_CLOUD_COUNT` (3) clouds per planet, drifting
+`GAME_CLOUD_DRIFT_DEGREES_PER_MINUTE` (6) east; a full cloud holds
+`GAME_RAIN_SECONDS` (8) of rain, which waters plants within
+`GAME_RAIN_RADIUS_STEPS` (2, a step being 5 degrees) by
+`GAME_RAIN_WATER_PER_SECOND` (0.15) for each second.
 
 The schema is created by TypeORM migrations, never by `synchronize`. Run them
 before starting the backend:
@@ -89,6 +93,9 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/garden/decorations`              | yes    | Place a decoration from `{ itemType, lat, lon }`; 201            |
 | PATCH  | `/api/garden/decorations/:id/position` | yes    | Move it to `{ lat, lon }`                                        |
 | DELETE | `/api/garden/decorations/:id`          | yes    | Put it away into the inventory                                   |
+| POST   | `/api/garden/rain`                     | yes    | Rain from `{ cloudId, lat, lon, seconds }`; adds `cloudEmpty`    |
+| POST   | `/api/garden/clouds/:id/position`      | yes    | Put a cloud down at `{ lat, lon }`; 200                          |
+| POST   | `/api/garden/sun`                      | yes    | Hold the sun over `{ angle }`, 0 up to 360; 200                  |
 
 On a planet-scoped route a missing or malformed `X-Planet-Id` is a 400 and an
 unknown one is a 404 `This planet has drifted away`. The PoC has no accounts
@@ -121,7 +128,8 @@ The snapshot is the whole planet. It keeps the fields served before it,
 `id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
 and adds `radiusLevel`, `maxPlants`, `tutorialStep`, `serverTime`, `plants`,
 `decorations`, `inventory` (only stacks with a count above 0), `unlocks`,
-`clouds` and `sun` (`{ overrideAngle, overrideAt, angle }`, `angle` being the
+`clouds` (`{ id, lat, lon, water, at }` each, see below) and `sun`
+(`{ overrideAngle, overrideAt, angle }`, `angle` being the
 longitude in degrees the sun stands over at `serverTime`). Plants and decorations
 come oldest first; inventory and unlocks are sorted by item type. A new
 planet holds the first `GAME_STARTER_SEED_TYPES` seed stacks of
@@ -135,6 +143,20 @@ and `lon` -180..180. A refused command is a 400
 `message` a friendly sentence to show the player; the planet, its version and
 its inventory stay as they were. A plant or decoration id that is not on the
 planet is a 404.
+
+A planet gets its clouds at its first sync or command. Each stored cloud is
+where it was, with how much water it held (0 to 1), at the instant `at`; it
+drifts east from there at a steady pace on its latitude and refills evenly to
+full in `GAME_CLOUD_REFILL_SECONDS`, and `cloudAt` in
+`simulation/cloud-rules.ts` (copied to the frontend) works out where it is
+later. Every sync and command stores the clouds as they are at that moment.
+The sky commands answer 200. `rain` moves the cloud to the spot and, for
+`seconds` from just above 0 to 2, rains for as long as its water lasts, and
+each plant within the rain radius gains the water for the seconds it rained,
+up to 1. From an empty cloud nothing falls and the answer carries
+`cloudEmpty: true`. Moving a cloud puts it down where it drifts on from. `sun`
+holds the sun over `angle` for `GAME_SUN_OVERRIDE_MINUTES`, then it drifts on
+from there. An unknown cloud id is a 404.
 
 A planet name must be 2 to 24 characters (`GAME_PLANET_NAME_MIN` and
 `GAME_PLANET_NAME_MAX`) and pass a small offensive-word filter. A refused
@@ -189,7 +211,7 @@ backend/src
 │   ├── planet-state/        the snapshot and mutate(), the one path every command takes (D-2)
 │   └── planet-context/      PlanetGuard (X-Planet-Id), @CurrentPlanet(), @NoPlanet()
 ├── simulation/              SimulationService (growth before every sync and command)
-│                            and pure rules: growth, sun, surface coords, placement
+│                            and pure rules: growth, sun, clouds, surface coords, placement
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list
 │   └── migrations/

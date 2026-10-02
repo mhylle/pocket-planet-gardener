@@ -2,9 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import type { DecorationId, DecorationType } from '../content/content.types';
 import { DECORATIONS } from '../content/decorations';
+import { GameConfigService } from '../game-config/game-config.service';
 import {
   InventoryService,
   type GrantItem,
@@ -15,17 +17,33 @@ import type {
 } from '../planets/planet-state/mutation.types';
 import { PlanetStateService } from '../planets/planet-state/planet-state.service';
 import {
+  MIN_RAIN_WATER,
+  cloudAt,
+  drainSeconds,
+  initialClouds,
+  type CloudState,
+  type CloudTunables,
+} from '../simulation/cloud-rules';
+import {
   PLANT_FOOTPRINT_STEPS,
   canPlaceAt,
   type PlacementCandidate,
   type PlacementReason,
 } from '../simulation/placement-rules';
+import { stepsBetween } from '../simulation/surface-coords';
 import { Decoration } from './decoration.entity';
 import type { GardenCommandDto } from './dto/garden-command.dto';
+import type { MoveSunDto } from './dto/move-sun.dto';
 import type { PlaceDecorationDto } from './dto/place-decoration.dto';
 import type { PlantSeedDto } from './dto/plant-seed.dto';
 import type { PositionDto } from './dto/position.dto';
+import type { RainDto } from './dto/rain.dto';
 import { Plant } from './plant.entity';
+
+/** What a rain command answers with: cloudEmpty when nothing fell (GRD-02 AC2). */
+export interface RainResult extends MutationResult {
+  cloudEmpty: boolean;
+}
 
 const GONE = "That isn't on your planet any more.";
 const TAKEN = 'Something is already there. Try a free spot.';
@@ -44,17 +62,108 @@ const DECORATION_TYPES = Object.fromEntries(
 ) as Record<DecorationId, DecorationType>;
 
 /**
- * Planting and digging up, and placing, moving and putting away decorations
- * (GRD-01, GRD-07, ITM-02). Every command runs through mutate(), so a refusal
- * throws inside the transaction and leaves the planet and inventory as they
- * were.
+ * Planting and digging up, placing, moving and putting away decorations, and
+ * the sky: clouds that drift and rain, and the sun the player can drag
+ * (GRD-01, GRD-02, GRD-03, GRD-07, ITM-02). Every command runs through
+ * mutate(), so a refusal throws inside the transaction and leaves the planet
+ * and inventory as they were.
  */
 @Injectable()
-export class GardenService {
+export class GardenService implements OnModuleInit {
+  // The cloud tunables under the names the cloud rules use.
+  private readonly cloudTunables: CloudTunables;
+
   constructor(
     private readonly planetState: PlanetStateService,
     private readonly inventory: InventoryService,
-  ) {}
+    private readonly config: GameConfigService,
+  ) {
+    this.cloudTunables = {
+      driftDegreesPerMinute: config.cloudDriftDegreesPerMinute,
+      refillSeconds: config.cloudRefillSeconds,
+      rainSeconds: config.rainSeconds,
+    };
+  }
+
+  onModuleInit(): void {
+    this.planetState.registerSimulationStep((ctx) => this.advanceClouds(ctx));
+  }
+
+  /**
+   * The cloud step: gives a planet its clouds at its first command or sync,
+   * and otherwise moves every cloud on to ctx.now, so the stored clouds are
+   * current after each one and a command can work on them as they are now.
+   */
+  advanceClouds(ctx: MutationContext): void {
+    const { planet, now } = ctx;
+    planet.clouds =
+      planet.clouds.length === 0
+        ? initialClouds(this.config.cloudCount, now)
+        : planet.clouds.map((cloud) => ({
+            ...cloud,
+            ...cloudAt(cloud, now, this.cloudTunables),
+            at: now.toISOString(),
+          }));
+  }
+
+  /**
+   * Rains from a cloud held over a spot for some seconds (GRD-02 AC1). The
+   * cloud moves there; unless it is empty, below MIN_RAIN_WATER and resting
+   * while it refills (AC2), every plant within rainRadiusSteps gets
+   * rainWaterPerSecond for each second it rained.
+   */
+  async rain(planetId: string, body: RainDto): Promise<RainResult> {
+    const { cloudId, lat, lon, seconds } = body;
+    let cloudEmpty = false;
+    const result = await this.planetState.mutate(
+      planetId,
+      body.expectedVersion,
+      async (ctx) => {
+        const cloud = this.findCloud(ctx, cloudId);
+        Object.assign(cloud, { lat, lon });
+        cloudEmpty = cloud.water < MIN_RAIN_WATER;
+        if (cloudEmpty) {
+          return;
+        }
+        const rain = drainSeconds(cloud.water, seconds, this.cloudTunables);
+        cloud.water = rain.water;
+        const gain = rain.rained * this.config.rainWaterPerSecond;
+        const plants = await ctx.em.findBy(Plant, { planetId });
+        const watered = plants.filter(
+          (plant) =>
+            stepsBetween(plant, { lat, lon }) <= this.config.rainRadiusSteps,
+        );
+        for (const plant of watered) {
+          plant.water = Math.min(1, plant.water + gain);
+        }
+        await ctx.em.save(watered);
+      },
+    );
+    return { ...result, cloudEmpty };
+  }
+
+  /** Puts a cloud down at a spot; it drifts on from there (GRD-02 AC3). */
+  moveCloud(
+    planetId: string,
+    cloudId: string,
+    body: PositionDto,
+  ): Promise<MutationResult> {
+    const { lat, lon } = body;
+    return this.planetState.mutate(planetId, body.expectedVersion, (ctx) => {
+      Object.assign(this.findCloud(ctx, cloudId), { lat, lon });
+    });
+  }
+
+  /**
+   * Holds the sun over the angle it was dragged to (GRD-03 AC1). It drifts
+   * on after sunOverrideMinutes (AC2); see sunAngleAt.
+   */
+  moveSun(planetId: string, body: MoveSunDto): Promise<MutationResult> {
+    return this.planetState.mutate(planetId, body.expectedVersion, (ctx) => {
+      ctx.planet.sunOverrideAngle = body.angle;
+      ctx.planet.sunOverrideAt = ctx.now;
+    });
+  }
 
   /** Plants one seed from the inventory at a free spot (GRD-01 AC1). */
   plant(planetId: string, body: PlantSeedDto): Promise<MutationResult> {
@@ -225,6 +334,15 @@ export class GardenService {
       throw new NotFoundException(GONE);
     }
     return decoration;
+  }
+
+  /** The planet's cloud with this id, as it is at ctx.now, or a 404. */
+  private findCloud(ctx: MutationContext, id: string): CloudState {
+    const cloud = ctx.planet.clouds.find((candidate) => candidate.id === id);
+    if (!cloud) {
+      throw new NotFoundException(GONE);
+    }
+    return cloud;
   }
 
   /** Puts an item back into the inventory, announcing it if new. */

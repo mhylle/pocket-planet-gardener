@@ -24,10 +24,10 @@ describe('SceneService', () => {
   /** Runs the animation frames due in the next n frames of about 16 ms. */
   const frames = (n: number) => vi.advanceTimersByTime(n * 16);
 
-  it('holds a camera on the +z axis, a sun, a sky fill and the planet group', () => {
+  it('holds a camera on the +z axis, a sky fill and the planet group with the sun in it', () => {
     expect(scene.camera.position.toArray()).toEqual([0, 0, 3.5]);
     expect(scene.scene.children).toContain(scene.planetGroup);
-    expect(scene.scene.children).toContain(scene.sunLight);
+    expect(scene.planetGroup.children).toContain(scene.sunLight);
     expect(scene.scene.children.some((child) => child instanceof THREE.HemisphereLight)).toBe(
       true,
     );

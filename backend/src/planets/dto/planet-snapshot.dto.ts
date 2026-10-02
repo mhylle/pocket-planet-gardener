@@ -1,6 +1,7 @@
 import type { DecorationId, PlantId } from '../../content/content.types';
 import type { PlantStage } from '../../garden/plant.entity';
 import type { ItemKind } from '../../inventory/inventory-item.entity';
+import type { CloudState } from '../../simulation/cloud-rules';
 import type { PlanetDto } from './planet.dto';
 
 /** A plant as the client draws it. */
@@ -64,7 +65,9 @@ export interface PlanetSnapshotDto extends PlanetDto {
   inventory: InventoryItemDto[];
   // Unlocked item types, sorted.
   unlocks: string[];
-  clouds: unknown[];
+  // Each as of its own at, the last command or sync; cloudAt gives where it
+  // is later. Empty until the planet's first command or sync (Task 7.2).
+  clouds: CloudState[];
   sun: SunStateDto;
 }
 

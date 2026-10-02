@@ -95,4 +95,27 @@ describe('PickingService', () => {
 
     expect(picking.pick(centre)).toMatchObject({ kind: 'plant', id: 'clover-1' });
   });
+
+  describe('sphereAt', () => {
+    it('finds where the ray meets a sphere round the planet, in planet coordinates', () => {
+      scene.planetGroup.quaternion.setFromEuler(new THREE.Euler(0.4, -2.1, 0.3));
+
+      const point = picking.sphereAt(centre, 2.2)!;
+
+      const { x, y, z } = toVector(point, 1);
+      const shown = new THREE.Vector3(x, y, z).applyQuaternion(scene.planetGroup.quaternion);
+      expect(shown.distanceTo(new THREE.Vector3(0, 0, 1))).toBeLessThan(1e-6);
+    });
+
+    it('passes by a sphere the ray misses, unless asked for the nearest direction', () => {
+      const corner = { x: 2, y: 2 };
+
+      expect(picking.sphereAt(corner, 1)).toBeNull();
+      expect(picking.sphereAt(corner, 2.2)).not.toBeNull();
+      // The top left corner of the view: up and to the west of the point facing the camera.
+      const nearest = picking.sphereAt(corner, 1, { orNearest: true })!;
+      expect(nearest.lat).toBeGreaterThan(0);
+      expect(nearest.lon).toBeLessThan(0);
+    });
+  });
 });

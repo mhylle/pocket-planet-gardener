@@ -31,7 +31,8 @@ export class PlanetViewComponent {
   protected readonly label = computed(
     () =>
       `${this.name()}, your planet. ` +
-      'Drag or use the arrow keys to turn it; scroll or press plus and minus to zoom.',
+      'Drag or use the arrow keys to turn it; scroll or press plus and minus to zoom. ' +
+      'Drag a cloud to water, or the sun to light; Tab reaches them by keyboard.',
   );
 
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');

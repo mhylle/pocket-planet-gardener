@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import type { CloudState } from '../simulation/cloud-rules';
 
 /**
  * A player's planet. Under D-0 the planet is also the player: its id is what
@@ -54,7 +55,7 @@ export class Planet {
   tutorialStep!: number;
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
-  clouds!: unknown[];
+  clouds!: CloudState[];
 
   @Column({ name: 'arrival_tracking', type: 'jsonb', default: () => "'{}'" })
   arrivalTracking!: Record<string, unknown>;

@@ -8,6 +8,9 @@ export interface PublicGameConfigDto {
   chatDailyLimit: number;
   syncIntervalSeconds: number;
   cloudRefillSeconds: number;
+  cloudDriftDegreesPerMinute: number;
+  rainSeconds: number;
+  rainRadiusSteps: number;
   sunOverrideMinutes: number;
   sunDayMinutes: number;
   summaryAfterMinutes: number;

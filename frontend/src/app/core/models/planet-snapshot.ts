@@ -1,3 +1,4 @@
+import { CloudState } from '../helpers/cloud-rules';
 import { PlanetDto } from './planet';
 
 export type PlantStage = 'seed' | 'sprout' | 'young' | 'bloom';
@@ -51,7 +52,8 @@ export interface PlanetSnapshotDto extends PlanetDto {
   decorations: DecorationDto[];
   inventory: InventoryItemDto[];
   unlocks: string[];
-  clouds: unknown[];
+  /** Each cloud as of serverTime. */
+  clouds: CloudState[];
   sun: SunStateDto;
 }
 
@@ -72,4 +74,10 @@ export interface SyncResponse {
 /** The 200 response of every gameplay command. */
 export interface CommandResponse extends SyncResponse {
   newlyUnlocked?: string[];
+}
+
+/** The 200 response of POST /api/garden/rain. */
+export interface RainResponse extends CommandResponse {
+  /** The cloud ran dry, so it rains no more until it has refilled (GRD-02 AC2). */
+  cloudEmpty: boolean;
 }

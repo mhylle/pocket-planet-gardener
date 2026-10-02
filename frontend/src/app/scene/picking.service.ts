@@ -43,19 +43,51 @@ export class PickingService {
   }
 
   /** The object under a canvas point given in CSS pixels from its top left; null for open sky. */
-  pick({ x, y }: { x: number; y: number }): PickResult | null {
-    const { scene, camera, planetGroup, width, height } = this.sceneService;
-    // The renderer updates these while drawing, but a tap may come before the next frame.
-    scene.updateMatrixWorld();
-    camera.updateMatrixWorld();
-    this.pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
-    this.raycaster.setFromCamera(this.pointer, camera);
+  pick(at: { x: number; y: number }): PickResult | null {
+    this.aim(at);
     const [hit] = this.raycaster.intersectObjects([...this.targets.keys()], true);
     const target = hit && this.targetOf(hit.object, hit.instanceId);
     if (!target) {
       return null;
     }
-    return { ...target, surface: fromVector(planetGroup.worldToLocal(hit.point.clone())) };
+    return { ...target, surface: this.surfaceOf(hit.point) };
+  }
+
+  /**
+   * Where the ray under a canvas point first meets a sphere of the radius around the planet
+   * centre, as a surface point of the planet; null when it passes by. With orNearest, a ray
+   * that passes by gives the direction in which it comes nearest instead.
+   */
+  sphereAt(
+    at: { x: number; y: number },
+    radius: number,
+    { orNearest = false }: { orNearest?: boolean } = {},
+  ): SurfacePoint | null {
+    this.aim(at);
+    const { ray } = this.raycaster;
+    const sphere = new THREE.Sphere(new THREE.Vector3(), radius);
+    const point = ray.intersectSphere(sphere, new THREE.Vector3());
+    if (point) {
+      return this.surfaceOf(point);
+    }
+    return orNearest
+      ? this.surfaceOf(ray.closestPointToPoint(sphere.center, new THREE.Vector3()))
+      : null;
+  }
+
+  /** Points the ray from the camera through a canvas point. */
+  private aim({ x, y }: { x: number; y: number }): void {
+    const { scene, camera, width, height } = this.sceneService;
+    // The renderer updates these while drawing, but a tap may come before the next frame.
+    scene.updateMatrixWorld();
+    camera.updateMatrixWorld();
+    this.pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
+    this.raycaster.setFromCamera(this.pointer, camera);
+  }
+
+  /** A point in the world, as the surface point of the planet in its direction. */
+  private surfaceOf(point: THREE.Vector3): SurfacePoint {
+    return fromVector(this.sceneService.planetGroup.worldToLocal(point.clone()));
   }
 
   /** The target of the object (or of the instance hit), or of its nearest registered ancestor. */

@@ -1,0 +1,52 @@
+<section class="sky" aria-labelledby="sky-title">
+  <h3 id="sky-title">Sky</h3>
+  <ul role="listbox" aria-labelledby="sky-title" aria-describedby="sky-help">
+    @for (option of options(); track option.key) {
+      <li
+        role="option"
+        tabindex="0"
+        [class.selected]="selected() === option.key"
+        [attr.aria-selected]="selected() === option.key"
+        [attr.aria-label]="option.status ? option.name + ' (' + option.status + ')' : option.name"
+        (focus)="focus(option)"
+        (blur)="blur(option)"
+        (keydown)="key($event, option)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          @switch (option.icon) {
+            @case ('sun') {
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"
+              />
+            }
+            @case ('rain') {
+              <path d="M7 14a4 4 0 0 1 .6-8A5 5 0 0 1 17 7a3.5 3.5 0 0 1 0 7z" />
+              <path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3" />
+            }
+            @default {
+              <path
+                class="drop"
+                [class.filled]="option.icon === 'full'"
+                d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"
+              />
+              @if (option.icon === 'half') {
+                <path d="M6.5 13h11" />
+              } @else if (option.icon === 'low') {
+                <path d="M8 17h8" />
+              } @else if (option.icon === 'empty') {
+                <path d="M4 4l16 16" />
+              }
+            }
+          }
+        </svg>
+        <span class="name">{{ option.name }}</span>
+        @if (option.status) {
+          <span class="status">{{ option.status }}</span>
+        }
+      </li>
+    }
+  </ul>
+  <p id="sky-help" class="hint">Arrows move it, Space makes a cloud rain, Esc lets go.</p>
+  <p class="announcer" aria-live="polite">{{ announcement() }}</p>
+</section>

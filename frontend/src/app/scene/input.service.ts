@@ -58,12 +58,15 @@ interface Press {
   dragging: boolean;
   /** False for the finger left over from a pinch. */
   canTap: boolean;
+  /** Something under the pointer took hold of it, such as a cloud: see grab(). */
+  grabbed: boolean;
 }
 
 /**
  * Turns pointer (mouse, touch, pen) and keyboard events on the canvas into plain gestures.
  * Keys arrive only while the canvas has focus, so typing elsewhere is never taken over. A
  * second finger ends a drag and starts a pinch; a gesture that had two fingers never taps.
+ * A press that something grabbed moves that thing instead of turning the planet.
  */
 @Injectable()
 export class InputService {
@@ -74,7 +77,16 @@ export class InputService {
   private readonly pinches = new Subject<PinchInput>();
   private readonly wheels = new Subject<WheelInput>();
   private readonly keys = new Subject<KeyInput>();
+  private readonly pressStarts = new Subject<TapInput>();
+  private readonly grabMoves = new Subject<TapInput>();
+  private readonly grabEnds = new Subject<void>();
 
+  /** A first finger or the mouse button went down here. A subscriber may grab() the press. */
+  readonly pressStart = this.pressStarts.asObservable();
+  /** Where a grabbed press is now, on every move. */
+  readonly grabMove = this.grabMoves.asObservable();
+  /** The grabbed press let go, the browser took it over, or a second finger joined. */
+  readonly grabEnd = this.grabEnds.asObservable();
   readonly drag = this.drags.asObservable();
   /** The finger or button that was dragging let go, or a second finger joined. */
   readonly dragEnd = this.dragEnds.asObservable();
@@ -121,6 +133,17 @@ export class InputService {
     this.heldKeys.clear();
   }
 
+  /**
+   * Called by a pressStart subscriber while the press is being reported: it now moves what
+   * it landed on (a cloud, the sun), so it reports grabMove and grabEnd, and never drag,
+   * dragEnd or tap.
+   */
+  grab(): void {
+    if (this.press) {
+      this.press.grabbed = true;
+    }
+  }
+
   private pointerDown(event: PointerEvent): void {
     if (event.button !== 0 || this.pointers.size === 2) {
       return;
@@ -131,9 +154,12 @@ export class InputService {
     if (this.pointers.size === 1) {
       this.hadTwoPointers = false;
       this.startPress(event.pointerId, event.timeStamp);
+      this.pressStarts.next(this.position(event));
       return;
     }
-    if (this.press?.dragging) {
+    if (this.press?.grabbed) {
+      this.grabEnds.next();
+    } else if (this.press?.dragging) {
       this.dragEnds.next();
     }
     this.press = null;
@@ -162,6 +188,10 @@ export class InputService {
     if (!press) {
       return;
     }
+    if (press.grabbed) {
+      this.grabMoves.next({ x: pointer.x, y: pointer.y });
+      return;
+    }
     const moved = Math.hypot(pointer.x - press.startX, pointer.y - press.startY);
     if (!press.dragging && moved <= DRAG_THRESHOLD_PX) {
       return;
@@ -180,7 +210,9 @@ export class InputService {
     const press = this.press;
     if (press?.pointerId === event.pointerId) {
       this.press = null;
-      if (press.dragging) {
+      if (press.grabbed) {
+        this.grabEnds.next();
+      } else if (press.dragging) {
         this.dragEnds.next();
       } else if (released && press.canTap && event.timeStamp - press.startTime <= TAP_MAX_MS) {
         this.taps.next(this.position(event));
@@ -205,6 +237,7 @@ export class InputService {
       startTime: time,
       dragging: false,
       canTap: !this.hadTwoPointers,
+      grabbed: false,
     };
   }
 

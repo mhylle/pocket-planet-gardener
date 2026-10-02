@@ -1,4 +1,38 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { AVERAGE_LIGHT, lightAt, sunAngleAt } from './sun-model';
+import type { SurfacePoint } from './surface-coords';
+
+interface Fixtures {
+  dayMinutes: number;
+  holdMinutes: number;
+  lightAt: {
+    name: string;
+    point: SurfacePoint;
+    sunAngle: number;
+    expect: number;
+  }[];
+  sunAngleAt: {
+    name: string;
+    at: string;
+    // The override's at is an ISO timestamp here.
+    override: { angle: number; at: string } | null;
+    expect: number;
+  }[];
+}
+
+// Jest runs from backend/, so both paths start there.
+const BACKEND_DIR = join('src', 'simulation');
+const FRONTEND_DIR = join('..', 'frontend', 'src', 'app', 'core', 'helpers');
+
+/** Reads a file with LF line endings, whatever git checked it out with. */
+function read(dir: string, file: string): string {
+  return readFileSync(join(dir, file), 'utf8').replace(/\r\n/g, '\n');
+}
+
+const fixtures = JSON.parse(
+  read(BACKEND_DIR, 'sun-model.fixtures.json'),
+) as Fixtures;
 
 const DAY_MINUTES = 60;
 const HOLD_MINUTES = 5;
@@ -95,4 +129,36 @@ describe('sun model', () => {
   it('gives away time an average light of 0.5 (TIM-01 AC4)', () => {
     expect(AVERAGE_LIGHT).toBe(0.5);
   });
+
+  describe('shared fixtures (plan D-10)', () => {
+    it.each(fixtures.lightAt)(
+      'lightAt: $name',
+      ({ point, sunAngle, expect: want }) => {
+        expect(lightAt(point, sunAngle)).toBeCloseTo(want, 12);
+      },
+    );
+
+    it.each(fixtures.sunAngleAt)(
+      'sunAngleAt: $name',
+      ({ at: t, override, expect: want }) => {
+        const angle = sunAngleAt(
+          new Date(t),
+          fixtures.dayMinutes,
+          override && { angle: override.angle, at: new Date(override.at) },
+          fixtures.holdMinutes,
+        );
+
+        expect(angle).toBeCloseTo(want, 12);
+      },
+    );
+  });
+});
+
+describe('frontend copy (plan D-10)', () => {
+  it.each(['sun-model.ts', 'sun-model.fixtures.json'])(
+    '%s is identical to the backend copy',
+    (file) => {
+      expect(read(FRONTEND_DIR, file)).toBe(read(BACKEND_DIR, file));
+    },
+  );
 });

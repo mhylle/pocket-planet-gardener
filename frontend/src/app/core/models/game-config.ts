@@ -8,6 +8,11 @@ export interface GameConfig {
   chatDailyLimit: number;
   syncIntervalSeconds: number;
   cloudRefillSeconds: number;
+  /** How many seconds of rain a full cloud holds. */
+  rainSeconds: number;
+  /** How far from the point under a cloud its rain reaches, in steps. */
+  rainRadiusSteps: number;
+  cloudDriftDegreesPerMinute: number;
   sunOverrideMinutes: number;
   /** How long the sun takes to circle the planet once. */
   sunDayMinutes: number;
@@ -25,6 +30,9 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   chatDailyLimit: 30,
   syncIntervalSeconds: 10,
   cloudRefillSeconds: 60,
+  rainSeconds: 8,
+  rainRadiusSteps: 2,
+  cloudDriftDegreesPerMinute: 6,
   sunOverrideMinutes: 5,
   sunDayMinutes: 60,
   summaryAfterMinutes: 60,

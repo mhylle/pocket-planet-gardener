@@ -1,5 +1,6 @@
 import { Provider } from '@angular/core';
 import { CameraControlsService } from './camera-controls.service';
+import { CloudDragController } from './cloud-drag.controller';
 import { DecorationMeshService } from './decoration-mesh.service';
 import { GardenInputService } from './garden-input.service';
 import { InputService } from './input.service';
@@ -8,6 +9,8 @@ import { PlacementGhostService } from './placement-ghost.service';
 import { PlanetMeshService } from './planet-mesh.service';
 import { PlantMeshService } from './plant-mesh.service';
 import { SceneService } from './scene.service';
+import { SkyService } from './sky.service';
+import { SunDragController } from './sun-drag.controller';
 
 /**
  * One 3D scene and everything that works on it. Provided by the planet page, so the planet
@@ -25,4 +28,7 @@ export const SCENE_PROVIDERS: Provider[] = [
   DecorationMeshService,
   PlacementGhostService,
   GardenInputService,
+  SkyService,
+  CloudDragController,
+  SunDragController,
 ];

@@ -158,6 +158,79 @@ describe('InputService', () => {
 
       expect(hovers).toEqual([{ x: 10, y: 20 }, { x: 30, y: 20 }, null]);
     });
+
+    describe('grabbing', () => {
+      let presses: TapInput[];
+      let grabMoves: TapInput[];
+      let grabEnds: number;
+
+      beforeEach(() => {
+        presses = [];
+        grabMoves = [];
+        grabEnds = 0;
+        input.grabMove.subscribe((at) => grabMoves.push(at));
+        input.grabEnd.subscribe(() => grabEnds++);
+      });
+
+      /** Grabs every press, as a cloud under the pointer would. */
+      const grabEveryPress = () =>
+        input.pressStart.subscribe((at) => {
+          presses.push(at);
+          input.grab();
+        });
+
+      it('reports where a first press starts, and only the first finger', () => {
+        input.pressStart.subscribe((at) => presses.push(at));
+
+        pointer('pointerdown', 100, 50, 1);
+        pointer('pointerdown', 200, 50, 2);
+
+        expect(presses).toEqual([{ x: 100, y: 50 }]);
+      });
+
+      it('reports every move of a grabbed press, and its end, but never a drag or a tap', () => {
+        grabEveryPress();
+
+        pointer('pointerdown', 100, 50);
+        pointer('pointermove', 101, 50);
+        pointer('pointermove', 140, 60);
+        pointer('pointerup', 140, 60);
+
+        expect(grabMoves).toEqual([
+          { x: 101, y: 50 },
+          { x: 140, y: 60 },
+        ]);
+        expect(grabEnds).toBe(1);
+        expect([drags, dragEnds, taps]).toEqual([[], 0, []]);
+      });
+
+      it('ends a grab when a second finger joins or the browser cancels the pointer', () => {
+        grabEveryPress();
+
+        pointer('pointerdown', 100, 50, 1);
+        pointer('pointerdown', 200, 50, 2);
+        expect(grabEnds).toBe(1);
+        pointer('pointerup', 200, 50, 2);
+        pointer('pointerup', 100, 50, 1);
+
+        pointer('pointerdown', 100, 50, 3);
+        pointer('pointercancel', 100, 50, 3);
+
+        expect(grabEnds).toBe(2);
+        expect(taps).toEqual([]);
+      });
+
+      it('leaves an ungrabbed press to drag and tap as before', () => {
+        input.pressStart.subscribe((at) => presses.push(at));
+
+        pointer('pointerdown', 100, 50);
+        pointer('pointermove', 110, 50);
+        pointer('pointerup', 110, 50);
+
+        expect(drags).toEqual([{ dx: 10, dy: 0 }]);
+        expect([grabMoves, grabEnds]).toEqual([[], 0]);
+      });
+    });
   });
 
   describe('wheel', () => {
@@ -217,9 +290,7 @@ describe('InputService', () => {
       const field = document.createElement('input');
       document.body.append(field);
 
-      field.dispatchEvent(
-        new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', bubbles: true }),
-      );
+      field.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', key: 'a', bubbles: true }));
       field.remove();
 
       expect(keys).toEqual([]);

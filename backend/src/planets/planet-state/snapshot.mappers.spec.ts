@@ -32,7 +32,7 @@ function planetRow(overrides: Partial<Planet> = {}): Planet {
     sunOverrideAngle: null,
     sunOverrideAt: null,
     tutorialStep: 4,
-    clouds: [{ id: 'c1' }],
+    clouds: [{ id: 'c1', lat: 0, lon: 0, water: 1, at: T0.toISOString() }],
     arrivalTracking: { worm: T0.toISOString() },
     rewardCounter: 7,
     createdAt: T0,
@@ -170,7 +170,7 @@ describe('snapshot mappers', () => {
       decorations: [toDecorationDto(decorationRow())],
       inventory: [toInventoryItemDto(inventoryRow())],
       unlocks: ['clover', 'pond'],
-      clouds: [{ id: 'c1' }],
+      clouds: [{ id: 'c1', lat: 0, lon: 0, water: 1, at: T0.toISOString() }],
       sun: { overrideAngle: null, overrideAt: null },
     });
   });

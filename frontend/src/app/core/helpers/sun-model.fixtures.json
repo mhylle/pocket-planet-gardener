@@ -1,0 +1,86 @@
+{
+  "dayMinutes": 60,
+  "holdMinutes": 5,
+  "lightAt": [
+    {
+      "name": "full at the point facing the sun",
+      "point": { "lat": 0, "lon": 30 },
+      "sunAngle": 30,
+      "expect": 1
+    },
+    {
+      "name": "none at its antipode",
+      "point": { "lat": 0, "lon": -150 },
+      "sunAngle": 30,
+      "expect": 0
+    },
+    {
+      "name": "half 60 degrees east of the sun",
+      "point": { "lat": 0, "lon": 90 },
+      "sunAngle": 30,
+      "expect": 0.5
+    },
+    {
+      "name": "half 60 degrees north of the sun",
+      "point": { "lat": 60, "lon": 30 },
+      "sunAngle": 30,
+      "expect": 0.5
+    },
+    {
+      "name": "none at a pole, on the edge of the lit half",
+      "point": { "lat": 90, "lon": 0 },
+      "sunAngle": 30,
+      "expect": 0
+    },
+    {
+      "name": "none on the night side",
+      "point": { "lat": 0, "lon": 150 },
+      "sunAngle": 30,
+      "expect": 0
+    },
+    {
+      "name": "full under a sun angle beyond 180",
+      "point": { "lat": 0, "lon": -90 },
+      "sunAngle": 270,
+      "expect": 1
+    }
+  ],
+  "sunAngleAt": [
+    {
+      "name": "0 at the epoch",
+      "at": "1970-01-01T00:00:00.000Z",
+      "override": null,
+      "expect": 0
+    },
+    {
+      "name": "a quarter turn a quarter of a sun day later",
+      "at": "2030-01-01T00:15:00.000Z",
+      "override": null,
+      "expect": 90
+    },
+    {
+      "name": "half a turn one and a half sun days later",
+      "at": "2030-01-01T01:30:00.000Z",
+      "override": null,
+      "expect": 180
+    },
+    {
+      "name": "where a dragged sun was left, during the hold",
+      "at": "2030-01-01T00:11:00.000Z",
+      "override": { "angle": -90, "at": "2030-01-01T00:07:00.000Z" },
+      "expect": 270
+    },
+    {
+      "name": "where a dragged sun was left, at the end of the hold",
+      "at": "2030-01-01T00:12:00.000Z",
+      "override": { "angle": -90, "at": "2030-01-01T00:07:00.000Z" },
+      "expect": 270
+    },
+    {
+      "name": "drifting on from the dragged angle after the hold",
+      "at": "2030-01-01T00:27:00.000Z",
+      "override": { "angle": 100, "at": "2030-01-01T00:07:00.000Z" },
+      "expect": 190
+    }
+  ]
+}

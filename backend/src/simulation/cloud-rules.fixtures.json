@@ -1,0 +1,177 @@
+{
+  "tunables": {
+    "driftDegreesPerMinute": 6,
+    "refillSeconds": 60,
+    "rainSeconds": 8
+  },
+  "minRainWater": 0.2,
+  "cloudAt": [
+    {
+      "name": "stays as it was at its own instant",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 10,
+        "water": 0.5,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:00:00.000Z",
+      "expect": { "lat": 25, "lon": 10, "water": 0.5 }
+    },
+    {
+      "name": "drifts east 6 degrees a minute on its latitude",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": -15,
+        "lon": 10,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:02:00.000Z",
+      "expect": { "lat": -15, "lon": 22, "water": 1 }
+    },
+    {
+      "name": "refills half way in half the refill time",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 0,
+        "water": 0,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:00:30.000Z",
+      "expect": { "lat": 25, "lon": 3, "water": 0.5 }
+    },
+    {
+      "name": "is full again after the refill time",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 0,
+        "water": 0,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:01:00.000Z",
+      "expect": { "lat": 25, "lon": 6, "water": 1 }
+    },
+    {
+      "name": "never fills beyond full",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 0,
+        "water": 0.75,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:10:00.000Z",
+      "expect": { "lat": 25, "lon": 60, "water": 1 }
+    },
+    {
+      "name": "drifts past 180 onto the western longitudes",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 40,
+        "lon": 170,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:05:00.000Z",
+      "expect": { "lat": 40, "lon": -160, "water": 1 }
+    },
+    {
+      "name": "reaches 180, never -180",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 40,
+        "lon": 150,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T00:05:00.000Z",
+      "expect": { "lat": 40, "lon": 180, "water": 1 }
+    },
+    {
+      "name": "comes round once an hour",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 40,
+        "lon": -170,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2030-01-01T01:00:00.000Z",
+      "expect": { "lat": 40, "lon": -170, "water": 1 }
+    },
+    {
+      "name": "stays put when the clock is set back",
+      "cloud": {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 10,
+        "water": 0.5,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      "now": "2029-12-31T23:59:00.000Z",
+      "expect": { "lat": 25, "lon": 10, "water": 0.5 }
+    }
+  ],
+  "drainSeconds": [
+    {
+      "name": "a full cloud rains 2 seconds",
+      "water": 1,
+      "seconds": 2,
+      "expect": { "water": 0.75, "rained": 2 }
+    },
+    {
+      "name": "half a cloud rains half a second",
+      "water": 0.5,
+      "seconds": 0.5,
+      "expect": { "water": 0.4375, "rained": 0.5 }
+    },
+    {
+      "name": "a full cloud empties in rainSeconds",
+      "water": 1,
+      "seconds": 8,
+      "expect": { "water": 0, "rained": 8 }
+    },
+    {
+      "name": "a nearly empty cloud rains only what it holds",
+      "water": 0.125,
+      "seconds": 2,
+      "expect": { "water": 0, "rained": 1 }
+    },
+    {
+      "name": "an empty cloud does not rain",
+      "water": 0,
+      "seconds": 1,
+      "expect": { "water": 0, "rained": 0 }
+    }
+  ],
+  "initialClouds": {
+    "count": 3,
+    "now": "2030-01-01T00:00:00.000Z",
+    "expect": [
+      {
+        "id": "cloud-1",
+        "lat": 25,
+        "lon": 0,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "cloud-2",
+        "lat": -15,
+        "lon": 120,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "cloud-3",
+        "lat": 40,
+        "lon": -120,
+        "water": 1,
+        "at": "2030-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}

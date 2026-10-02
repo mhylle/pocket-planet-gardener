@@ -13,6 +13,12 @@ function buildService(env: Record<string, string> = {}): GameConfigService {
 const sdDefaults: Record<string, number> = {
   maxPlants: 60,
   cloudRefillSeconds: 60,
+  // Not in the SD table either: the clouds and their rain (Task 7.2).
+  cloudCount: 3,
+  cloudDriftDegreesPerMinute: 6,
+  rainSeconds: 8,
+  rainRadiusSteps: 2,
+  rainWaterPerSecond: 0.15,
   sunOverrideMinutes: 5,
   // The one tunable the SD table lacks: the sun's drift period (Task 6.1).
   sunDayMinutes: 60,
@@ -102,6 +108,9 @@ describe('GameConfigService', () => {
       'chatDailyLimit',
       'syncIntervalSeconds',
       'cloudRefillSeconds',
+      'cloudDriftDegreesPerMinute',
+      'rainSeconds',
+      'rainRadiusSteps',
       'sunOverrideMinutes',
       'sunDayMinutes',
       'summaryAfterMinutes',

@@ -5,6 +5,7 @@ import { PlanetService } from '../../core/services/planet.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
 import { SyncService } from '../../core/services/sync.service';
+import { CloudDragController } from '../../scene/cloud-drag.controller';
 import { DecorationMeshService } from '../../scene/decoration-mesh.service';
 import { GardenInputService } from '../../scene/garden-input.service';
 import { PlacementGhostService } from '../../scene/placement-ghost.service';
@@ -12,6 +13,8 @@ import { PlantMeshService } from '../../scene/plant-mesh.service';
 import { PlanetViewComponent } from '../../scene/planet-view/planet-view.component';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
+import { SkyService } from '../../scene/sky.service';
+import { SunDragController } from '../../scene/sun-drag.controller';
 import { ContextMenuComponent } from '../context-menu/context-menu.component';
 import { InventoryPanelComponent } from '../inventory-panel/inventory-panel.component';
 import { LoadingComponent } from '../loading/loading.component';
@@ -20,10 +23,11 @@ import { ReceiptToastComponent } from '../receipt-toast/receipt-toast.component'
 import { ReloadBannerComponent } from '../reload-banner/reload-banner.component';
 import { SaveIndicatorComponent } from '../save-indicator/save-indicator.component';
 import { SettingsPanelComponent } from '../settings-panel/settings-panel.component';
+import { SkyListComponent } from '../sky-list/sky-list.component';
 
 /**
- * The planet screen: the 3D planet with the planet's name, save state, inventory and settings
- * around it. Loads the stored planet when it is not known yet (startup, or after opening by
+ * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory and
+ * settings around it. Loads the stored planet when it is not known yet (startup, or after opening by
  * code) and keeps it in sync while it is shown. Pip shows until the planet is loaded and first
  * drawn (NFR-03). The page owns the 3D scene and the gardening state, so every panel on it can
  * reach them.
@@ -40,6 +44,7 @@ import { SettingsPanelComponent } from '../settings-panel/settings-panel.compone
     ReloadBannerComponent,
     SaveIndicatorComponent,
     SettingsPanelComponent,
+    SkyListComponent,
   ],
   providers: [SCENE_PROVIDERS, PlacementService, ReceiptService],
   templateUrl: './planet-page.component.html',
@@ -65,6 +70,9 @@ export class PlanetPageComponent {
     inject(DecorationMeshService);
     inject(PlacementGhostService);
     inject(GardenInputService);
+    inject(SkyService);
+    inject(CloudDragController);
+    inject(SunDragController);
     // The cleanup also runs when the page closes, so the heartbeat never outlives it.
     effect((onCleanup) => {
       if (this.loaded()) {

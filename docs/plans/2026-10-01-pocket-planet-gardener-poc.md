@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–6 implemented and validated (see section 9). Next: Phase 7. |
+| **Progress** | Phases 1–7 implemented and validated (see section 9). Next: Phase 8. |
 
 ---
 
@@ -540,6 +540,17 @@ Decisions and notes:
 - New tunable `sunDayMinutes` (60). Sun angle grows with time from 0 at the epoch; snapshot `sun.angle` (added by a SimulationModule contributor). Phase 7 must use the same convention.
 - Optional growth interpolation not built (no in-stage visual to drive). Sparkles keep the scene redrawing while visible.
 - Live servers: port 3101 is held by an orphaned `node dist/main` from an earlier orchestrator `start:dev`; stopping it was blocked by the permission classifier, and the `dist/` it reads went stale. Live verification now runs on 3102 (backend from source, `node --watch -r ts-node/register`) and 4302 (`ng serve` proxying to 3102).
+
+### Phase 7 — done (2 Oct 2026)
+
+All tasks 7.1–7.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 480/480, e2e 109/109; frontend `tsc` 0, tests 495/495, build 0 (798 kB). Live (3102/4302): three clouds and the sun render; holding a cloud over a plant sends a rain command per second and raises its water; an empty cloud rests; dragging the sun turns the lit half; keyboard sky list (Tab, arrows, Space, Escape) works with announcements. **Not run:** backend `npm run build`.
+
+Notes:
+- `cloud-rules.ts` and `sun-model.ts` are byte-identical front/back (shared helpers now: surface-coords, placement-rules, growth-rules, cloud-rules, sun-model).
+- Clouds are stored as anchors `{ id, lat, lon, water, at }`, re-anchored by a simulation step on every mutate/sync; a planet's clouds are `[]` until its first sync/command; clients extrapolate with `cloudAt(cloud, now)`.
+- `MIN_RAIN_WATER` = 0.2: below it a cloud counts as empty and does not rain (GRD-02 AC2 "stops raining" despite continuous refill; ~12 s rest from empty).
+- Sky commands answer 200. Each rain command bumps the version, so a second open tab shows the reload banner (ACC-04 AC2 as intended).
+- A translucent wet patch marks a raining cloud (streaks are invisible from above). A cloud or the sun in front of the planet blocks taps behind it.
 
 ---
 
