@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AdminModule } from './admin/admin.module';
+import { AiModule } from './ai/ai.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
 import { EventsModule } from './events/events.module';
@@ -35,6 +37,8 @@ import { SimulationModule } from './simulation/simulation.module';
     InventoryModule,
     SimulationModule,
     EventsModule,
+    AdminModule,
+    AiModule,
   ],
 })
 export class AppModule {}

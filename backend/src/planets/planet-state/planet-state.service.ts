@@ -132,11 +132,13 @@ export class PlanetStateService {
     },
   ): Promise<MutationResult> {
     return this.dataSource.transaction(async (em) => {
-      // FOR UPDATE: a concurrent mutation of this planet waits here, then
-      // sees the bumped version and gets its 409.
+      // FOR NO KEY UPDATE: a concurrent mutation of this planet waits here,
+      // then sees the bumped version and gets its 409. Unlike FOR UPDATE it
+      // lets other connections insert rows referencing the planet, such as
+      // the AI gateway's usage row, so a command may await generate().
       const planet = await em.findOne(Planet, {
         where: { id: planetId },
-        lock: { mode: 'pessimistic_write' },
+        lock: { mode: 'for_no_key_update' },
       });
       if (!planet) {
         throw new NotFoundException(DRIFTED_AWAY);

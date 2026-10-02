@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–9 implemented and validated (see section 9). Next: Phase 10. |
+| **Progress** | Phases 1–10 implemented and validated (see section 9). Next: Phase 11. |
 
 ---
 
@@ -573,6 +573,17 @@ Notes:
 - Phase 14: export `EventLogService`, add `journalEntry` to `welcomeBack`, and allow `welcomeBack` with an empty summary for a quiet journal entry.
 - The frontend syncs once right after the snapshot loads (`SyncService.syncNow()`), so the summary appears at once.
 - Live checks and e2e must not run at the same time: e2e empties the dev database.
+
+### Phase 10 — done (2 Oct 2026)
+
+All tasks 10.1–10.5 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 604/604, e2e 143/143; `AdminSchema` reverts and re-applies cleanly; frontend `tsc` 0, tests 582/582, build 0 (823 kB). Live: `GET/PATCH /api/admin/settings` (off → on, invalid budget → 400) and the admin page at `?admin=1` by keyboard. **Not run:** backend `npm run build`.
+
+Notes:
+- `AiGatewayService.generate()` is the only route to the model (AiModule exports nothing else): switch → daily budget → call raced against `aiTimeoutMs` (one window for both tries) → parse/`extractJson` → `validate` + `checkText` → one retry naming the problem → fallback. One `ai_usage` row per call; never throws.
+- `checkText` covers banned terms, sensitive topics, guilt-tripping, URLs/emails, personal-info requests, claims to be real, famous names (everyday words like "goofy" skipped in free text) and length. The plan's `not-english` heuristic was not built.
+- Prompt builders may only take `prompt-context.ts` types (`PlanetPublicState`, `PublicEvent`); `findPrivateData` backs the privacy specs.
+- `mutate()` now locks the planet with `FOR NO KEY UPDATE` so a gateway call inside a command doesn't hang on the `ai_usage` foreign-key check.
+- AI daily budget default 1000 requests (SD Q-8 undecided). Admin settings are cached 60 s; the admin API and page are open in the PoC (D-0). A minimal admin page was added beyond the plan's API-only task so the switch can be used.
 
 ---
 

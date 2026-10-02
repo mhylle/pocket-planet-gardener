@@ -328,7 +328,7 @@ describe('PlanetStateService', () => {
       expect(error).toBeInstanceOf(ConflictException);
       expect(error.getStatus()).toBe(409);
       expect(error.getResponse()).toMatchObject({ message: 'reload' });
-      expect(setup.log).toEqual(['tx findOne Planet pessimistic_write']);
+      expect(setup.log).toEqual(['tx findOne Planet for_no_key_update']);
       expect(storedPlanet(setup.tables).version).toBe(3);
     });
 
@@ -352,7 +352,7 @@ describe('PlanetStateService', () => {
       });
 
       expect(setup.log).toEqual([
-        'tx findOne Planet pessimistic_write',
+        'tx findOne Planet for_no_key_update',
         'step 1',
         'step 2',
         'apply',
@@ -485,7 +485,7 @@ describe('PlanetStateService', () => {
       ).rejects.toThrow('wilted');
 
       expect(setup.log).toEqual([
-        'tx findOne Planet pessimistic_write',
+        'tx findOne Planet for_no_key_update',
         'step 1',
         'step 2',
       ]);
@@ -503,7 +503,7 @@ describe('PlanetStateService', () => {
 
       expect(error).toBeInstanceOf(ConflictException);
       expect(error.getResponse()).toMatchObject({ message: 'reload' });
-      expect(setup.log).toEqual(['tx findOne Planet pessimistic_write']);
+      expect(setup.log).toEqual(['tx findOne Planet for_no_key_update']);
       expect(storedPlanet(setup.tables)).toMatchObject({
         version: 3,
         lastSeenAt: T0,
@@ -528,7 +528,7 @@ describe('PlanetStateService', () => {
       await setup.service.sync(PLANET_ID, 3);
 
       expect(setup.log).toEqual([
-        'tx findOne Planet pessimistic_write',
+        'tx findOne Planet for_no_key_update',
         'step 1',
         'step 2',
         'evaluator 1',

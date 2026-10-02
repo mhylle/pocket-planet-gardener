@@ -97,6 +97,8 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/garden/rain`                     | yes    | Rain from `{ cloudId, lat, lon, seconds }`; adds `cloudEmpty`    |
 | POST   | `/api/garden/clouds/:id/position`      | yes    | Put a cloud down at `{ lat, lon }`; 200                          |
 | POST   | `/api/garden/sun`                      | yes    | Hold the sun over `{ angle }`, 0 up to 360; 200                  |
+| GET    | `/api/admin/settings`                  |        | `{ aiEnabled, aiDailyBudget, aiRequestsToday }`                  |
+| PATCH  | `/api/admin/settings`                  |        | Change `{ aiEnabled?, aiDailyBudget? }` (an integer ≥ 0); 200 with the same shape |
 
 On a planet-scoped route a missing or malformed `X-Planet-Id` is a 400 and an
 unknown one is a 404 `This planet has drifted away`. The PoC has no accounts
@@ -172,6 +174,27 @@ up to 1. From an empty cloud nothing falls and the answer carries
 holds the sun over `angle` for `GAME_SUN_OVERRIDE_MINUTES`, then it drifts on
 from there. An unknown cloud id is a 404.
 
+Every AI feature goes through `AiGatewayService.generate()` in `ai/`, never
+straight to `AiService`. It uses the feature's pre-written fallback instead
+of the model when the AI switch is off, when today's budget is used up, when
+the model takes longer than `GAME_AI_TIMEOUT_MS` (15 s, for both tries
+together; `AI_TIMEOUT_MS` is only the adapter's own ceiling) or fails, or
+when the reply, after one retry that names the problem, still has the wrong
+form or breaks the content rules (`ai/content-rules.ts`). It never shows the
+player an error. Each call logs one row in `ai_usage` with the feature, the
+planet, whether the fallback was used and why, and the latency.
+
+The admin settings are the AI switch, `aiEnabled` (default `true`), and the
+game-wide daily budget, `aiDailyBudget` (default 1000). The budget counts
+gateway calls a day, from midnight UTC, that the model answered without a
+fallback; a call with a retry counts once. The SD leaves the budget to the
+game owner (open question Q-8), so 1000 is a stand-in. The settings are
+cached for a minute: a change made through `PATCH /api/admin/settings`
+applies to the next request, one made straight in the `admin_settings` table
+within a minute. **The admin routes are open to anyone** in the PoC, as is
+the admin view (`?admin=1`): there are no accounts to tell the game owner
+apart (decision D-0).
+
 A planet name must be 2 to 24 characters (`GAME_PLANET_NAME_MIN` and
 `GAME_PLANET_NAME_MAX`) and pass a small offensive-word filter. A refused
 name is a 400 whose `message` is a friendly sentence to show the player.
@@ -229,10 +252,16 @@ backend/src
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list
 │   └── migrations/
+├── admin/                   GET/PATCH /api/admin/settings: AdminSettingsService
+│                            (AI switch, daily budget) and AiUsageService (ai_usage log)
 └── ai/
-    ├── ai.module.ts         not imported by AppModule yet
+    ├── ai.module.ts         exports only the gateway
+    ├── ai-gateway.service.ts  the one path to the model: switch, budget, timeout,
+    │                          checks, one retry, fallback, usage log; extractJson
     ├── ai.service.ts        OpenAI-compatible adapter (no routes)
-    └── ai.types.ts
+    ├── ai.types.ts
+    ├── content-rules.ts     content and tone checks for AI text (pure helper)
+    └── prompt-context.ts    prompt builders that take only public game state
 
 frontend/src/app
 ├── app.ts / app.html        root App: shows one view at a time (no router)

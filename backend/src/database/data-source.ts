@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 import { DataSource } from 'typeorm';
+import { AdminSetting } from '../admin/admin-setting.entity';
+import { AiUsage } from '../admin/ai-usage.entity';
 import { PlanetEvent } from '../events/event.entity';
 import { Decoration } from '../garden/decoration.entity';
 import { Plant } from '../garden/plant.entity';
@@ -12,6 +14,7 @@ import { DropMessages1790859180028 } from './migrations/1790859180028-DropMessag
 import { PlanetSchema1790860588377 } from './migrations/1790860588377-PlanetSchema';
 import { GardenSchema1790877455866 } from './migrations/1790877455866-GardenSchema';
 import { EventsSchema1790939416415 } from './migrations/1790939416415-EventsSchema';
+import { AdminSchema1790944327657 } from './migrations/1790944327657-AdminSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -34,6 +37,7 @@ export const MIGRATIONS = [
   PlanetSchema1790860588377,
   GardenSchema1790877455866,
   EventsSchema1790939416415,
+  AdminSchema1790944327657,
 ];
 
 export default new DataSource({
@@ -43,7 +47,16 @@ export default new DataSource({
   username: env('DB_USERNAME', 'postgres'),
   password: env('DB_PASSWORD', 'postgres'),
   database: env('DB_NAME', 'app'),
-  entities: [Planet, Plant, Decoration, InventoryItem, Unlock, PlanetEvent],
+  entities: [
+    Planet,
+    Plant,
+    Decoration,
+    InventoryItem,
+    Unlock,
+    PlanetEvent,
+    AdminSetting,
+    AiUsage,
+  ],
   migrations: MIGRATIONS,
   synchronize: false,
 });

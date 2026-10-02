@@ -141,6 +141,25 @@ describe('App', () => {
     TestBed.inject(ViewStateService).show('admin');
     await fixture.whenStable();
 
-    expect(page.querySelector('main section')?.textContent?.trim()).toBe('Admin tools come later');
+    expect(page.querySelector('app-admin')).not.toBeNull();
+    http.expectOne({ method: 'GET', url: '/api/admin/settings' });
+  });
+
+  it('renders the game owner page with ?admin=1', async () => {
+    const startUrl = location.href;
+    history.replaceState(null, '', '?admin=1');
+    try {
+      const { page, settle } = render();
+      http
+        .expectOne({ method: 'GET', url: '/api/admin/settings' })
+        .flush({ aiEnabled: true, aiDailyBudget: 300, aiRequestsToday: 0 });
+      await settle();
+
+      expect(heading(page)).toBe('Game owner');
+      expect(page.querySelector('app-create-planet')).toBeNull();
+      expect(page.textContent).not.toContain('Admin tools come later');
+    } finally {
+      history.replaceState(null, '', startUrl);
+    }
   });
 });
