@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–8 implemented and validated (see section 9). Next: Phase 9. |
+| **Progress** | Phases 1–9 implemented and validated (see section 9). Next: Phase 10. |
 
 ---
 
@@ -561,6 +561,18 @@ Notes:
 - The info card replaced the Phase 5 context menu (`PlacementService` card API). Settings and Catalogue share one panel slot.
 - `CelebrationService` handles `newlyUnlocked`; sync responses still carry none (Phase 12).
 - The e2e Jest `testTimeout` is 30 s (`test/jest-e2e.json`): a 5 s hook timed out under CPU contention from a parallel frontend build.
+
+### Phase 9 — done (2 Oct 2026)
+
+All tasks 9.1–9.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 505/505, e2e 126/126; frontend `tsc` 0, tests 568/568, build 0 (817 kB); `EventsSchema` reverts and re-applies cleanly. Live: an aged planet's first sync returns `welcomeBack` with "1 plant bloomed"; the panel opens on reload and clicking the line turns the camera to the bloom. **Not run:** backend `npm run build`.
+
+Notes:
+- Every fact is persisted by `EventLogService` (a FactSink) in `events`; the planet's first bloom and any fact with `payload.milestone` are milestones. The entity class is `PlanetEvent`.
+- `PlanetStateService.registerSyncContributor` runs on sync only, after the fact sinks and before `lastSeenAt` moves; `ReturnService` builds `welcomeBack: { summary }`.
+- Event types later phases must emit: `creature-arrived` (with lat/lon and `milestone: true`), `want-fulfilled`, `gift-received`.
+- Phase 14: export `EventLogService`, add `journalEntry` to `welcomeBack`, and allow `welcomeBack` with an empty summary for a quiet journal entry.
+- The frontend syncs once right after the snapshot loads (`SyncService.syncNow()`), so the summary appears at once.
+- Live checks and e2e must not run at the same time: e2e empties the dev database.
 
 ---
 

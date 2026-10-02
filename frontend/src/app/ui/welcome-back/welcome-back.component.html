@@ -1,0 +1,20 @@
+@if (welcomeBack(); as welcome) {
+  <section #dialog class="welcome" role="dialog" aria-labelledby="welcome-back-title" tabindex="-1">
+    <h3 id="welcome-back-title">Welcome back!</h3>
+    <ul class="lines">
+      @for (line of welcome.summary; track $index) {
+        <li>
+          @if (!$first) {
+            <span class="dot" aria-hidden="true"> · </span>
+          }
+          @if (line.focus; as focus) {
+            <button type="button" class="secondary" (click)="show(focus)">{{ line.text }}</button>
+          } @else {
+            <span>{{ line.text }}</span>
+          }
+        </li>
+      }
+    </ul>
+    <button type="button" class="dismiss" (click)="dismiss()">Dismiss</button>
+  </section>
+}

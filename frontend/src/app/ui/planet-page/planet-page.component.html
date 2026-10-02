@@ -34,6 +34,10 @@
       <app-receipt-toast />
       <app-celebration />
       <app-info-card />
+      <!-- The journal page (JRN-01) goes above the welcome-back summary in this column. -->
+      <div class="return">
+        <app-welcome-back />
+      </div>
       @if (!sceneReady()) {
         <app-loading />
       }

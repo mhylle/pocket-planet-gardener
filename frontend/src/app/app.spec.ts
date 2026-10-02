@@ -43,8 +43,10 @@ describe('App', () => {
   });
 
   afterEach(() => {
-    // The planet page asks for the catalogue for the inventory names; these specs do not need it.
+    // The planet page asks for the catalogue for the inventory names and syncs once the planet
+    // is shown; these specs do not need either.
     http.match('/api/catalogue');
+    http.match('/api/planet/sync');
     http.verify();
   });
 

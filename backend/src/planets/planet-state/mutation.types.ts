@@ -52,6 +52,16 @@ export type SnapshotContributor = (context: {
   snapshot: PlanetSnapshotDto;
 }) => object | Promise<object>;
 
+/**
+ * Adds to a sync's answer, e.g. the welcome-back summary. Runs on sync()
+ * only, after the fact sinks, so this sync's facts are already stored, and
+ * before lastSeenAt moves to now: previousLastSeenAt is the last visit.
+ */
+export type SyncContributor = (
+  ctx: MutationContext,
+  previousLastSeenAt: Date,
+) => object | Promise<object>;
+
 /** What mutate() returns and a command answers with; a sync answers with SyncResult. */
 export interface MutationResult {
   snapshot: PlanetSnapshotDto;

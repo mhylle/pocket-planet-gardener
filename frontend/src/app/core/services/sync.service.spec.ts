@@ -7,7 +7,7 @@ import {
 } from '@angular/common/http/testing';
 import { GENERIC_ERROR_MESSAGE, errorMessage } from '../helpers/error-message';
 import { DEFAULT_GAME_CONFIG } from '../models/game-config';
-import { CommandResponse, PlanetSnapshotDto } from '../models/planet-snapshot';
+import { CommandResponse, PlanetSnapshotDto, WelcomeBack } from '../models/planet-snapshot';
 import { GameConfigService } from './game-config.service';
 import { PlanetIdentityService } from './planet-identity.service';
 import { PlanetStore } from './planet-store.service';
@@ -302,6 +302,38 @@ describe('SyncService', () => {
 
       expectAfter(5000, SYNC).flush({ snapshot: mossy, events: [] });
       expect(store.offline()).toBe(false);
+    });
+
+    it('syncs at once on syncNow, and the heartbeat keeps its pace', () => {
+      sync.syncNow();
+      sync.startHeartbeat();
+
+      const now = http.expectOne(SYNC);
+      expect(now.request.body).toEqual({ expectedVersion: 1 });
+      now.flush({ snapshot: later, events: [] });
+      expect(store.snapshot()).toEqual(later);
+
+      expectAfter(5000, SYNC).flush({ snapshot: later, events: [] });
+    });
+
+    it('keeps the welcome-back summary from a sync until a newer one comes (TIM-03)', () => {
+      const first: WelcomeBack = {
+        summary: [{ kind: 'blooms', count: 1, text: '1 plant bloomed' }],
+      };
+      const second: WelcomeBack = {
+        summary: [{ kind: 'creatures', count: 1, text: '1 new creature' }],
+      };
+      sync.startHeartbeat();
+      expect(store.welcomeBack()).toBeNull();
+
+      expectAfter(5000, SYNC).flush({ snapshot: mossy, events: [], welcomeBack: first });
+      expect(store.welcomeBack()).toEqual(first);
+
+      expectAfter(5000, SYNC).flush({ snapshot: mossy, events: [] });
+      expect(store.welcomeBack()).toEqual(first);
+
+      expectAfter(5000, SYNC).flush({ snapshot: mossy, events: [], welcomeBack: second });
+      expect(store.welcomeBack()).toEqual(second);
     });
   });
 

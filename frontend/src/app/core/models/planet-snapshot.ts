@@ -1,4 +1,5 @@
 import { CloudState } from '../helpers/cloud-rules';
+import { SurfacePoint } from '../helpers/surface-coords';
 import { PlanetDto } from './planet';
 
 export type PlantStage = 'seed' | 'sprout' | 'young' | 'bloom';
@@ -67,10 +68,28 @@ export interface EventDto {
   payload: Record<string, unknown>;
 }
 
+/** One line of the welcome-back summary, such as "3 plants bloomed" (TIM-03). */
+export interface SummaryLine {
+  kind: 'blooms' | 'creatures' | 'wants' | 'gifts';
+  count: number;
+  text: string;
+  /** Where to turn the planet to show it (TIM-03 AC3); missing when there is no one place. */
+  focus?: SurfacePoint;
+}
+
+/** What changed while the player was away (TIM-03). */
+export interface WelcomeBack {
+  summary: SummaryLine[];
+  /** The diary page for the absence (JRN-01); the server sends it from Phase 14 on. */
+  journalEntry?: unknown;
+}
+
 /** The 200 response of POST /api/planet/sync. */
 export interface SyncResponse {
   snapshot: PlanetSnapshotDto;
   events: EventDto[];
+  /** Only on a sync after the player was away long enough and something happened. */
+  welcomeBack?: WelcomeBack;
 }
 
 /** The 200 response of every gameplay command. */

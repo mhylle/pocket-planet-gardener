@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { PlanetSnapshotDto } from '../models/planet-snapshot';
+import { PlanetSnapshotDto, WelcomeBack } from '../models/planet-snapshot';
 import { PlanetStore } from './planet-store.service';
 
 const mossy: PlanetSnapshotDto = {
@@ -18,6 +18,10 @@ const mossy: PlanetSnapshotDto = {
   unlocks: [],
   clouds: [],
   sun: { angle: 0, overrideAngle: null, overrideAt: null },
+};
+
+const welcomeBack: WelcomeBack = {
+  summary: [{ kind: 'blooms', count: 1, text: '1 plant bloomed', focus: { lat: 0, lon: 0 } }],
 };
 
 describe('PlanetStore', () => {
@@ -43,11 +47,22 @@ describe('PlanetStore', () => {
     expect(store.version()).toBe(5);
   });
 
+  it('keeps a welcome-back summary until it is dismissed (TIM-03)', () => {
+    expect(store.welcomeBack()).toBeNull();
+
+    store.setWelcomeBack(welcomeBack);
+    expect(store.welcomeBack()).toEqual(welcomeBack);
+
+    store.dismissWelcomeBack();
+    expect(store.welcomeBack()).toBeNull();
+  });
+
   it('clear forgets the planet and its save state', () => {
     store.setSnapshot(mossy);
     store.setPendingCommands(2);
     store.setOffline(true);
     store.requireReload();
+    store.setWelcomeBack(welcomeBack);
 
     store.clear();
 
@@ -56,5 +71,6 @@ describe('PlanetStore', () => {
     expect(store.pendingCommands()).toBe(0);
     expect(store.offline()).toBe(false);
     expect(store.reloadRequired()).toBe(false);
+    expect(store.welcomeBack()).toBeNull();
   });
 });

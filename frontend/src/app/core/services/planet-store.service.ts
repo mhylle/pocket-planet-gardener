@@ -1,9 +1,10 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { PlanetSnapshotDto } from '../models/planet-snapshot';
+import { PlanetSnapshotDto, WelcomeBack } from '../models/planet-snapshot';
 
 /**
  * The single source of truth for the loaded planet and its save state. PlanetService fills it
- * when a planet opens; SyncService keeps it current and reports saving, offline and conflicts.
+ * when a planet opens; SyncService keeps it current and reports saving, offline, conflicts and
+ * what changed while the player was away.
  */
 @Injectable({ providedIn: 'root' })
 export class PlanetStore {
@@ -11,6 +12,7 @@ export class PlanetStore {
   private readonly pending = signal(0);
   private readonly isOffline = signal(false);
   private readonly mustReload = signal(false);
+  private readonly returned = signal<WelcomeBack | null>(null);
 
   readonly snapshot = this.current.asReadonly();
   /** The version every command must name; null until a planet is loaded. */
@@ -21,6 +23,8 @@ export class PlanetStore {
   readonly offline = this.isOffline.asReadonly();
   /** The planet changed on another device, so this copy must be reloaded (ACC-04 AC2). */
   readonly reloadRequired = this.mustReload.asReadonly();
+  /** The latest welcome-back summary from a sync, until the player dismisses it (TIM-03). */
+  readonly welcomeBack = this.returned.asReadonly();
 
   setSnapshot(snapshot: PlanetSnapshotDto): void {
     this.current.set(snapshot);
@@ -38,11 +42,20 @@ export class PlanetStore {
     this.mustReload.set(true);
   }
 
+  setWelcomeBack(welcomeBack: WelcomeBack): void {
+    this.returned.set(welcomeBack);
+  }
+
+  dismissWelcomeBack(): void {
+    this.returned.set(null);
+  }
+
   /** Forgets the planet and its save state, such as when the player leaves it. */
   clear(): void {
     this.current.set(null);
     this.pending.set(0);
     this.isOffline.set(false);
     this.mustReload.set(false);
+    this.returned.set(null);
   }
 }

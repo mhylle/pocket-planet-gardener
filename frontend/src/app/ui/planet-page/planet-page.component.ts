@@ -27,13 +27,14 @@ import { ReloadBannerComponent } from '../reload-banner/reload-banner.component'
 import { SaveIndicatorComponent } from '../save-indicator/save-indicator.component';
 import { SettingsPanelComponent } from '../settings-panel/settings-panel.component';
 import { SkyListComponent } from '../sky-list/sky-list.component';
+import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
 
 /**
  * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory,
- * catalogue and settings around it. Loads the stored planet when it is not known yet (startup, or after opening by
- * code) and keeps it in sync while it is shown. Pip shows until the planet is loaded and first
- * drawn (NFR-03). The page owns the 3D scene and the gardening state, so every panel on it can
- * reach them.
+ * catalogue and settings around it, and what changed for a returning player. Loads the stored
+ * planet when it is not known yet (startup, or after opening by code) and keeps it in sync
+ * while it is shown. Pip shows until the planet is loaded and first drawn (NFR-03). The page
+ * owns the 3D scene and the gardening state, so every panel on it can reach them.
  */
 @Component({
   selector: 'app-planet-page',
@@ -50,6 +51,7 @@ import { SkyListComponent } from '../sky-list/sky-list.component';
     SaveIndicatorComponent,
     SettingsPanelComponent,
     SkyListComponent,
+    WelcomeBackComponent,
   ],
   providers: [SCENE_PROVIDERS, PlacementService, ReceiptService, CelebrationService],
   templateUrl: './planet-page.component.html',
@@ -80,10 +82,14 @@ export class PlanetPageComponent {
     inject(CloudDragController);
     inject(SunDragController);
     inject(CelebrationService);
-    // The cleanup also runs when the page closes, so the heartbeat never outlives it.
+    // Syncs at once, then on the heartbeat. The cleanup also runs when the page closes, so the
+    // heartbeat never outlives it.
     effect((onCleanup) => {
       if (this.loaded()) {
-        untracked(() => this.sync.startHeartbeat());
+        untracked(() => {
+          this.sync.syncNow();
+          this.sync.startHeartbeat();
+        });
         onCleanup(() => this.sync.stopHeartbeat());
       }
     });

@@ -175,6 +175,10 @@ function registerLoggingHooks({ service, log }: Setup): void {
   service.registerFactSink(() => {
     log.push('sink 2');
   });
+  service.registerSyncContributor(() => {
+    log.push('sync contributor');
+    return {};
+  });
   service.registerSnapshotContributor(() => {
     log.push('contributor');
     return {};
@@ -339,7 +343,7 @@ describe('PlanetStateService', () => {
       });
     });
 
-    it('locks the planet, runs steps, command, evaluators and sinks in order, then saves and snapshots, all in the transaction', async () => {
+    it('locks the planet, runs steps, command, evaluators and sinks in order, never the sync contributors, then saves and snapshots, all in the transaction', async () => {
       const setup = buildService();
       registerLoggingHooks(setup);
 
@@ -517,7 +521,7 @@ describe('PlanetStateService', () => {
       });
     });
 
-    it('runs steps, evaluators and sinks in order, then saves and snapshots, all in the transaction', async () => {
+    it('runs steps, evaluators, sinks and sync contributors in order, then saves and snapshots, all in the transaction', async () => {
       const setup = buildService();
       registerLoggingHooks(setup);
 
@@ -531,6 +535,7 @@ describe('PlanetStateService', () => {
         'evaluator 2',
         'sink 1',
         'sink 2',
+        'sync contributor',
         'tx save Planet',
         ...SNAPSHOT_READS.map((call) => `tx ${call}`),
         'contributor',
@@ -563,6 +568,46 @@ describe('PlanetStateService', () => {
 
       expect(seenByHooks).toEqual([T0, T0]);
       expect(storedPlanet(tables).lastSeenAt).toEqual(T1);
+    });
+
+    it('hands sync contributors the context and the previous visit, and merges what they return in order', async () => {
+      const { service, clock, tx } = buildService();
+      clock.set(T1);
+      const seen: { em: unknown; now: Date; previous: Date; facts: number }[] =
+        [];
+      service.registerSimulationStep((ctx) => {
+        ctx.facts.push(fact('bloomed'));
+      });
+      service.registerSyncContributor((ctx, previous) => {
+        seen.push({
+          em: ctx.em,
+          now: ctx.now,
+          previous,
+          facts: ctx.facts.length,
+        });
+        return { welcomeBack: { summary: ['first'] }, extra: 1 };
+      });
+      service.registerSyncContributor(() =>
+        Promise.resolve({ welcomeBack: { summary: ['second'] } }),
+      );
+
+      const result = await service.sync(PLANET_ID, 3);
+
+      expect(seen).toEqual([{ em: tx, now: T1, previous: T0, facts: 1 }]);
+      expect(result).toMatchObject({
+        welcomeBack: { summary: ['second'] },
+        extra: 1,
+      });
+      expect(result.events.map((event) => event.type)).toEqual(['bloomed']);
+    });
+
+    it('answers just the snapshot and events when the contributors add nothing', async () => {
+      const { service } = buildService();
+      service.registerSyncContributor(() => ({}));
+
+      const result = await service.sync(PLANET_ID, 3);
+
+      expect(Object.keys(result).sort()).toEqual(['events', 'snapshot']);
     });
 
     it('returns the snapshot at the clock time and the facts as events, nothing more', async () => {

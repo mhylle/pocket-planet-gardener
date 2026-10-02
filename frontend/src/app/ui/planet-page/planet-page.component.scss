@@ -60,6 +60,16 @@ app-catalogue {
   overflow: auto;
 }
 
+/* Bottom right, clear of the middle, where the camera turns what the player picks. */
+.return {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  width: min(24rem, calc(100% - 1.5rem));
+}
+
 .opening {
   flex: 1;
   margin-top: 1rem;

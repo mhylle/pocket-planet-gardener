@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { PlanetSnapshotDto } from '../../core/models/planet-snapshot';
+import { PlanetSnapshotDto, WelcomeBack } from '../../core/models/planet-snapshot';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SyncService } from '../../core/services/sync.service';
@@ -49,8 +49,10 @@ describe('PlanetPageComponent', () => {
   });
 
   afterEach(() => {
-    // The page asks for the catalogue for the inventory names; these specs do not need it.
+    // The page asks for the catalogue for the inventory names and syncs once the planet is
+    // shown; the specs that do not need these leave them unanswered.
     http.match('/api/catalogue');
+    http.match('/api/planet/sync');
     http.verify();
     vi.useRealTimers();
   });
@@ -198,12 +200,18 @@ describe('PlanetPageComponent', () => {
         body: { type: 'clover' },
       });
     const unreachable = () => http.expectOne(PLANT).error(new ProgressEvent('error'));
+    /** Answers the sync the page sends as soon as the planet is shown. */
+    const firstSync = (welcomeBack?: WelcomeBack) =>
+      http
+        .expectOne({ method: 'POST', url: SYNC })
+        .flush({ snapshot: mossy, events: [], welcomeBack });
 
     beforeEach(() => TestBed.inject(PlanetStore).setSnapshot(mossy));
 
     it('shows a calm note while the connection is down and hides it once saved (ACC-03)', async () => {
       vi.useFakeTimers();
       render();
+      firstSync();
       const saved = plant();
       fixture.detectChanges();
       expect(note()).toBe('Saving…');
@@ -229,6 +237,7 @@ describe('PlanetPageComponent', () => {
 
     it('asks for a reload when another device changed the planet (ACC-04 AC2)', async () => {
       render();
+      firstSync();
       await fixture.whenStable();
       expect(page.querySelector('app-reload-banner [role="alert"]')).toBeNull();
 
@@ -244,11 +253,14 @@ describe('PlanetPageComponent', () => {
       );
     });
 
-    it('syncs once the planet is shown and stops when the page closes', () => {
+    it('syncs at once when the planet is shown, then on the heartbeat, and stops when the page closes', () => {
       vi.useFakeTimers();
       render();
 
-      vi.advanceTimersByTime(10_000);
+      firstSync();
+      vi.advanceTimersByTime(9_999);
+      http.expectNone(SYNC);
+      vi.advanceTimersByTime(1);
       http.expectOne({ method: 'POST', url: SYNC }).flush({ snapshot: mossy, events: [] });
 
       fixture.destroy();
@@ -256,7 +268,7 @@ describe('PlanetPageComponent', () => {
       http.expectNone(SYNC);
     });
 
-    it('does not sync while the planet is still loading', async () => {
+    it('does not sync while the planet is still loading, and syncs at once after it loads', async () => {
       TestBed.inject(PlanetStore).clear();
       vi.useFakeTimers();
       render();
@@ -267,8 +279,20 @@ describe('PlanetPageComponent', () => {
       await vi.advanceTimersByTimeAsync(0);
       fixture.detectChanges();
 
+      firstSync();
       vi.advanceTimersByTime(10_000);
       http.expectOne(SYNC).flush({ snapshot: mossy, events: [] });
+    });
+
+    it('shows what changed from the first sync to a returning player (TIM-03)', async () => {
+      render();
+      firstSync({ summary: [{ kind: 'blooms', count: 1, text: '1 plant bloomed' }] });
+      await fixture.whenStable();
+
+      const summary = page.querySelector<HTMLElement>('app-welcome-back [role="dialog"]')!;
+      expect(summary.textContent).toContain('Welcome back!');
+      expect(summary.textContent).toContain('1 plant bloomed');
+      expect(document.activeElement).toBe(summary);
     });
   });
 });

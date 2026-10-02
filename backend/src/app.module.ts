@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
+import { EventsModule } from './events/events.module';
 import { GameConfigModule } from './game-config/game-config.module';
 import { GardenModule } from './garden/garden.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -33,6 +34,7 @@ import { SimulationModule } from './simulation/simulation.module';
     GardenModule,
     InventoryModule,
     SimulationModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

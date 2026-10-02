@@ -1,0 +1,41 @@
+.welcome {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+}
+
+h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lines li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lines button {
+  padding: 0.25rem 0.6rem;
+}
+
+.dot {
+  color: var(--fg-muted);
+}
+
+.dismiss {
+  justify-self: end;
+}

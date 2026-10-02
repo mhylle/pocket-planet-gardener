@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { DataSource, EntityManager, MoreThan } from 'typeorm';
 import { ClockService } from '../../common/clock.service';
+import type { WelcomeBackDto } from '../../events/dto/welcome-back.dto';
 import { Decoration } from '../../garden/decoration.entity';
 import { Plant } from '../../garden/plant.entity';
 import { InventoryItem } from '../../inventory/inventory-item.entity';
@@ -19,13 +20,17 @@ import type {
   PostMutationEvaluator,
   SimulationStep,
   SnapshotContributor,
+  SyncContributor,
 } from './mutation.types';
 import { toEventDto, toPlanetSnapshot } from './snapshot.mappers';
 
 const DRIFTED_AWAY = 'This planet has drifted away';
 
 /** What sync() returns, and POST /api/planet/sync answers with. */
-export type SyncResult = Pick<MutationResult, 'snapshot' | 'events'>;
+export type SyncResult = Pick<MutationResult, 'snapshot' | 'events'> & {
+  // Added by EventsModule's sync contributor for a returning player (TIM-03).
+  welcomeBack?: WelcomeBackDto;
+};
 
 /**
  * The planet snapshot and the one mutation backbone (D-2). Other modules
@@ -38,6 +43,7 @@ export class PlanetStateService {
   private readonly simulationSteps: SimulationStep[] = [];
   private readonly evaluators: PostMutationEvaluator[] = [];
   private readonly factSinks: FactSink[] = [];
+  private readonly syncContributors: SyncContributor[] = [];
 
   constructor(
     private readonly dataSource: DataSource,
@@ -58,6 +64,10 @@ export class PlanetStateService {
 
   registerFactSink(sink: FactSink): void {
     this.factSinks.push(sink);
+  }
+
+  registerSyncContributor(contributor: SyncContributor): void {
+    this.syncContributors.push(contributor);
   }
 
   /** The planet as the client sees it. Pass em to read inside a transaction. */
@@ -89,13 +99,24 @@ export class PlanetStateService {
   /**
    * The heartbeat (D-3): the mutate() pipeline without a command, so the
    * simulation and evaluators catch up. It never bumps the version, so two
-   * open tabs do not make each other reload, and it records the visit.
+   * open tabs do not make each other reload, and it records the visit. The
+   * sync contributors add to its answer.
    */
   async sync(planetId: string, expectedVersion: number): Promise<SyncResult> {
+    const contributed: object = {};
     const { snapshot, events } = await this.run(planetId, expectedVersion, {
-      markSeen: true,
+      beforeSave: async (ctx) => {
+        for (const contribute of this.syncContributors) {
+          Object.assign(
+            contributed,
+            await contribute(ctx, ctx.planet.lastSeenAt),
+          );
+        }
+        // After the hooks, so they still see when the player was here before.
+        ctx.planet.lastSeenAt = ctx.now;
+      },
     });
-    return { snapshot, events };
+    return { snapshot, events, ...contributed };
   }
 
   private run(
@@ -103,8 +124,12 @@ export class PlanetStateService {
     expectedVersion: number,
     {
       apply,
-      markSeen = false,
-    }: { apply?: MutationCommand; markSeen?: boolean },
+      beforeSave,
+    }: {
+      apply?: MutationCommand;
+      // Runs after the fact sinks, just before the planet row is saved.
+      beforeSave?: (ctx: MutationContext) => Promise<void>;
+    },
   ): Promise<MutationResult> {
     return this.dataSource.transaction(async (em) => {
       // FOR UPDATE: a concurrent mutation of this planet waits here, then
@@ -144,10 +169,7 @@ export class PlanetStateService {
       if (apply) {
         planet.version++;
       }
-      // After the hooks, so they still see when the player was here before.
-      if (markSeen) {
-        planet.lastSeenAt = ctx.now;
-      }
+      await beforeSave?.(ctx);
       await em.save(planet);
 
       return {

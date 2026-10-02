@@ -68,6 +68,14 @@ export class SyncService {
     });
   }
 
+  /**
+   * Syncs once straight away, such as when the planet opens, so a returning player sees what
+   * changed without waiting for the first heartbeat (TIM-03).
+   */
+  syncNow(): void {
+    this.beat();
+  }
+
   /** Syncs every syncIntervalSeconds while nothing else is being saved. */
   startHeartbeat(): void {
     this.stopHeartbeat();
@@ -134,7 +142,12 @@ export class SyncService {
     }
     this.dispatch(
       this.api.post<SyncResponse>('/planet/sync', { expectedVersion: version }),
-      (response) => this.store.setSnapshot(response.snapshot),
+      (response) => {
+        this.store.setSnapshot(response.snapshot);
+        if (response.welcomeBack) {
+          this.store.setWelcomeBack(response.welcomeBack);
+        }
+      },
       // A failed heartbeat has nothing to reject; offline and 409 are already recorded.
       () => undefined,
     );

@@ -85,7 +85,7 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/planet`                          |        | Create a planet from `{ name }`; 201 with its snapshot           |
 | GET    | `/api/planet`                          | yes    | The planet's snapshot, see below                                 |
 | PATCH  | `/api/planet/name`                     | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
-| POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }` |
+| POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }`, on return also `welcomeBack` |
 | GET    | `/api/planet/by-code/:code`            |        | `{ id }` of the planet with that code (any case); 404 if none    |
 | DELETE | `/api/planet`                          | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
 | POST   | `/api/garden/plants`                   | yes    | Plant a seed from `{ itemType, lat, lon }`; 201                  |
@@ -124,6 +124,19 @@ Plants never die and never lose a stage. The sync's `events` report each
 stage reached, dated when it happened: `plant-stage`
 (`{ plantId, type, stage }`) for sprout and young, `plant-bloomed`
 (`{ plantId, type, lat, lon }`) for bloom.
+
+Every event of a sync or command is also appended to the planet's event log,
+the `events` table, dated when it happened. The planet's first
+`plant-bloomed` is marked `is_milestone`, as is any event whose payload says
+`milestone: true`. A sync at least `GAME_SUMMARY_AFTER_MINUTES` (60) after
+the previous sync also answers `welcomeBack: { summary }`, the news in the
+log since that previous sync: one `{ kind, count, text, focus }` line per
+kind, in the order `blooms` (`plant-bloomed`), `creatures`
+(`creature-arrived`), `wants` (`want-fulfilled`), `gifts` (`gift-received`),
+with `text` such as `3 plants bloomed` and `focus` the `{ lat, lon }` of the
+latest one, left out when its events have no position. Stage changes are not
+news. After a shorter gap, or with no news, the sync has no `welcomeBack`;
+`GET /api/planet` never has one.
 
 The snapshot is the whole planet. It keeps the fields served before it,
 `id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
