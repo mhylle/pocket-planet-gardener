@@ -84,6 +84,11 @@ describe('content', () => {
     expect(footprint('pond')).toBeGreaterThan(footprint('rock') ?? Infinity);
   });
 
+  it('has the pond as its only water', () => {
+    const water = DECORATIONS.filter((decoration) => decoration.isWater);
+    expect(water.map((decoration) => decoration.id)).toEqual(['pond']);
+  });
+
   it('gives every species a name and a non-empty hint', () => {
     for (const species of SPECIES) {
       expect(species.name.trim()).not.toBe('');

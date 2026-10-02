@@ -16,6 +16,7 @@ const decorationKeys = [
   'id',
   'name',
   'footprintSteps',
+  'isWater',
   'description',
   'unlockHint',
 ];

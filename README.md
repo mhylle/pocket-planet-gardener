@@ -72,16 +72,21 @@ npm run start:dev        # http://localhost:3101
 All routes live under `/api`. The "Planet" column marks the planet-scoped
 routes, which need an `X-Planet-Id` header with the planet's id.
 
-| Method | Endpoint                    | Planet | Description                                                      |
-| ------ | --------------------------- | ------ | ---------------------------------------------------------------- |
-| GET    | `/api/config`               |        | The game tunables the client needs                               |
-| GET    | `/api/catalogue`            |        | Plants, decorations and species in public shape                  |
-| POST   | `/api/planet`               |        | Create a planet from `{ name }`; 201 with its snapshot           |
-| GET    | `/api/planet`               | yes    | The planet's snapshot, see below                                 |
-| PATCH  | `/api/planet/name`          | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
-| POST   | `/api/planet/sync`          | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }` |
-| GET    | `/api/planet/by-code/:code` |        | `{ id }` of the planet with that code (any case); 404 if none    |
-| DELETE | `/api/planet`               | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
+| Method | Endpoint                               | Planet | Description                                                      |
+| ------ | -------------------------------------- | ------ | ---------------------------------------------------------------- |
+| GET    | `/api/config`                          |        | The game tunables the client needs                               |
+| GET    | `/api/catalogue`                       |        | Plants, decorations and species in public shape                  |
+| POST   | `/api/planet`                          |        | Create a planet from `{ name }`; 201 with its snapshot           |
+| GET    | `/api/planet`                          | yes    | The planet's snapshot, see below                                 |
+| PATCH  | `/api/planet/name`                     | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
+| POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }` |
+| GET    | `/api/planet/by-code/:code`            |        | `{ id }` of the planet with that code (any case); 404 if none    |
+| DELETE | `/api/planet`                          | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
+| POST   | `/api/garden/plants`                   | yes    | Plant a seed from `{ itemType, lat, lon }`; 201                  |
+| DELETE | `/api/garden/plants/:id`               | yes    | Dig it up; a seed or sprout goes back into the inventory         |
+| POST   | `/api/garden/decorations`              | yes    | Place a decoration from `{ itemType, lat, lon }`; 201            |
+| PATCH  | `/api/garden/decorations/:id/position` | yes    | Move it to `{ lat, lon }`                                        |
+| DELETE | `/api/garden/decorations/:id`          | yes    | Put it away into the inventory                                   |
 
 On a planet-scoped route a missing or malformed `X-Planet-Id` is a 400 and an
 unknown one is a 404 `This planet has drifted away`. The PoC has no accounts
@@ -99,7 +104,18 @@ The snapshot is the whole planet. It keeps the fields served before it,
 and adds `radiusLevel`, `maxPlants`, `tutorialStep`, `serverTime`, `plants`,
 `decorations`, `inventory` (only stacks with a count above 0), `unlocks`,
 `clouds` and `sun` (`{ overrideAngle, overrideAt }`). Plants and decorations
-come oldest first; inventory and unlocks are sorted by item type.
+come oldest first; inventory and unlocks are sorted by item type. A new
+planet holds the first `GAME_STARTER_SEED_TYPES` seed stacks of
+`content/starter.ts`, already unlocked, and no decorations.
+
+Every garden command also sends `expectedVersion` in its body and answers
+`{ snapshot, events, newlyUnlocked }`. Positions are degrees, `lat` -90..90
+and `lon` -180..180. A refused command is a 400
+`{ statusCode, message, reason }`, with `reason` one of `occupied-plant`,
+`occupied-decoration`, `occupied-water`, `planet-full` or `not-owned` and
+`message` a friendly sentence to show the player; the planet, its version and
+its inventory stay as they were. A plant or decoration id that is not on the
+planet is a 404.
 
 A planet name must be 2 to 24 characters (`GAME_PLANET_NAME_MIN` and
 `GAME_PLANET_NAME_MAX`) and pass a small offensive-word filter. A refused

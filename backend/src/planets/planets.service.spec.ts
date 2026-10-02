@@ -3,11 +3,21 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { type DataSource, QueryFailedError, type Repository } from 'typeorm';
+import {
+  type DataSource,
+  type EntityManager,
+  QueryFailedError,
+  type Repository,
+} from 'typeorm';
 import { FakeClock } from '../../test/support/fake-clock';
 import { SeededRandom } from '../../test/support/seeded-random';
 import { RandomService } from '../common/random.service';
+import { STARTER_INVENTORY } from '../content/starter';
 import { GameConfigService } from '../game-config/game-config.service';
+import type {
+  GrantItem,
+  InventoryService,
+} from '../inventory/inventory.service';
 import { generatePlanetCode, isPlanetCode } from './planet-code';
 import { PlanetStateService } from './planet-state/planet-state.service';
 import type { Planet } from './planet.entity';
@@ -69,19 +79,56 @@ class FakePlanetRepository {
     this.rows.delete(id);
     return Promise.resolve();
   }
+
+  // Every manager a transaction handed out, oldest first.
+  readonly transactions: object[] = [];
+
+  /** Runs the work at once on a fresh manager over this table; no rollback. */
+  readonly manager = {
+    transaction: <T>(work: (em: EntityManager) => Promise<T>): Promise<T> => {
+      const em = fakeManager(this);
+      this.transactions.push(em);
+      return work(em as unknown as EntityManager);
+    },
+  };
 }
 
 /**
- * The slice of DataSource that PlanetStateService reads a snapshot through:
- * the planet comes from the fake table, and it has no garden yet.
+ * The slice of EntityManager that create() and PlanetStateService use: the
+ * planet is saved to and read from the fake table, and it has no garden yet.
  */
-function snapshotSource(repo: FakePlanetRepository): DataSource {
-  const manager = {
+function fakeManager(repo: FakePlanetRepository) {
+  return {
+    save: (_target: unknown, entity: Partial<Planet>) => repo.save(entity),
     findOneBy: (_entity: unknown, where: { id: string }) =>
       repo.findOneBy(where),
     find: () => Promise.resolve([]),
   };
-  return { manager } as unknown as DataSource;
+}
+
+/** The slice of DataSource that PlanetStateService reads a snapshot through. */
+function snapshotSource(repo: FakePlanetRepository): DataSource {
+  return { manager: fakeManager(repo) } as unknown as DataSource;
+}
+
+/** Records the grants instead of storing them, so the inventory stays empty. */
+class FakeInventory {
+  readonly grants: {
+    em: unknown;
+    planetId: string;
+    items: readonly GrantItem[];
+    now: Date;
+  }[] = [];
+
+  grant(
+    em: unknown,
+    planetId: string,
+    items: readonly GrantItem[],
+    now: Date,
+  ): Promise<{ newlyUnlocked: string[] }> {
+    this.grants.push({ em, planetId, items, now });
+    return Promise.resolve({ newlyUnlocked: items.map((i) => i.itemType) });
+  }
 }
 
 /** Always draws the lowest value, so every code is AAAAAAAA. */
@@ -95,6 +142,7 @@ interface Setup {
   service: PlanetsService;
   repo: FakePlanetRepository;
   clock: FakeClock;
+  inventory: FakeInventory;
 }
 
 function buildService(
@@ -103,6 +151,7 @@ function buildService(
 ): Setup {
   const repo = new FakePlanetRepository();
   const clock = new FakeClock();
+  const inventory = new FakeInventory();
   const config = new GameConfigService({
     get: (key: string) => env[key],
   } as never);
@@ -112,8 +161,18 @@ function buildService(
     random,
     config,
     new PlanetStateService(snapshotSource(repo), clock),
+    inventory as unknown as InventoryService,
   );
-  return { service, repo, clock };
+  return { service, repo, clock, inventory };
+}
+
+/** The starter stacks as create() grants them. */
+function starterSeeds(types: number): GrantItem[] {
+  return STARTER_INVENTORY.slice(0, types).map(({ itemType, count }) => ({
+    itemType,
+    kind: 'seed',
+    count,
+  }));
 }
 
 async function rejection(run: Promise<unknown>): Promise<HttpException> {
@@ -181,6 +240,37 @@ describe('PlanetsService', () => {
       expect(row?.lastSeenAt).toEqual(clock.now());
       expect(row?.maxPlants).toBe(80);
     });
+
+    it('grants the starter seeds in the transaction that saves the planet (ITM-04 AC1)', async () => {
+      const { service, repo, clock, inventory } = buildService();
+
+      const { id } = await service.create('Moonbeam');
+
+      expect(inventory.grants).toEqual([
+        {
+          em: repo.transactions[0],
+          planetId: id,
+          items: starterSeeds(3),
+          now: clock.now(),
+        },
+      ]);
+    });
+
+    it.each([
+      ['2', 2],
+      ['10', STARTER_INVENTORY.length],
+    ])(
+      'grants the first GAME_STARTER_SEED_TYPES=%s starter types, at most all',
+      async (setting, types) => {
+        const { service, inventory } = buildService(new SeededRandom(1), {
+          GAME_STARTER_SEED_TYPES: setting,
+        });
+
+        await service.create('Moonbeam');
+
+        expect(inventory.grants[0].items).toEqual(starterSeeds(types));
+      },
+    );
 
     it.each(refusedNames)(
       'refuses a %s name with a friendly 400',

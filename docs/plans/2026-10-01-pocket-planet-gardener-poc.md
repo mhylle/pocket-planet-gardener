@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–4 implemented and validated (see section 9). Next: Phase 5. |
+| **Progress** | Phases 1–5 implemented and validated (see section 9). Next: Phase 6. |
 
 ---
 
@@ -518,6 +518,16 @@ Notes:
 - Pickable objects register with `PickingService.register(object3d, { kind, id })`; meshes for plants, decorations, creatures, clouds and sun must do so.
 - `CameraControlsService` reads `prefers-reduced-motion` once; Phase 16 replaces that with `MotionPreferenceService`.
 - The session restarted mid-phase; both dev servers were restarted by the orchestrator (backend `start:dev`, frontend `npm start`).
+
+### Phase 5 — done (2 Oct 2026)
+
+All tasks 5.1–5.5 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 328/328, e2e 86/86; frontend `tsc` 0, tests 335/335, build 0 (775 kB). Live: curl same spot twice → 400 `occupied-plant` with version and inventory unchanged; browser — planted three seed types (mounds rendered, inventory decremented), occupied spot refused with the friendly message, tap → "Dig up" → "+1 Clover seed" toast and count restored. **Not run:** backend `npm run build`.
+
+Notes:
+- `placement-rules.ts` is byte-identical front/back like `surface-coords`; `footprintSteps` is a diameter. Water is the content flag `DecorationType.isWater` (pond), exposed in the catalogue.
+- Garden commands emit no events yet (Phase 9 adds them). Refusals are 400 `{ message, reason }`; each leaves one expected 400 line in the browser console.
+- `PlanetsModule` imports `InventoryModule`; `InventoryModule` must never import `PlanetsModule`. `InventoryService.grant` returns `newlyUnlocked` — push it into `ctx.newlyUnlocked`.
+- Frontend receipts diff inventory between snapshots, so later harvests/gifts toast automatically. `PickingService.registerInstances` supports instanced meshes. A small `core/helpers/reduced-motion.ts` reads the media query (Phase 16 replaces it).
 
 ---
 

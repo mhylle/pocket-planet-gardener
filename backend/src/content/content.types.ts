@@ -35,8 +35,10 @@ export interface PlantType {
 export interface DecorationType {
   id: DecorationId;
   name: string;
-  /** Radius, in surface steps, that the decoration occupies when placed. */
+  /** How many surface steps across the decoration is when placed. */
   footprintSteps: number;
+  /** Water, such as the pond: nothing can be planted in it (GRD-01 AC3). */
+  isWater: boolean;
   /** Short, funny catalogue text, at most 2 sentences (ITM-03 AC2). */
   description: string;
   /** Shown on the catalogue silhouette before it is unlocked (ITM-03 AC1). */

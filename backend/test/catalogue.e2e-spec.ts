@@ -41,4 +41,16 @@ describe('GET /api/catalogue (e2e)', () => {
       expect(species).not.toHaveProperty('arrivalCondition');
     }
   });
+
+  it('marks which decorations are water', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/catalogue')
+      .expect(200);
+    const { decorations } = res.body as CatalogueDto;
+
+    for (const decoration of decorations) {
+      expect(typeof decoration.isWater).toBe('boolean');
+    }
+    expect(decorations.find((d) => d.id === 'pond')?.isWater).toBe(true);
+  });
 });

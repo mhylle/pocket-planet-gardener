@@ -1,0 +1,6 @@
+<!-- The live region stays in the page so screen readers hear each receipt. -->
+<div class="receipts" aria-live="polite">
+  @for (receipt of receipts(); track receipt.id) {
+    <p class="receipt" [class.still]="still">{{ receipt.text }}</p>
+  }
+</div>

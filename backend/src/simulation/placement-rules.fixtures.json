@@ -1,0 +1,211 @@
+{
+  "states": {
+    "garden": {
+      "plants": [
+        { "id": "p1", "lat": 0, "lon": 0 },
+        { "id": "p2", "lat": 0, "lon": -32 },
+        { "id": "p3", "lat": 0, "lon": -179.8 }
+      ],
+      "decorations": [
+        {
+          "id": "pond",
+          "lat": 0,
+          "lon": 20,
+          "footprintSteps": 3,
+          "isWater": true
+        },
+        {
+          "id": "rock",
+          "lat": 0,
+          "lon": -40,
+          "footprintSteps": 1,
+          "isWater": false
+        }
+      ],
+      "maxPlants": 20
+    },
+    "full": {
+      "plants": [
+        { "id": "f1", "lat": 0, "lon": 0 },
+        { "id": "f2", "lat": 0, "lon": 90 },
+        { "id": "f3", "lat": 0, "lon": 180 }
+      ],
+      "decorations": [],
+      "maxPlants": 3
+    }
+  },
+  "cases": [
+    {
+      "name": "a clear spot takes a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 30, "lon": 120 },
+        "footprintSteps": 1
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "a clear spot takes a decoration",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": -30, "lon": 100 },
+        "footprintSteps": 3
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "a plant inside the pond footprint",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 0, "lon": 22 },
+        "footprintSteps": 1
+      },
+      "expect": "occupied-water"
+    },
+    {
+      "name": "a plant just outside the pond footprint",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 0, "lon": 31 },
+        "footprintSteps": 1
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "a plant within 1 step of a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 4.5, "lon": 0 },
+        "footprintSteps": 1
+      },
+      "expect": "occupied-plant"
+    },
+    {
+      "name": "a plant just over 1 step from a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 5.5, "lon": 0 },
+        "footprintSteps": 1
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "a plant on a rock",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 0, "lon": -40.5 },
+        "footprintSteps": 1
+      },
+      "expect": "occupied-decoration"
+    },
+    {
+      "name": "a plant across the date line from a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 0, "lon": 179.5 },
+        "footprintSteps": 1
+      },
+      "expect": "occupied-plant"
+    },
+    {
+      "name": "water wins over a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": 8 },
+        "footprintSteps": 3
+      },
+      "expect": "occupied-water"
+    },
+    {
+      "name": "a decoration wins over a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": -36 },
+        "footprintSteps": 2
+      },
+      "expect": "occupied-decoration"
+    },
+    {
+      "name": "a decoration on a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": 0.5 },
+        "footprintSteps": 1
+      },
+      "expect": "occupied-plant"
+    },
+    {
+      "name": "moving the pond onto its own old spot",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": 20 },
+        "footprintSteps": 3,
+        "ignoreId": "pond"
+      },
+      "expect": "ok"
+    },
+    {
+      "name": "another pond on the pond",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": 20 },
+        "footprintSteps": 3
+      },
+      "expect": "occupied-water"
+    },
+    {
+      "name": "moving the pond onto a plant",
+      "state": "garden",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 0, "lon": 2 },
+        "footprintSteps": 3,
+        "ignoreId": "pond"
+      },
+      "expect": "occupied-plant"
+    },
+    {
+      "name": "a new plant on a full planet",
+      "state": "full",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 45, "lon": 45 },
+        "footprintSteps": 1
+      },
+      "expect": "planet-full"
+    },
+    {
+      "name": "a full planet refuses as full before occupied",
+      "state": "full",
+      "candidate": {
+        "kind": "plant",
+        "point": { "lat": 0, "lon": 0 },
+        "footprintSteps": 1
+      },
+      "expect": "planet-full"
+    },
+    {
+      "name": "a full planet still takes a decoration",
+      "state": "full",
+      "candidate": {
+        "kind": "decoration",
+        "point": { "lat": 45, "lon": 45 },
+        "footprintSteps": 1
+      },
+      "expect": "ok"
+    }
+  ]
+}

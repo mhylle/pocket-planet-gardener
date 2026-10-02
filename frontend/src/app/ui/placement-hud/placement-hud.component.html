@@ -1,0 +1,36 @@
+@if (doing(); as doing) {
+  <div class="hud">
+    <p class="doing">{{ doing }}</p>
+    <p class="status" role="status" [class.refused]="status()?.icon !== 'free'">
+      @if (status(); as status) {
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          @switch (status.icon) {
+            @case ('free') {
+              <path d="M20 6L9 17l-5-5" />
+            }
+            @case ('taken') {
+              <circle cx="12" cy="12" r="9" />
+              <path d="M15 9l-6 6M9 9l6 6" />
+            }
+            @case ('water') {
+              <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />
+            }
+            @case ('full') {
+              <circle cx="12" cy="12" r="9" />
+              <path d="M5.6 5.6l12.8 12.8" />
+            }
+          }
+        </svg>
+        <span>{{ status.text }}</span>
+      }
+    </p>
+    <p class="hint">Tap a free spot, or press Enter for the middle of the view.</p>
+    <button type="button" class="secondary" (click)="placement.cancel()">Stop (Esc)</button>
+  </div>
+}
+<!-- The live region stays in the page so screen readers hear each new message. -->
+<div class="message" aria-live="polite">
+  @if (placement.message(); as message) {
+    <p>{{ message }}</p>
+  }
+</div>

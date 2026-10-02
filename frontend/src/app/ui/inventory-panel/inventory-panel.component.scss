@@ -1,0 +1,61 @@
+/* Floats at the bottom left of the planet view. */
+:host {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  max-width: calc(100% - 1.5rem);
+}
+
+.inventory {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+}
+
+ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--surface);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+/* The chosen item: a thicker accent border and a filled count, not only a colour change. */
+.item.selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  font-weight: 600;
+}
+
+.count {
+  min-width: 1.5rem;
+  padding: 0 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.selected .count {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}

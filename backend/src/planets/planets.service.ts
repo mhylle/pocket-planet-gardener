@@ -7,7 +7,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { ClockService } from '../common/clock.service';
 import { RandomService } from '../common/random.service';
+import { STARTER_INVENTORY } from '../content/starter';
 import { GameConfigService } from '../game-config/game-config.service';
+import {
+  InventoryService,
+  type GrantItem,
+} from '../inventory/inventory.service';
 import type { PlanetSnapshotDto } from './dto/planet-snapshot.dto';
 import { nameErrorMessage, validateName } from './name-rules';
 import {
@@ -39,22 +44,37 @@ export class PlanetsService {
     private readonly random: RandomService,
     private readonly config: GameConfigService,
     private readonly planetState: PlanetStateService,
+    private readonly inventory: InventoryService,
   ) {}
 
-  /** A new planet with a fresh code, named under the name rules (ACC-02 AC1, AC2). */
+  /**
+   * A new planet with a fresh code, named under the name rules (ACC-02 AC1,
+   * AC2), holding the first starterSeedTypes starter seeds, unlocked
+   * (ITM-04 AC1).
+   */
   async create(name: string): Promise<PlanetSnapshotDto> {
     const planetName = this.checkName(name);
     const now = this.clock.now();
+    const starter = STARTER_INVENTORY.slice(0, this.config.starterSeedTypes);
+    const seeds = starter.map(({ itemType, count }): GrantItem => ({
+      itemType,
+      kind: 'seed',
+      count,
+    }));
     for (let attempt = 1; ; attempt++) {
       try {
-        const planet = await this.planets.save({
-          code: generatePlanetCode(this.random),
-          name: planetName,
-          maxPlants: this.config.maxPlants,
-          lastSimulatedAt: now,
-          lastSeenAt: now,
+        // One transaction per attempt: a failed insert aborts its transaction.
+        return await this.planets.manager.transaction(async (em) => {
+          const planet = await em.save(Planet, {
+            code: generatePlanetCode(this.random),
+            name: planetName,
+            maxPlants: this.config.maxPlants,
+            lastSimulatedAt: now,
+            lastSeenAt: now,
+          });
+          await this.inventory.grant(em, planet.id, seeds, now);
+          return this.planetState.getSnapshot(planet.id, em);
         });
-        return this.planetState.getSnapshot(planet.id);
       } catch (error) {
         // The id comes from the database, so the code is the only unique
         // column a new row can collide on: draw another.

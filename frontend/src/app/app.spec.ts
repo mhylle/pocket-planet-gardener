@@ -42,7 +42,11 @@ describe('App', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    // The planet page asks for the catalogue for the inventory names; these specs do not need it.
+    http.match('/api/catalogue');
+    http.verify();
+  });
 
   function render() {
     const fixture = TestBed.createComponent(App);

@@ -13,6 +13,9 @@ export interface TapInput {
   y: number;
 }
 
+/** Where a mouse or pen is over the canvas, in CSS pixels from its top left; null once it left. */
+export type HoverInput = { x: number; y: number } | null;
+
 /** A pinch step: the finger spread now divided by the spread at the previous step. */
 export interface PinchInput {
   scale: number;
@@ -67,6 +70,7 @@ export class InputService {
   private readonly drags = new Subject<DragInput>();
   private readonly dragEnds = new Subject<void>();
   private readonly taps = new Subject<TapInput>();
+  private readonly hovers = new Subject<HoverInput>();
   private readonly pinches = new Subject<PinchInput>();
   private readonly wheels = new Subject<WheelInput>();
   private readonly keys = new Subject<KeyInput>();
@@ -75,6 +79,8 @@ export class InputService {
   /** The finger or button that was dragging let go, or a second finger joined. */
   readonly dragEnd = this.dragEnds.asObservable();
   readonly tap = this.taps.asObservable();
+  /** Every move of a mouse or pen over the canvas, pressed or not; fingers do not hover. */
+  readonly hover = this.hovers.asObservable();
   readonly pinch = this.pinches.asObservable();
   readonly wheel = this.wheels.asObservable();
   readonly key = this.keys.asObservable();
@@ -97,6 +103,7 @@ export class InputService {
     canvas.addEventListener('pointermove', (event) => this.pointerMove(event), { signal });
     canvas.addEventListener('pointerup', (event) => this.pointerUp(event, true), { signal });
     canvas.addEventListener('pointercancel', (event) => this.pointerUp(event, false), { signal });
+    canvas.addEventListener('pointerleave', () => this.hovers.next(null), { signal });
     // Not passive, so the page does not scroll as well.
     canvas.addEventListener('wheel', (event) => this.onWheel(event), { signal, passive: false });
     canvas.addEventListener('keydown', (event) => this.keyDown(event), { signal });
@@ -135,6 +142,9 @@ export class InputService {
   }
 
   private pointerMove(event: PointerEvent): void {
+    if (event.pointerType !== 'touch') {
+      this.hovers.next(this.position(event));
+    }
     const pointer = this.pointers.get(event.pointerId);
     if (!pointer) {
       return;

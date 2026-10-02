@@ -141,6 +141,23 @@ describe('InputService', () => {
       expect(dragEnds).toBe(2);
       expect(taps).toEqual([]);
     });
+
+    it('reports a mouse moving over the canvas, pressed or not, and leaving it', () => {
+      const hovers: unknown[] = [];
+      input.hover.subscribe((hover) => hovers.push(hover));
+      const move = (pointerType: string, x: number, y: number) =>
+        canvas.dispatchEvent(
+          new PointerEvent('pointermove', { pointerId: 1, pointerType, clientX: x, clientY: y }),
+        );
+
+      move('mouse', 10, 20);
+      pointer('pointerdown', 10, 20);
+      move('mouse', 30, 20);
+      move('touch', 50, 60);
+      canvas.dispatchEvent(new PointerEvent('pointerleave', { pointerId: 1 }));
+
+      expect(hovers).toEqual([{ x: 10, y: 20 }, { x: 30, y: 20 }, null]);
+    });
   });
 
   describe('wheel', () => {

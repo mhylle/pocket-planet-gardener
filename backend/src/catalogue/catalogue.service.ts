@@ -34,6 +34,7 @@ function toPublicDecoration(decoration: DecorationType): PublicDecoration {
     id: decoration.id,
     name: decoration.name,
     footprintSteps: decoration.footprintSteps,
+    isWater: decoration.isWater,
     description: decoration.description,
     unlockHint: decoration.unlockHint,
   };

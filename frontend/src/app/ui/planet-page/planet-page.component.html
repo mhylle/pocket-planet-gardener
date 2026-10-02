@@ -16,6 +16,10 @@
     </div>
     <div class="stage">
       <app-planet-view [name]="planet.name" [radiusLevel]="planet.radiusLevel" />
+      <app-placement-hud />
+      <app-inventory-panel />
+      <app-receipt-toast />
+      <app-context-menu />
       @if (!sceneReady()) {
         <app-loading />
       }

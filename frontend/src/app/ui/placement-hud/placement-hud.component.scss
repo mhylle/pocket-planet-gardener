@@ -1,0 +1,63 @@
+/* Floats at the top left of the planet view. */
+:host {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+  max-width: min(20rem, calc(100% - 1.5rem));
+}
+
+.hud,
+.message p {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+.hud {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+
+p {
+  margin: 0;
+}
+
+.doing {
+  font-weight: 600;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.5em;
+}
+
+.status.refused {
+  color: var(--danger-fg);
+}
+
+.hint {
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
+
+.message p {
+  border-color: var(--danger-fg);
+  color: var(--danger-fg);
+}
+
+svg {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

@@ -1,0 +1,61 @@
+/* Above the inventory at the bottom left, so the notes have a short way to fly. */
+:host {
+  position: absolute;
+  bottom: 6rem;
+  left: 1.5rem;
+  pointer-events: none;
+}
+
+.receipts {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+
+.receipt {
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 600;
+  animation: into-inventory var(--receipt-ms) ease-in forwards;
+}
+
+.receipt.still {
+  animation-name: fade;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .receipt {
+    animation-name: fade;
+  }
+}
+
+@keyframes into-inventory {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  15%,
+  60% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-0.5rem, 4.5rem) scale(0.6);
+  }
+}
+
+@keyframes fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  60% {
+    opacity: 1;
+  }
+}

@@ -49,6 +49,8 @@ describe('PlanetPageComponent', () => {
   });
 
   afterEach(() => {
+    // The page asks for the catalogue for the inventory names; these specs do not need it.
+    http.match('/api/catalogue');
     http.verify();
     vi.useRealTimers();
   });

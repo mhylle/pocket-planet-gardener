@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Decoration } from '../garden/decoration.entity';
 import { Plant } from '../garden/plant.entity';
 import { InventoryItem } from '../inventory/inventory-item.entity';
+import { InventoryModule } from '../inventory/inventory.module';
 import { Unlock } from '../inventory/unlock.entity';
 import { PlanetGuard } from './planet-context/planet.guard';
 import { PlanetStateService } from './planet-state/planet-state.service';
@@ -13,8 +14,9 @@ import { PlanetsService } from './planets.service';
 
 @Module({
   // The child entities are listed because the snapshot reads them, so this
-  // module need not import GardenModule or InventoryModule (which will
-  // import this one for mutate()).
+  // module need not import GardenModule (which imports this one for
+  // mutate()). InventoryModule is imported for the starter seeds; it does not
+  // import this one.
   imports: [
     TypeOrmModule.forFeature([
       Planet,
@@ -23,6 +25,7 @@ import { PlanetsService } from './planets.service';
       InventoryItem,
       Unlock,
     ]),
+    InventoryModule,
   ],
   providers: [
     PlanetsService,

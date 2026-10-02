@@ -1,0 +1,24 @@
+<section class="inventory" aria-labelledby="inventory-title">
+  <h3 id="inventory-title">Inventory</h3>
+  @if (items().length) {
+    <ul>
+      @for (item of items(); track item.kind + ':' + item.itemType) {
+        <li>
+          <button
+            type="button"
+            class="item"
+            [class.selected]="item.selected"
+            [attr.aria-pressed]="item.selected"
+            [attr.aria-label]="item.name + ', ' + item.count"
+            (click)="placement.select(item)"
+          >
+            <span class="name">{{ item.name }}</span>
+            <span class="count">{{ item.count }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="hint">Nothing in your pockets just now.</p>
+  }
+</section>

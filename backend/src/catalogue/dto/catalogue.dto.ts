@@ -21,7 +21,10 @@ export interface PublicPlant {
 export interface PublicDecoration {
   id: DecorationId;
   name: string;
+  // Steps across.
   footprintSteps: number;
+  // Water refuses plants, so the client previews it like the server (GRD-01 AC3).
+  isWater: boolean;
   description: string;
   unlockHint: string;
 }

@@ -75,4 +75,24 @@ describe('PickingService', () => {
     picking.unregister(plant);
     expect(picking.pick(centre)?.kind).toBe('planet');
   });
+
+  it('finds the instance hit when each instance stands for its own target', () => {
+    const plants = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.1, 0.1, 0.1),
+      new THREE.MeshBasicMaterial(),
+      2,
+    );
+    const away = toVector({ lat: 0, lon: 90 }, 1.05);
+    const front = toVector({ lat: 0, lon: 0 }, 1.05);
+    plants.setMatrixAt(0, new THREE.Matrix4().makeTranslation(away.x, away.y, away.z));
+    plants.setMatrixAt(1, new THREE.Matrix4().makeTranslation(front.x, front.y, front.z));
+    scene.planetGroup.add(plants);
+
+    picking.registerInstances(plants, [
+      { kind: 'plant', id: 'fern-1' },
+      { kind: 'plant', id: 'clover-1' },
+    ]);
+
+    expect(picking.pick(centre)).toMatchObject({ kind: 'plant', id: 'clover-1' });
+  });
 });

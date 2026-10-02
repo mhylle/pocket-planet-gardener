@@ -19,17 +19,23 @@ export interface PickResult extends PickTarget {
 
 /**
  * Finds what is under a point on the canvas. Only registered objects (and their children) can
- * be picked; the nearest one along the camera ray wins.
+ * be picked; the nearest one along the camera ray wins. An InstancedMesh may stand for one
+ * target per instance, such as one plant each.
  */
 @Injectable()
 export class PickingService {
   private readonly sceneService = inject(SceneService);
-  private readonly targets = new Map<THREE.Object3D, PickTarget>();
+  private readonly targets = new Map<THREE.Object3D, PickTarget | readonly PickTarget[]>();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
 
   register(object: THREE.Object3D, target: PickTarget): void {
     this.targets.set(object, target);
+  }
+
+  /** Registers each instance of the mesh as its own target, in instance order. */
+  registerInstances(mesh: THREE.InstancedMesh, targets: readonly PickTarget[]): void {
+    this.targets.set(mesh, targets);
   }
 
   unregister(object: THREE.Object3D): void {
@@ -45,19 +51,22 @@ export class PickingService {
     this.pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
     this.raycaster.setFromCamera(this.pointer, camera);
     const [hit] = this.raycaster.intersectObjects([...this.targets.keys()], true);
-    const target = hit && this.targetOf(hit.object);
+    const target = hit && this.targetOf(hit.object, hit.instanceId);
     if (!target) {
       return null;
     }
     return { ...target, surface: fromVector(planetGroup.worldToLocal(hit.point.clone())) };
   }
 
-  /** The target of the object itself or of its nearest registered ancestor. */
-  private targetOf(object: THREE.Object3D): PickTarget | undefined {
+  /** The target of the object (or of the instance hit), or of its nearest registered ancestor. */
+  private targetOf(object: THREE.Object3D, instanceId?: number): PickTarget | undefined {
     for (let current: THREE.Object3D | null = object; current; current = current.parent) {
       const target = this.targets.get(current);
-      if (target) {
+      if (target && 'kind' in target) {
         return target;
+      }
+      if (target) {
+        return instanceId === undefined ? undefined : target[instanceId];
       }
     }
     return undefined;

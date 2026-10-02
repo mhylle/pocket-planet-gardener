@@ -1,0 +1,231 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { errorMessage, hasStatus } from '../helpers/error-message';
+import {
+  PLANT_FOOTPRINT_STEPS,
+  PlacementCandidate,
+  PlacementReason,
+  PlacementState,
+  canPlaceAt,
+} from '../helpers/placement-rules';
+import { SurfacePoint } from '../helpers/surface-coords';
+import { InventoryItemDto } from '../models/planet-snapshot';
+import { CatalogueService } from './catalogue.service';
+import { PlanetStore } from './planet-store.service';
+import { ReceiptService } from './receipt.service';
+import { Command, SyncService } from './sync.service';
+
+/** What the next tap on the planet puts down: an inventory item, or a decoration to move. */
+export type PlacementSelection =
+  | { mode: 'place'; itemType: string; kind: InventoryItemDto['kind'] }
+  | { mode: 'move'; itemType: string; decorationId: string };
+
+/** A plant or decoration whose menu is open, and where on the canvas, in CSS pixels. */
+export interface MenuTarget {
+  kind: 'plant' | 'decoration';
+  id: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * Planting, placing, moving and removing things on the planet (GRD-01, GRD-07, ITM-02). Holds
+ * the selected item and the point under the pointer, and previews whether the item may go
+ * there with the same rules the server applies. Every change goes to the server as a command;
+ * when it refuses one, its message shows and the selection stays, so the player can try
+ * another spot. Provided by the planet page, so a selection never outlives it.
+ */
+@Injectable()
+export class PlacementService {
+  private readonly sync = inject(SyncService);
+  private readonly store = inject(PlanetStore);
+  private readonly catalogue = inject(CatalogueService);
+  private readonly receipts = inject(ReceiptService);
+
+  private readonly selection = signal<PlacementSelection | null>(null);
+  private readonly hoverPoint = signal<SurfacePoint | null>(null, { equal: samePoint });
+  private readonly pendingPoint = signal<SurfacePoint | null>(null);
+  private readonly refusal = signal<string | null>(null);
+  private readonly menuTarget = signal<MenuTarget | null>(null);
+
+  readonly selected = this.selection.asReadonly();
+  /** The surface point under the pointer (or the view centre); null over open sky. */
+  readonly hover = this.hoverPoint.asReadonly();
+  /** The server's line for the last refused change; cleared when a change goes through. */
+  readonly message = this.refusal.asReadonly();
+  readonly menu = this.menuTarget.asReadonly();
+
+  /** Where the preview shows: the spot being saved, otherwise the hover point. */
+  readonly previewPoint = computed(() => this.pendingPoint() ?? this.hoverPoint());
+  /** True while a placement waits for the server. */
+  readonly saving = computed(() => this.pendingPoint() !== null);
+
+  /** Steps across of the selected item, for the preview. */
+  readonly footprintSteps = computed(() => {
+    const selected = this.selection();
+    return selected ? this.candidate(selected, { lat: 0, lon: 0 }).footprintSteps : 0;
+  });
+
+  /** Whether the selected item may go at the preview point; null without either (GRD-01 AC2). */
+  readonly preview = computed<PlacementReason | null>(() => {
+    const selected = this.selection();
+    const point = this.previewPoint();
+    const state = this.state();
+    return selected && point && state ? canPlaceAt(state, this.candidate(selected, point)) : null;
+  });
+
+  /** What is on the planet, in the shape the placement rules read. */
+  private readonly state = computed<PlacementState | null>(() => {
+    const snapshot = this.store.snapshot();
+    if (!snapshot) {
+      return null;
+    }
+    return {
+      plants: snapshot.plants.map(({ id, lat, lon }) => ({ id, lat, lon })),
+      decorations: snapshot.decorations.map(({ id, type, lat, lon }) => {
+        const decoration = this.catalogue.decoration(type);
+        return {
+          id,
+          lat,
+          lon,
+          footprintSteps: decoration?.footprintSteps ?? 1,
+          isWater: decoration?.isWater ?? false,
+        };
+      }),
+      maxPlants: snapshot.maxPlants,
+    };
+  });
+
+  /** Picks an inventory item to place; picking the selected one again puts it back. */
+  select(item: Pick<InventoryItemDto, 'itemType' | 'kind'>): void {
+    const selected = this.selection();
+    const same =
+      selected?.mode === 'place' &&
+      selected.itemType === item.itemType &&
+      selected.kind === item.kind;
+    this.closeMenu();
+    this.refusal.set(null);
+    this.selection.set(same ? null : { mode: 'place', itemType: item.itemType, kind: item.kind });
+  }
+
+  /** Picks up a placed decoration; the next placement moves it there (ITM-02 AC2). */
+  startMove(decorationId: string): void {
+    const decoration = this.store.snapshot()?.decorations.find(({ id }) => id === decorationId);
+    this.closeMenu();
+    this.refusal.set(null);
+    this.selection.set(
+      decoration ? { mode: 'move', itemType: decoration.type, decorationId } : null,
+    );
+  }
+
+  /** Leaves placement mode. */
+  cancel(): void {
+    this.selection.set(null);
+  }
+
+  setHover(point: SurfacePoint | null): void {
+    this.hoverPoint.set(point);
+  }
+
+  /**
+   * Plants, places or moves the selected item at the point. Ignored without a selection or
+   * while the previous placement is still being saved. Seeds and decorations stay selected
+   * while the player owns more; a move is done after one placement.
+   */
+  async placeAt({ lat, lon }: SurfacePoint): Promise<void> {
+    const selected = this.selection();
+    if (!selected || this.pendingPoint()) {
+      return;
+    }
+    this.pendingPoint.set({ lat, lon });
+    const command: Command =
+      selected.mode === 'move'
+        ? {
+            method: 'PATCH',
+            path: `/garden/decorations/${encodeURIComponent(selected.decorationId)}/position`,
+            body: { lat, lon },
+          }
+        : {
+            method: 'POST',
+            path: selected.kind === 'seed' ? '/garden/plants' : '/garden/decorations',
+            body: { itemType: selected.itemType, lat, lon },
+          };
+    const outcome = await this.run(command);
+    this.pendingPoint.set(null);
+    if (this.selection() !== selected) {
+      return;
+    }
+    const finished =
+      outcome === 'done' ? selected.mode === 'move' || !this.owns(selected) : outcome === 'gone';
+    if (finished) {
+      this.selection.set(null);
+    }
+  }
+
+  /** Digs up a plant; a seed or sprout comes back to the inventory (GRD-07 AC1). */
+  async digUp(plantId: string): Promise<void> {
+    this.closeMenu();
+    await this.run({
+      method: 'DELETE',
+      path: `/garden/plants/${encodeURIComponent(plantId)}`,
+      body: {},
+    });
+  }
+
+  /** Puts a decoration back in the inventory (ITM-02 AC3). */
+  async putAway(decorationId: string): Promise<void> {
+    this.closeMenu();
+    await this.run({
+      method: 'DELETE',
+      path: `/garden/decorations/${encodeURIComponent(decorationId)}`,
+      body: {},
+    });
+  }
+
+  openMenu(target: MenuTarget): void {
+    this.menuTarget.set(target);
+  }
+
+  closeMenu(): void {
+    this.menuTarget.set(null);
+  }
+
+  /**
+   * Sends the command. Refused shows the server's reason; gone means the thing it names no
+   * longer exists (404).
+   */
+  private async run(command: Command): Promise<'done' | 'refused' | 'gone'> {
+    try {
+      const response = await this.sync.send(command);
+      this.refusal.set(null);
+      this.receipts.unlocked(response.newlyUnlocked ?? []);
+      return 'done';
+    } catch (error) {
+      // A conflict has its own banner, and a closed planet needs no word.
+      if (error instanceof HttpErrorResponse && !hasStatus(error, 409)) {
+        this.refusal.set(errorMessage(error));
+      }
+      return hasStatus(error, 404) ? 'gone' : 'refused';
+    }
+  }
+
+  private candidate(selected: PlacementSelection, point: SurfacePoint): PlacementCandidate {
+    if (selected.mode === 'place' && selected.kind === 'seed') {
+      return { kind: 'plant', point, footprintSteps: PLANT_FOOTPRINT_STEPS };
+    }
+    const footprintSteps = this.catalogue.decoration(selected.itemType)?.footprintSteps ?? 1;
+    return selected.mode === 'move'
+      ? { kind: 'decoration', point, footprintSteps, ignoreId: selected.decorationId }
+      : { kind: 'decoration', point, footprintSteps };
+  }
+
+  private owns({ itemType, kind }: PlacementSelection & { mode: 'place' }): boolean {
+    return (this.store.snapshot()?.inventory ?? []).some(
+      (item) => item.itemType === itemType && item.kind === kind && item.count > 0,
+    );
+  }
+}
+
+function samePoint(a: SurfacePoint | null, b: SurfacePoint | null): boolean {
+  return a === b || (a !== null && b !== null && a.lat === b.lat && a.lon === b.lon);
+}

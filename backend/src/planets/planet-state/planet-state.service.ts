@@ -175,7 +175,7 @@ export class PlanetStateService {
       where: { planetId },
       order: { placedAt: 'ASC', id: 'ASC' },
     });
-    // An emptied stack keeps its row; the client only sees what is held.
+    // InventoryService deletes emptied stacks; the filter keeps the client to what is held.
     const inventory = await em.find(InventoryItem, {
       where: { planetId, count: MoreThan(0) },
       order: { itemType: 'ASC' },
