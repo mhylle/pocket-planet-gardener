@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–5 implemented and validated (see section 9). Next: Phase 6. |
+| **Progress** | Phases 1–6 implemented and validated (see section 9). Next: Phase 7. |
 
 ---
 
@@ -528,6 +528,18 @@ Notes:
 - Garden commands emit no events yet (Phase 9 adds them). Refusals are 400 `{ message, reason }`; each leaves one expected 400 line in the browser console.
 - `PlanetsModule` imports `InventoryModule`; `InventoryModule` must never import `PlanetsModule`. `InventoryService.grant` returns `newlyUnlocked` — push it into `ctx.newlyUnlocked`.
 - Frontend receipts diff inventory between snapshots, so later harvests/gifts toast automatically. `PickingService.registerInstances` supports instanced meshes. A small `core/helpers/reduced-motion.ts` reads the media query (Phase 16 replaces it).
+
+### Phase 6 — done (2 Oct 2026)
+
+All tasks 6.1–6.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 429/429, e2e 90/90; frontend `tsc` 0, tests 419/419, build 0 (777 kB). Live (verification backend 3102 from source, frontend 4302): a planet aged 3 h turns a 2 h sunflower into a bloom with seeds ready, water 0.5 → 0.32, version unchanged, stage events at +40/+80/+120 min; browser shows sparkles on the ready bloom and a wilted thirsty clover. **Not run:** backend `npm run build`.
+
+Decisions and notes:
+- TIM-01 AC4 vs AC1: during away time light counts as met for every preference (average light "partly meets" without penalty), so a sunflower whose water holds blooms on time.
+- Values: water decay per hour low 0.03 / medium 0.06 / high 0.09; thirsty < 0.12 ≤ a-bit-thirsty < 0.3 ≤ happy ≤ 0.85 < soggy; light ok: full-sun ≥ 0.5, partial 0.1–0.8, shade ≤ 0.3. Each unmet need × `unmetNeedGrowthFactor`; thirsty stops growth.
+- Simulation slices are aligned to a 15-min global grid (light read at the cell midpoint) so results don't depend on sync frequency; growth is integrated exactly across water-threshold crossings. Facts: `plant-stage` (sprout, young), `plant-bloomed` (bloom).
+- New tunable `sunDayMinutes` (60). Sun angle grows with time from 0 at the epoch; snapshot `sun.angle` (added by a SimulationModule contributor). Phase 7 must use the same convention.
+- Optional growth interpolation not built (no in-stage visual to drive). Sparkles keep the scene redrawing while visible.
+- Live servers: port 3101 is held by an orphaned `node dist/main` from an earlier orchestrator `start:dev`; stopping it was blocked by the permission classifier, and the `dist/` it reads went stale. Live verification now runs on 3102 (backend from source, `node --watch -r ts-node/register`) and 4302 (`ng serve` proxying to 3102).
 
 ---
 

@@ -8,6 +8,15 @@ export interface SurfaceItem {
   id: string;
   model: string;
   point: SurfacePoint;
+  /** Radians it leans over, such as a thirsty plant drooping; upright without. */
+  lean?: number;
+  /** A colour its own colours are multiplied by, such as a duller one for a thirsty plant. */
+  tint?: string;
+}
+
+/** Where an item stands on a planet of the radius: upright on its point, unless it leans. */
+export function poseOf({ id, point, lean = 0 }: SurfaceItem, radius: number): THREE.Matrix4 {
+  return standOn(point, radius, spinOf(id)).multiply(new THREE.Matrix4().makeRotationX(lean));
 }
 
 /**
@@ -51,7 +60,10 @@ export class SurfaceItemLayer {
     for (const [model, group] of byModel) {
       const mesh = new THREE.InstancedMesh(this.geometry(model), this.material, group.length);
       mesh.name = model;
-      group.forEach((item, i) => mesh.setMatrixAt(i, standOn(item.point, radius, spinOf(item.id))));
+      group.forEach((item, i) => mesh.setMatrixAt(i, poseOf(item, radius)));
+      if (group.some((item) => item.tint)) {
+        group.forEach((item, i) => mesh.setColorAt(i, new THREE.Color(item.tint ?? '#ffffff')));
+      }
       mesh.computeBoundingSphere();
       this.group.add(mesh);
       this.picking.registerInstances(

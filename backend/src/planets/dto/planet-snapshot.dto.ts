@@ -40,6 +40,9 @@ export interface SunStateDto {
   overrideAngle: number | null;
   // ISO timestamp.
   overrideAt: string | null;
+  // The longitude the sun stands over at serverTime, 0 up to 360 degrees.
+  // Added by SimulationModule's snapshot contributor.
+  angle?: number;
 }
 
 /**

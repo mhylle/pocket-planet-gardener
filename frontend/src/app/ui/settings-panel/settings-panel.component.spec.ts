@@ -28,7 +28,7 @@ const mossySnapshot: PlanetSnapshotDto = {
   inventory: [],
   unlocks: [],
   clouds: [],
-  sun: { overrideAngle: null, overrideAt: null },
+  sun: { angle: 0, overrideAngle: null, overrideAt: null },
 };
 
 describe('SettingsPanelComponent', () => {

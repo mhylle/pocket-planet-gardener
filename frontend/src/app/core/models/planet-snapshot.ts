@@ -28,8 +28,13 @@ export interface InventoryItemDto {
   count: number;
 }
 
-/** A sun the player moved stays put for a while; both fields are null when it moves freely. */
+/**
+ * Where the sun is. A sun the player moved stays put for a while; both override fields are null
+ * when it moves freely.
+ */
 export interface SunStateDto {
+  /** Degrees: the longitude the sun is over now. */
+  angle: number;
   overrideAngle: number | null;
   /** ISO timestamp. */
   overrideAt: string | null;

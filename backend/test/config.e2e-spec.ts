@@ -31,6 +31,7 @@ describe('GET /api/config (e2e)', () => {
       syncIntervalSeconds: 10,
       cloudRefillSeconds: 60,
       sunOverrideMinutes: 5,
+      sunDayMinutes: 60,
       summaryAfterMinutes: 60,
       journalAfterHours: 4,
     });

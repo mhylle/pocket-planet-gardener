@@ -14,6 +14,8 @@ export class GameConfigService {
   readonly maxPlants: number;
   readonly cloudRefillSeconds: number;
   readonly sunOverrideMinutes: number;
+  // Not in the SD table: how long the sun takes to drift once round (Task 6.1).
+  readonly sunDayMinutes: number;
   readonly unmetNeedGrowthFactor: number;
   readonly seedsPerHarvestMin: number;
   readonly seedsPerHarvestMax: number;
@@ -56,6 +58,7 @@ export class GameConfigService {
     this.maxPlants = read('GAME_MAX_PLANTS', 60);
     this.cloudRefillSeconds = read('GAME_CLOUD_REFILL_SECONDS', 60);
     this.sunOverrideMinutes = read('GAME_SUN_OVERRIDE_MINUTES', 5);
+    this.sunDayMinutes = read('GAME_SUN_DAY_MINUTES', 60);
     this.unmetNeedGrowthFactor = read('GAME_UNMET_NEED_GROWTH_FACTOR', 0.5);
     this.seedsPerHarvestMin = read('GAME_SEEDS_PER_HARVEST_MIN', 1);
     this.seedsPerHarvestMax = read('GAME_SEEDS_PER_HARVEST_MAX', 2);
@@ -100,6 +103,7 @@ export class GameConfigService {
       syncIntervalSeconds: this.syncIntervalSeconds,
       cloudRefillSeconds: this.cloudRefillSeconds,
       sunOverrideMinutes: this.sunOverrideMinutes,
+      sunDayMinutes: this.sunDayMinutes,
       summaryAfterMinutes: this.summaryAfterMinutes,
       journalAfterHours: this.journalAfterHours,
     };

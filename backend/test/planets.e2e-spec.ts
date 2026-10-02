@@ -163,10 +163,15 @@ describe('Planets (e2e)', () => {
 
       const res = await getPlanet(planet.id).expect(200);
 
-      // Only the server time has moved on since the create.
+      // Only the server time, and with it the sun, has moved on since the create.
       expect(res.body).toEqual({
         ...planet,
         serverTime: expect.any(String) as string,
+        sun: {
+          overrideAngle: null,
+          overrideAt: null,
+          angle: expect.any(Number) as number,
+        },
       });
     });
 

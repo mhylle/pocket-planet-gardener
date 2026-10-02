@@ -63,7 +63,7 @@ export const MOSSY: PlanetSnapshotDto = {
   ],
   unlocks: ['clover', 'pond'],
   clouds: [],
-  sun: { overrideAngle: null, overrideAt: null },
+  sun: { angle: 0, overrideAngle: null, overrideAt: null },
 };
 
 /** A plant of the snapshot shape, with only what a spec cares about given. */

@@ -7,6 +7,7 @@ import { GameConfigModule } from './game-config/game-config.module';
 import { GardenModule } from './garden/garden.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { PlanetsModule } from './planets/planets.module';
+import { SimulationModule } from './simulation/simulation.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PlanetsModule } from './planets/planets.module';
     PlanetsModule,
     GardenModule,
     InventoryModule,
+    SimulationModule,
   ],
 })
 export class AppModule {}

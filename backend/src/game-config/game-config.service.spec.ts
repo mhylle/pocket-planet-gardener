@@ -14,6 +14,8 @@ const sdDefaults: Record<string, number> = {
   maxPlants: 60,
   cloudRefillSeconds: 60,
   sunOverrideMinutes: 5,
+  // The one tunable the SD table lacks: the sun's drift period (Task 6.1).
+  sunDayMinutes: 60,
   unmetNeedGrowthFactor: 0.5,
   seedsPerHarvestMin: 1,
   seedsPerHarvestMax: 2,
@@ -101,6 +103,7 @@ describe('GameConfigService', () => {
       'syncIntervalSeconds',
       'cloudRefillSeconds',
       'sunOverrideMinutes',
+      'sunDayMinutes',
       'summaryAfterMinutes',
       'journalAfterHours',
     ]);

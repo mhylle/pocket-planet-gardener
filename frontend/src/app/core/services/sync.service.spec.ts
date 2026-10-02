@@ -28,7 +28,7 @@ const mossy: PlanetSnapshotDto = {
   inventory: [{ itemType: 'clover', kind: 'seed', count: 3 }],
   unlocks: [],
   clouds: [],
-  sun: { overrideAngle: null, overrideAt: null },
+  sun: { angle: 0, overrideAngle: null, overrideAt: null },
 };
 
 const atVersion = (version: number): PlanetSnapshotDto => ({ ...mossy, version });

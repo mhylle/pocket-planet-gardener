@@ -9,6 +9,7 @@ export interface PublicGameConfigDto {
   syncIntervalSeconds: number;
   cloudRefillSeconds: number;
   sunOverrideMinutes: number;
+  sunDayMinutes: number;
   summaryAfterMinutes: number;
   journalAfterHours: number;
 }

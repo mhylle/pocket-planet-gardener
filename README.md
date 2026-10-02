@@ -46,7 +46,9 @@ Otherwise point the backend at your own instance by editing `backend/.env`
 
 The game's tunable parameters are `GAME_*` variables, all listed in
 `backend/.env.example` (for example `GAME_MAX_PLANTS`). Leave one unset or
-empty to use its default from section 11 of the SD.
+empty to use its default from section 11 of the SD. One is not in the SD:
+`GAME_SUN_DAY_MINUTES` (default 60), how long the sun takes to drift once
+round the planet.
 
 The schema is created by TypeORM migrations, never by `synchronize`. Run them
 before starting the backend:
@@ -99,11 +101,28 @@ it never bumps `version`: only the player's commands do. An `expectedVersion`
 that is not the planet's current one is a 409 `reload` that changes nothing,
 because another tab or device has changed the planet since.
 
+Before every sync and command the plants grow from the planet's
+`lastSimulatedAt` to now, in 15-minute slices on a fixed clock grid, with
+the rules in `simulation/growth-rules.ts`. A gap of up to three sync
+intervals is live play: each plant's light comes from where the sun is. A
+longer gap is away time: every plant counts as getting average light, which
+suits every preference, and at most `GAME_MAX_AWAY_DAYS` of it is simulated
+(the rest is let go). Water falls by 0.03, 0.06 or 0.09 an hour for a low,
+medium or high water preference; a plant is thirsty below 0.12, a bit
+thirsty below 0.3, happy up to 0.85 and soggy above. Full sun wants a light
+of at least 0.5, partial 0.1 to 0.8, shade at most 0.3. Each unmet need
+halves the speed (`GAME_UNMET_NEED_GROWTH_FACTOR`) and a thirsty plant stops.
+Plants never die and never lose a stage. The sync's `events` report each
+stage reached, dated when it happened: `plant-stage`
+(`{ plantId, type, stage }`) for sprout and young, `plant-bloomed`
+(`{ plantId, type, lat, lon }`) for bloom.
+
 The snapshot is the whole planet. It keeps the fields served before it,
 `id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
 and adds `radiusLevel`, `maxPlants`, `tutorialStep`, `serverTime`, `plants`,
 `decorations`, `inventory` (only stacks with a count above 0), `unlocks`,
-`clouds` and `sun` (`{ overrideAngle, overrideAt }`). Plants and decorations
+`clouds` and `sun` (`{ overrideAngle, overrideAt, angle }`, `angle` being the
+longitude in degrees the sun stands over at `serverTime`). Plants and decorations
 come oldest first; inventory and unlocks are sorted by item type. A new
 planet holds the first `GAME_STARTER_SEED_TYPES` seed stacks of
 `content/starter.ts`, already unlocked, and no decorations.
@@ -169,6 +188,8 @@ backend/src
 │   ├── dto/
 │   ├── planet-state/        the snapshot and mutate(), the one path every command takes (D-2)
 │   └── planet-context/      PlanetGuard (X-Planet-Id), @CurrentPlanet(), @NoPlanet()
+├── simulation/              SimulationService (growth before every sync and command)
+│                            and pure rules: growth, sun, surface coords, placement
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list
 │   └── migrations/

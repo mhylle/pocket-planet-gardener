@@ -215,6 +215,18 @@ export function plantModel(type: string, stage: PlantStage): THREE.BufferGeometr
   }
 }
 
+/** About how tall a plant of the type stands in bloom. */
+export function bloomHeight(type: string): number {
+  return (LOOKS[type] ?? UNKNOWN_LOOK).height;
+}
+
+/** A small star of three crossed spikes, a third of a step across, centred on 0. */
+export function sparkleModel(): THREE.BufferGeometry {
+  const spike = (size: [number, number, number]) =>
+    part(new THREE.OctahedronGeometry(0.15, 0), '#ffffff', { size });
+  return merge([spike([0.25, 1, 0.25]), spike([1, 0.25, 0.25]), spike([0.25, 0.25, 1])]);
+}
+
 const DECORATIONS: Record<string, () => THREE.BufferGeometry[]> = {
   pond: () => [
     part(rod(1.45, 1.5, 0.4, 10), '#d9c48f', { at: [0, -0.15, 0] }),

@@ -154,7 +154,8 @@ describe('Planet state (e2e)', () => {
         inventory: [],
         unlocks: [],
         clouds: [],
-        sun: { overrideAngle: null, overrideAt: null },
+        // Ten minutes into the 60-minute sun day (SimulationModule).
+        sun: { overrideAngle: null, overrideAt: null, angle: 60 },
       });
     });
 
@@ -235,6 +236,8 @@ describe('Planet state (e2e)', () => {
       expect(snapshot.sun).toStrictEqual({
         overrideAngle: 1.25,
         overrideAt: T1.toISOString(),
+        // Still held: dragged 5 minutes ago (SimulationModule).
+        angle: 1.25,
       });
     });
   });

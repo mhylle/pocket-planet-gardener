@@ -1,0 +1,232 @@
+{
+  "tunables": { "unmetNeedGrowthFactor": 0.5 },
+  "waterStatus": [
+    { "water": 0, "expect": "thirsty" },
+    { "water": 0.11, "expect": "thirsty" },
+    { "water": 0.12, "expect": "a-bit-thirsty" },
+    { "water": 0.29, "expect": "a-bit-thirsty" },
+    { "water": 0.3, "expect": "happy" },
+    { "water": 0.5, "expect": "happy" },
+    { "water": 0.85, "expect": "happy" },
+    { "water": 0.86, "expect": "soggy" },
+    { "water": 1, "expect": "soggy" }
+  ],
+  "lightStatus": [
+    { "pref": "shade", "exposure": 0, "expect": "ok" },
+    { "pref": "shade", "exposure": 0.3, "expect": "ok" },
+    { "pref": "shade", "exposure": 0.31, "expect": "too-sunny" },
+    { "pref": "shade", "exposure": 1, "expect": "too-sunny" },
+    { "pref": "partial", "exposure": 0.05, "expect": "too-dark" },
+    { "pref": "partial", "exposure": 0.1, "expect": "ok" },
+    { "pref": "partial", "exposure": 0.8, "expect": "ok" },
+    { "pref": "partial", "exposure": 0.85, "expect": "too-sunny" },
+    { "pref": "full-sun", "exposure": 0, "expect": "too-dark" },
+    { "pref": "full-sun", "exposure": 0.49, "expect": "too-dark" },
+    { "pref": "full-sun", "exposure": 0.5, "expect": "ok" },
+    { "pref": "full-sun", "exposure": 1, "expect": "ok" },
+    { "pref": "shade", "exposure": "away", "expect": "ok" },
+    { "pref": "partial", "exposure": "away", "expect": "ok" },
+    { "pref": "full-sun", "exposure": "away", "expect": "ok" }
+  ],
+  "growthMultiplier": [
+    { "water": "happy", "light": "ok", "expect": 1 },
+    { "water": "a-bit-thirsty", "light": "ok", "expect": 0.5 },
+    { "water": "soggy", "light": "ok", "expect": 0.5 },
+    { "water": "happy", "light": "too-dark", "expect": 0.5 },
+    { "water": "happy", "light": "too-sunny", "expect": 0.5 },
+    { "water": "soggy", "light": "too-sunny", "expect": 0.25 },
+    { "water": "thirsty", "light": "ok", "expect": 0 },
+    { "water": "thirsty", "light": "too-dark", "expect": 0 }
+  ],
+  "waterDecayPerHour": [
+    { "pref": "low", "expect": 0.03 },
+    { "pref": "medium", "expect": 0.06 },
+    { "pref": "high", "expect": 0.09 }
+  ],
+  "stageFor": [
+    { "growth": 0, "expect": "seed" },
+    { "growth": 0.33, "expect": "seed" },
+    { "growth": 0.3333333333333333, "expect": "sprout" },
+    { "growth": 0.5, "expect": "sprout" },
+    { "growth": 0.6666666666666666, "expect": "young" },
+    { "growth": 0.99, "expect": "young" },
+    { "growth": 1, "expect": "bloom" }
+  ],
+  "plants": {
+    "sunflower": { "waterPref": "medium", "lightPref": "full-sun", "bloomMinutes": 120 },
+    "mushroom": { "waterPref": "high", "lightPref": "shade", "bloomMinutes": 45 },
+    "partial-60": { "waterPref": "medium", "lightPref": "partial", "bloomMinutes": 60 },
+    "sun-240": { "waterPref": "medium", "lightPref": "full-sun", "bloomMinutes": 240 },
+    "sun-600": { "waterPref": "medium", "lightPref": "full-sun", "bloomMinutes": 600 }
+  },
+  "advance": [
+    {
+      "name": "needs met for bloomMinutes: seed to bloom (GRD-05 AC1)",
+      "plant": "sunflower",
+      "state": { "stage": "seed", "growth": 0, "water": 0.6, "harvestReady": false },
+      "minutes": 120,
+      "exposure": 1,
+      "expect": {
+        "state": { "stage": "bloom", "growth": 1, "water": 0.48, "harvestReady": true },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 40 },
+          { "stage": "young", "atMinute": 80 },
+          { "stage": "bloom", "atMinute": 120 }
+        ]
+      }
+    },
+    {
+      "name": "a minute short of bloomMinutes it is still young",
+      "plant": "sunflower",
+      "state": { "stage": "seed", "growth": 0, "water": 0.6, "harvestReady": false },
+      "minutes": 119,
+      "exposure": 1,
+      "expect": {
+        "state": { "stage": "young", "growth": 0.9916666666666667, "water": 0.481, "harvestReady": false },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 40 },
+          { "stage": "young", "atMinute": 80 }
+        ]
+      }
+    },
+    {
+      "name": "one unmet need doubles the time (GRD-04 AC2)",
+      "plant": "sunflower",
+      "state": { "stage": "seed", "growth": 0, "water": 0.6, "harvestReady": false },
+      "minutes": 240,
+      "exposure": 0,
+      "expect": {
+        "state": { "stage": "bloom", "growth": 1, "water": 0.36, "harvestReady": true },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 80 },
+          { "stage": "young", "atMinute": 160 },
+          { "stage": "bloom", "atMinute": 240 }
+        ]
+      }
+    },
+    {
+      "name": "with one unmet need it is not in bloom a minute before",
+      "plant": "sunflower",
+      "state": { "stage": "seed", "growth": 0, "water": 0.6, "harvestReady": false },
+      "minutes": 239,
+      "exposure": 0,
+      "expect": {
+        "state": { "stage": "young", "growth": 0.9958333333333333, "water": 0.361, "harvestReady": false },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 80 },
+          { "stage": "young", "atMinute": 160 }
+        ]
+      }
+    },
+    {
+      "name": "a mushroom in full light grows at half speed (GRD-03 AC3)",
+      "plant": "mushroom",
+      "state": { "stage": "seed", "growth": 0, "water": 0.8, "harvestReady": false },
+      "minutes": 36,
+      "exposure": 1,
+      "expect": {
+        "state": { "stage": "sprout", "growth": 0.4, "water": 0.746, "harvestReady": false },
+        "reachedStages": [{ "stage": "sprout", "atMinute": 30 }]
+      }
+    },
+    {
+      "name": "a soggy plant grows slowly until it dries into happy (GRD-04 AC4)",
+      "plant": "sun-240",
+      "state": { "stage": "seed", "growth": 0, "water": 0.97, "harvestReady": false },
+      "minutes": 240,
+      "exposure": "away",
+      "expect": {
+        "state": { "stage": "young", "growth": 0.75, "water": 0.73, "harvestReady": false },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 140 },
+          { "stage": "young", "atMinute": 220 }
+        ]
+      }
+    },
+    {
+      "name": "water running out at minute 300 of 600 stops growth (GRD-04 AC3)",
+      "plant": "sun-600",
+      "state": { "stage": "seed", "growth": 0, "water": 0.42, "harvestReady": false },
+      "minutes": 600,
+      "exposure": "away",
+      "expect": {
+        "state": { "stage": "sprout", "growth": 0.35, "water": 0, "harvestReady": false },
+        "reachedStages": [{ "stage": "sprout", "atMinute": 280 }]
+      }
+    },
+    {
+      "name": "the first 300 minutes of that run grow just as much",
+      "plant": "sun-600",
+      "state": { "stage": "seed", "growth": 0, "water": 0.42, "harvestReady": false },
+      "minutes": 300,
+      "exposure": "away",
+      "expect": {
+        "state": { "stage": "sprout", "growth": 0.35, "water": 0.12, "harvestReady": false },
+        "reachedStages": [{ "stage": "sprout", "atMinute": 280 }]
+      }
+    },
+    {
+      "name": "a thirsty plant does not grow and its water stops at 0",
+      "plant": "partial-60",
+      "state": { "stage": "sprout", "growth": 0.4, "water": 0.05, "harvestReady": false },
+      "minutes": 120,
+      "exposure": 0.5,
+      "expect": {
+        "state": { "stage": "sprout", "growth": 0.4, "water": 0, "harvestReady": false },
+        "reachedStages": []
+      }
+    },
+    {
+      "name": "a harvested bloom stays in bloom and is not ready again (GRD-05 AC3)",
+      "plant": "mushroom",
+      "state": { "stage": "bloom", "growth": 1, "water": 0.5, "harvestReady": false },
+      "minutes": 600,
+      "exposure": 0,
+      "expect": {
+        "state": { "stage": "bloom", "growth": 1, "water": 0, "harvestReady": false },
+        "reachedStages": []
+      }
+    },
+    {
+      "name": "a stage ahead of its growth never goes back",
+      "plant": "partial-60",
+      "state": { "stage": "young", "growth": 0.1, "water": 0.6, "harvestReady": false },
+      "minutes": 6,
+      "exposure": 0.5,
+      "expect": {
+        "state": { "stage": "young", "growth": 0.2, "water": 0.594, "harvestReady": false },
+        "reachedStages": []
+      }
+    },
+    {
+      "name": "away light suits a shade plant too (TIM-01 AC4)",
+      "plant": "mushroom",
+      "state": { "stage": "seed", "growth": 0, "water": 0.5, "harvestReady": false },
+      "minutes": 45,
+      "exposure": "away",
+      "expect": {
+        "state": { "stage": "bloom", "growth": 1, "water": 0.4325, "harvestReady": true },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 15 },
+          { "stage": "young", "atMinute": 30 },
+          { "stage": "bloom", "atMinute": 45 }
+        ]
+      }
+    },
+    {
+      "name": "a fresh sunflower left 3 hours away blooms after 2 (TIM-01 AC1)",
+      "plant": "sunflower",
+      "state": { "stage": "seed", "growth": 0, "water": 0.5, "harvestReady": false },
+      "minutes": 180,
+      "exposure": "away",
+      "expect": {
+        "state": { "stage": "bloom", "growth": 1, "water": 0.32, "harvestReady": true },
+        "reachedStages": [
+          { "stage": "sprout", "atMinute": 40 },
+          { "stage": "young", "atMinute": 80 },
+          { "stage": "bloom", "atMinute": 120 }
+        ]
+      }
+    }
+  ]
+}
