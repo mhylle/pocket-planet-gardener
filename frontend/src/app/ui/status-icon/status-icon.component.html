@@ -1,0 +1,73 @@
+<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" [attr.data-icon]="icon()">
+  @switch (icon()) {
+    @case ('drop-empty') {
+      <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />
+      <path d="M4 4l16 16" />
+    }
+    @case ('drop-low') {
+      <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />
+      <path d="M8.5 17.5h7" />
+    }
+    @case ('drop-half') {
+      <path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />
+      <path d="M6.5 13h11" />
+    }
+    @case ('drop-full') {
+      <path class="filled" d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />
+    }
+    @case ('drop-puddle') {
+      <path d="M12 2s4 4.5 4 7.5a4 4 0 0 1-8 0C8 6.5 12 2 12 2z" />
+      <path
+        d="M3 17c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0M3 21c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"
+      />
+    }
+    @case ('drops') {
+      <path d="M8 4s4 4.5 4 7.5a4 4 0 0 1-8 0C4 8.5 8 4 8 4z" />
+      <path d="M17 10s3.5 4 3.5 6.5a3.5 3.5 0 0 1-7 0c0-2.5 3.5-6.5 3.5-6.5z" />
+    }
+    @case ('sun') {
+      <circle cx="12" cy="12" r="4" />
+      <path
+        d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"
+      />
+    }
+    @case ('sun-check') {
+      <circle cx="9" cy="9" r="3.5" />
+      <path d="M9 2v1.5M2 9h1.5M4 4l1 1M14 4l-1 1M4 14l1-1" />
+      <path d="M13 18l3 3 6-6" />
+    }
+    @case ('sun-cloud') {
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M9 1.5V3M2.5 8H4M4.4 3.4l1 1M13.6 3.4l-1 1" />
+      <path d="M8 21a4 4 0 0 1 .5-8 5 5 0 0 1 9.5 1.5 3.3 3.3 0 0 1 0 6.5z" />
+    }
+    @case ('moon') {
+      <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+    }
+    @case ('seed') {
+      <ellipse cx="12" cy="14" rx="3.5" ry="4.5" />
+      <path d="M4 21h16" />
+    }
+    @case ('sprout') {
+      <path
+        d="M12 21v-8M12 13c-3.5 0-5.5-2-5.5-5.5 3.5 0 5.5 2 5.5 5.5zM12 13c3.5 0 5.5-2 5.5-5.5-3.5 0-5.5 2-5.5 5.5z"
+      />
+      <path d="M4 21h16" />
+    }
+    @case ('young') {
+      <path
+        d="M12 21V4M12 15c-3 0-5-1.5-5-4.5 3 0 5 1.5 5 4.5zM12 10c3 0 5-1.5 5-4.5-3 0-5 1.5-5 4.5z"
+      />
+      <path d="M4 21h16" />
+    }
+    @case ('bloom') {
+      <circle cx="12" cy="7" r="4" />
+      <circle class="filled" cx="12" cy="7" r="1.5" />
+      <path d="M12 11v10M12 17c-2.5 0-4.5-1.2-4.5-3.5 2.5 0 4.5 1.2 4.5 3.5z" />
+    }
+    @case ('sparkle') {
+      <path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z" />
+      <path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z" />
+    }
+  }
+</svg>

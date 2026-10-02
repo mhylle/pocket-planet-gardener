@@ -1,0 +1,39 @@
+@if (card(); as card) {
+  <div
+    #box
+    class="card"
+    role="dialog"
+    aria-labelledby="info-card-title"
+    [attr.aria-describedby]="card.statuses.length ? 'info-card-statuses' : null"
+    [class.pinned]="card.pinned"
+    [style.left.px]="card.x"
+    [style.top.px]="card.y"
+  >
+    <h3 id="info-card-title" class="title">{{ card.title }}</h3>
+    @if (card.statuses.length) {
+      <ul id="info-card-statuses" class="statuses">
+        @for (status of card.statuses; track status.icon) {
+          <li>
+            <app-status-icon [icon]="status.icon" />
+            <span>{{ statusLine(status) }}</span>
+          </li>
+        }
+      </ul>
+    }
+    @if (card.pinned) {
+      <div class="actions">
+        @if (card.kind === 'plant') {
+          @if (card.ready) {
+            <button type="button" (click)="harvest(card.id)">Collect seeds</button>
+          }
+          <button type="button" [class.secondary]="card.ready" (click)="digUp(card.id)">
+            Dig up
+          </button>
+        } @else {
+          <button type="button" (click)="move(card.id)">Move</button>
+          <button type="button" class="secondary" (click)="putAway(card.id)">Put away</button>
+        }
+      </div>
+    }
+  </div>
+}

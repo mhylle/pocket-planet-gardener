@@ -1,0 +1,61 @@
+<section #dialog class="catalogue" role="dialog" aria-labelledby="catalogue-title" tabindex="-1">
+  <div class="head">
+    <h3 id="catalogue-title">Catalogue</h3>
+    <button type="button" class="secondary" (click)="closed.emit()">Close</button>
+  </div>
+
+  @for (section of sections(); track section.id) {
+    <section [attr.aria-labelledby]="'catalogue-' + section.id">
+      <h4 [id]="'catalogue-' + section.id">{{ section.title }}</h4>
+      <ul class="entries">
+        @for (entry of section.entries; track entry.id) {
+          @if (entry.unlocked) {
+            <li class="entry">
+              <h5>{{ entry.name }}</h5>
+              <p>{{ entry.description }}</p>
+              @if (entry.needs.length) {
+                <ul class="needs">
+                  @for (need of entry.needs; track need.icon) {
+                    <li><app-status-icon [icon]="need.icon" />{{ need.text }}</li>
+                  }
+                </ul>
+              }
+              @if (entry.bloom) {
+                <p class="bloom">Blooms in {{ entry.bloom }}</p>
+              }
+            </li>
+          } @else {
+            <li class="entry locked">
+              <svg class="silhouette" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                @if (section.kind === 'plant') {
+                  <path
+                    d="M11 22V12h2v10zM12 13c-4 0-6-2-6-6 4 0 6 2 6 6zM12 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"
+                  />
+                } @else {
+                  <path d="M3 20l3-8 5-3 5 2 5 9z" />
+                }
+              </svg>
+              <h5>Not found yet</h5>
+              <p class="hint">{{ entry.hint }}</p>
+            </li>
+          }
+        }
+      </ul>
+    </section>
+  }
+
+  <section aria-labelledby="catalogue-creatures">
+    <h4 id="catalogue-creatures">Creatures</h4>
+    @if (cosy()) {
+      <p class="cosy">Your planet is cosy enough for now, so no one new will move in.</p>
+    }
+    <ul class="entries">
+      @for (kind of species(); track kind.id) {
+        <li class="entry">
+          <h5>{{ kind.name }}</h5>
+          <p class="hint">{{ kind.hint }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+</section>

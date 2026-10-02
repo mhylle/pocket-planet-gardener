@@ -23,6 +23,24 @@ export const CATALOGUE: CatalogueDto = {
       description: 'Very tall.',
       unlockHint: 'A starter seed.',
     },
+    {
+      id: 'tulip',
+      name: 'Tulip',
+      waterPref: 'medium',
+      lightPref: 'full-sun',
+      bloomMinutes: 60,
+      description: 'Stands up straight.',
+      unlockHint: 'Creatures sometimes hand these out as presents.',
+    },
+    {
+      id: 'mushroom',
+      name: 'Mushroom',
+      waterPref: 'high',
+      lightPref: 'shade',
+      bloomMinutes: 45,
+      description: 'Not technically a plant.',
+      unlockHint: 'A starter seed.',
+    },
   ],
   decorations: [
     {

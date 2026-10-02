@@ -4,15 +4,26 @@
     <div class="bar">
       <h2 id="planet-name">{{ planet.name }}</h2>
       <app-save-indicator />
-      <button
-        type="button"
-        class="secondary"
-        aria-controls="settings-panel"
-        [attr.aria-expanded]="settingsOpen()"
-        (click)="settingsOpen.set(!settingsOpen())"
-      >
-        Settings
-      </button>
+      <div class="row">
+        <button
+          type="button"
+          class="secondary"
+          aria-controls="catalogue-panel"
+          [attr.aria-expanded]="panel() === 'catalogue'"
+          (click)="toggle('catalogue')"
+        >
+          Catalogue
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          aria-controls="settings-panel"
+          [attr.aria-expanded]="panel() === 'settings'"
+          (click)="toggle('settings')"
+        >
+          Settings
+        </button>
+      </div>
     </div>
     <div class="stage">
       <app-planet-view [name]="planet.name" [radiusLevel]="planet.radiusLevel" />
@@ -21,12 +32,18 @@
       <app-placement-hud />
       <app-inventory-panel />
       <app-receipt-toast />
-      <app-context-menu />
+      <app-celebration />
+      <app-info-card />
       @if (!sceneReady()) {
         <app-loading />
       }
-      @if (settingsOpen()) {
-        <app-settings-panel id="settings-panel" [planet]="planet" />
+      @switch (panel()) {
+        @case ('settings') {
+          <app-settings-panel id="settings-panel" [planet]="planet" />
+        }
+        @case ('catalogue') {
+          <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
+        }
       }
     </div>
   </section>

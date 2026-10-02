@@ -12,7 +12,6 @@ import { SurfacePoint } from '../helpers/surface-coords';
 import { InventoryItemDto } from '../models/planet-snapshot';
 import { CatalogueService } from './catalogue.service';
 import { PlanetStore } from './planet-store.service';
-import { ReceiptService } from './receipt.service';
 import { Command, SyncService } from './sync.service';
 
 /** What the next tap on the planet puts down: an inventory item, or a decoration to move. */
@@ -20,8 +19,8 @@ export type PlacementSelection =
   | { mode: 'place'; itemType: string; kind: InventoryItemDto['kind'] }
   | { mode: 'move'; itemType: string; decorationId: string };
 
-/** A plant or decoration whose menu is open, and where on the canvas, in CSS pixels. */
-export interface MenuTarget {
+/** A plant or decoration whose info card is open, and where on the canvas, in CSS pixels. */
+export interface CardTarget {
   kind: 'plant' | 'decoration';
   id: string;
   x: number;
@@ -29,31 +28,38 @@ export interface MenuTarget {
 }
 
 /**
- * Planting, placing, moving and removing things on the planet (GRD-01, GRD-07, ITM-02). Holds
- * the selected item and the point under the pointer, and previews whether the item may go
- * there with the same rules the server applies. Every change goes to the server as a command;
- * when it refuses one, its message shows and the selection stays, so the player can try
- * another spot. Provided by the planet page, so a selection never outlives it.
+ * Planting, placing, moving, removing and harvesting things on the planet (GRD-01, GRD-07,
+ * GRD-08, ITM-02). Holds the selected item and the point under the pointer, and previews
+ * whether the item may go there with the same rules the server applies. Also holds which
+ * info card is open: the pinned one a tap opens, with its actions, and the read-only one for
+ * what the mouse is over (NAV-03). Every change goes to the server as a command; when it
+ * refuses one, its message shows and the selection stays, so the player can try another spot.
+ * Provided by the planet page, so a selection never outlives it.
  */
 @Injectable()
 export class PlacementService {
   private readonly sync = inject(SyncService);
   private readonly store = inject(PlanetStore);
   private readonly catalogue = inject(CatalogueService);
-  private readonly receipts = inject(ReceiptService);
 
   private readonly selection = signal<PlacementSelection | null>(null);
   private readonly hoverPoint = signal<SurfacePoint | null>(null, { equal: samePoint });
   private readonly pendingPoint = signal<SurfacePoint | null>(null);
   private readonly refusal = signal<string | null>(null);
-  private readonly menuTarget = signal<MenuTarget | null>(null);
+  private readonly cardTarget = signal<CardTarget | null>(null);
+  private readonly hoverTarget = signal<CardTarget | null>(null, { equal: sameTarget });
+  /** The thing whose hover card Escape closed; it stays closed until the pointer moves on. */
+  private dismissedId: string | null = null;
 
   readonly selected = this.selection.asReadonly();
   /** The surface point under the pointer (or the view centre); null over open sky. */
   readonly hover = this.hoverPoint.asReadonly();
   /** The server's line for the last refused change; cleared when a change goes through. */
   readonly message = this.refusal.asReadonly();
-  readonly menu = this.menuTarget.asReadonly();
+  /** The pinned info card, with actions. */
+  readonly card = this.cardTarget.asReadonly();
+  /** The read-only info card for what the mouse is over. */
+  readonly hoverCard = this.hoverTarget.asReadonly();
 
   /** Where the preview shows: the spot being saved, otherwise the hover point. */
   readonly previewPoint = computed(() => this.pendingPoint() ?? this.hoverPoint());
@@ -103,7 +109,7 @@ export class PlacementService {
       selected?.mode === 'place' &&
       selected.itemType === item.itemType &&
       selected.kind === item.kind;
-    this.closeMenu();
+    this.closeCard();
     this.refusal.set(null);
     this.selection.set(same ? null : { mode: 'place', itemType: item.itemType, kind: item.kind });
   }
@@ -111,7 +117,7 @@ export class PlacementService {
   /** Picks up a placed decoration; the next placement moves it there (ITM-02 AC2). */
   startMove(decorationId: string): void {
     const decoration = this.store.snapshot()?.decorations.find(({ id }) => id === decorationId);
-    this.closeMenu();
+    this.closeCard();
     this.refusal.set(null);
     this.selection.set(
       decoration ? { mode: 'move', itemType: decoration.type, decorationId } : null,
@@ -164,7 +170,7 @@ export class PlacementService {
 
   /** Digs up a plant; a seed or sprout comes back to the inventory (GRD-07 AC1). */
   async digUp(plantId: string): Promise<void> {
-    this.closeMenu();
+    this.closeCard();
     await this.run({
       method: 'DELETE',
       path: `/garden/plants/${encodeURIComponent(plantId)}`,
@@ -172,9 +178,22 @@ export class PlacementService {
     });
   }
 
+  /**
+   * Collects the seeds of a bloom that shows the sparkle; the plant stays in bloom (GRD-08
+   * AC2). The seeds arrive as a receipt; too soon after the last harvest, the server says so.
+   */
+  async harvest(plantId: string): Promise<void> {
+    this.closeCard();
+    await this.run({
+      method: 'POST',
+      path: `/garden/plants/${encodeURIComponent(plantId)}/harvest`,
+      body: {},
+    });
+  }
+
   /** Puts a decoration back in the inventory (ITM-02 AC3). */
   async putAway(decorationId: string): Promise<void> {
-    this.closeMenu();
+    this.closeCard();
     await this.run({
       method: 'DELETE',
       path: `/garden/decorations/${encodeURIComponent(decorationId)}`,
@@ -182,12 +201,27 @@ export class PlacementService {
     });
   }
 
-  openMenu(target: MenuTarget): void {
-    this.menuTarget.set(target);
+  openCard(target: CardTarget): void {
+    this.cardTarget.set(target);
   }
 
-  closeMenu(): void {
-    this.menuTarget.set(null);
+  closeCard(): void {
+    this.cardTarget.set(null);
+  }
+
+  /** Shows the read-only card for what the mouse is over; null hides it (NAV-03 AC3). */
+  setHoverCard(target: CardTarget | null): void {
+    if (target && target.id === this.dismissedId) {
+      return;
+    }
+    this.dismissedId = null;
+    this.hoverTarget.set(target);
+  }
+
+  /** Hides the hover card until the pointer moves on to something else. */
+  dismissHoverCard(): void {
+    this.dismissedId = this.hoverTarget()?.id ?? null;
+    this.hoverTarget.set(null);
   }
 
   /**
@@ -196,9 +230,8 @@ export class PlacementService {
    */
   private async run(command: Command): Promise<'done' | 'refused' | 'gone'> {
     try {
-      const response = await this.sync.send(command);
+      await this.sync.send(command);
       this.refusal.set(null);
-      this.receipts.unlocked(response.newlyUnlocked ?? []);
       return 'done';
     } catch (error) {
       // A conflict has its own banner, and a closed planet needs no word.
@@ -228,4 +261,11 @@ export class PlacementService {
 
 function samePoint(a: SurfacePoint | null, b: SurfacePoint | null): boolean {
   return a === b || (a !== null && b !== null && a.lat === b.lat && a.lon === b.lon);
+}
+
+function sameTarget(a: CardTarget | null, b: CardTarget | null): boolean {
+  return (
+    a === b ||
+    (a !== null && b !== null && a.id === b.id && a.kind === b.kind && a.x === b.x && a.y === b.y)
+  );
 }

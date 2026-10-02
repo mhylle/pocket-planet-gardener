@@ -5,7 +5,6 @@ import { InventoryItemDto } from '../../core/models/planet-snapshot';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { PlacementService } from '../../core/services/placement.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
-import { ReceiptService } from '../../core/services/receipt.service';
 import { CATALOGUE, MOSSY } from '../../testing/garden-fixtures';
 import { InventoryPanelComponent } from './inventory-panel.component';
 
@@ -18,12 +17,7 @@ describe('InventoryPanelComponent', () => {
   beforeEach(async () => {
     TestBed.configureTestingModule({
       imports: [InventoryPanelComponent],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        PlacementService,
-        ReceiptService,
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), PlacementService],
     });
     TestBed.inject(CatalogueService).load();
     TestBed.inject(HttpTestingController).expectOne('/api/catalogue').flush(CATALOGUE);

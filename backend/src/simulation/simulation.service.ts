@@ -97,7 +97,7 @@ export class SimulationService implements OnModuleInit {
     const facts: Fact[] = [];
     const changed: Plant[] = [];
     for (const plant of plants) {
-      if (this.grow(plant, slices, facts)) {
+      if (this.grow(plant, slices, now, facts)) {
         changed.push(plant);
       }
     }
@@ -131,8 +131,13 @@ export class SimulationService implements OnModuleInit {
     return slices;
   }
 
-  /** Grows one plant through the slices; true when it changed. */
-  private grow(plant: Plant, slices: Slice[], facts: Fact[]): boolean {
+  /** Grows one plant through the slices up to now; true when it changed. */
+  private grow(
+    plant: Plant,
+    slices: Slice[],
+    now: Date,
+    facts: Fact[],
+  ): boolean {
     const needs = NEEDS[plant.type];
     const { stage, growth, water, harvestReady } = plant;
     let state: GrowthState = { stage, growth, water, harvestReady };
@@ -152,12 +157,29 @@ export class SimulationService implements OnModuleInit {
       state = result.state;
     }
     Object.assign(plant, state);
+    this.rearmHarvest(plant, now);
     return (
       plant.stage !== stage ||
       plant.growth !== growth ||
       plant.water !== water ||
       plant.harvestReady !== harvestReady
     );
+  }
+
+  /**
+   * A harvested bloom has seeds again harvestCooldownMinutes after its
+   * harvest (GRD-08 AC3), live or away alike, so a bloom picked before the
+   * player left is ready on return.
+   */
+  private rearmHarvest(plant: Plant, now: Date): void {
+    const { stage, harvestReady, lastHarvestedAt } = plant;
+    if (stage !== 'bloom' || harvestReady || !lastHarvestedAt) {
+      return;
+    }
+    const cooldown = this.config.harvestCooldownMinutes * MINUTE_MS;
+    if (lastHarvestedAt.getTime() + cooldown <= now.getTime()) {
+      plant.harvestReady = true;
+    }
   }
 }
 

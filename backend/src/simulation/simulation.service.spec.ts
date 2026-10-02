@@ -66,6 +66,16 @@ function plantRow(
   } as Plant;
 }
 
+/** A clover in bloom whose seeds were picked at harvestedAt. */
+function harvestedRow(id: string, harvestedAt: Date | null): Plant {
+  return {
+    ...plantRow(id, 'clover', 0.5),
+    stage: 'bloom',
+    growth: 1,
+    lastHarvestedAt: harvestedAt,
+  };
+}
+
 /** The slice of EntityManager the step uses, over one planet's plants. */
 class FakeEntityManager {
   readonly saved: Plant[][] = [];
@@ -331,6 +341,56 @@ describe('SimulationService', () => {
     expect(plant).toEqual(plantRow('p1', 'sunflower', 0.5));
     expect(em.saved).toEqual([]);
     expect(facts).toEqual([]);
+  });
+
+  describe('harvest re-arm (GRD-08)', () => {
+    it('gives a harvested bloom its seeds back harvestCooldownMinutes later (AC3)', async () => {
+      const planetState = setup();
+      const clock = new FakeClock(T0);
+      const planet = planetRow(clock.now());
+      const clover = harvestedRow('p1', clock.now());
+
+      clock.advance(HOUR - 10_000);
+      await simulate(planetState, planet, [clover], clock.now());
+      expect(clover.harvestReady).toBe(false);
+
+      // The last 10 seconds are a live heartbeat.
+      clock.advance(10_000);
+      const { em } = await simulate(planetState, planet, [clover], clock.now());
+      expect(clover).toMatchObject({ stage: 'bloom', harvestReady: true });
+      expect(em.saved).toEqual([[clover]]);
+    });
+
+    it('has the seeds ready on return when it was harvested before an absence', async () => {
+      const clock = new FakeClock(T0);
+      const planet = planetRow(clock.now());
+      const clover = harvestedRow('p1', clock.now());
+      clock.advance(3 * DAY);
+
+      await simulate(setup(), planet, [clover], clock.now());
+
+      expect(clover).toMatchObject({ stage: 'bloom', harvestReady: true });
+    });
+
+    it('waits the harvestCooldownMinutes tunable', async () => {
+      const planetState = setup({ GAME_HARVEST_COOLDOWN_MINUTES: '30' });
+      const early = harvestedRow('p1', T0);
+      const due = harvestedRow('p2', T0);
+
+      await simulate(planetState, planetRow(T0), [early], at(29 * MINUTE));
+      await simulate(planetState, planetRow(T0), [due], at(30 * MINUTE));
+
+      expect(early.harvestReady).toBe(false);
+      expect(due.harvestReady).toBe(true);
+    });
+
+    it('leaves a bloom that was never harvested as it is', async () => {
+      const clover = harvestedRow('p1', null);
+
+      await simulate(setup(), planetRow(T0), [clover], at(2 * HOUR));
+
+      expect(clover.harvestReady).toBe(false);
+    });
   });
 
   describe('snapshot contributor', () => {

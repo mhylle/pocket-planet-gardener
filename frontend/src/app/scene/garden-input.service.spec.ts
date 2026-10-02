@@ -5,7 +5,6 @@ import { CatalogueService } from '../core/services/catalogue.service';
 import { PlacementService } from '../core/services/placement.service';
 import { PlanetIdentityService } from '../core/services/planet-identity.service';
 import { PlanetStore } from '../core/services/planet-store.service';
-import { ReceiptService } from '../core/services/receipt.service';
 import { CATALOGUE, MOSSY, plantAt } from '../testing/garden-fixtures';
 import { GardenInputService } from './garden-input.service';
 import { InputService } from './input.service';
@@ -33,7 +32,6 @@ describe('GardenInputService', () => {
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
         PlacementService,
-        ReceiptService,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -129,18 +127,85 @@ describe('GardenInputService', () => {
     expect(request.request.body.lon).toBeCloseTo(0, 6);
   });
 
-  it('opens the menu of a tapped plant, and closes it on open ground or a drag', () => {
+  it('pins the card of a tapped plant, and closes it on open ground or a drag', () => {
     tap(400, 300);
-    expect(placement.menu()).toEqual({ kind: 'plant', id: 'clover-1', x: 400, y: 300 });
+    expect(placement.card()).toEqual({ kind: 'plant', id: 'clover-1', x: 400, y: 300 });
 
     tap(500, 350);
-    expect(placement.menu()).toBeNull();
+    expect(placement.card()).toBeNull();
 
     key('keydown', 'Enter', 'Enter');
-    expect(placement.menu()?.id).toBe('clover-1');
+    expect(placement.card()?.id).toBe('clover-1');
     pointer('pointerdown', 100, 100);
     pointer('pointermove', 150, 100);
-    expect(placement.menu()).toBeNull();
+    expect(placement.card()).toBeNull();
+  });
+
+  it('shows the card of the plant under the mouse, and closes it on moving away (NAV-03)', () => {
+    pointer('pointermove', 400, 300);
+    expect(placement.hoverCard()).toEqual({ kind: 'plant', id: 'clover-1', x: 400, y: 300 });
+
+    pointer('pointermove', 500, 350);
+    expect(placement.hoverCard()).toBeNull();
+
+    pointer('pointermove', 400, 300);
+    canvas.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(placement.hoverCard()).toBeNull();
+  });
+
+  it('shows no hover card while placing, turning the planet or with a card pinned', () => {
+    select();
+    pointer('pointermove', 400, 300);
+    expect(placement.hoverCard()).toBeNull();
+    placement.cancel();
+    TestBed.tick();
+
+    pointer('pointerdown', 100, 100);
+    pointer('pointermove', 400, 300);
+    expect(placement.hoverCard()).toBeNull();
+    pointer('pointerup', 400, 300);
+    expect(placement.hoverCard()?.id).toBe('clover-1');
+
+    tap(400, 300);
+    pointer('pointermove', 401, 300);
+    expect(placement.hoverCard()).toBeNull();
+  });
+
+  describe('a bloom with seeds ready (GRD-08 AC2)', () => {
+    beforeEach(() => {
+      TestBed.inject(PlanetStore).setSnapshot({
+        ...MOSSY,
+        plants: [plantAt('clover-1', 0, 0, { stage: 'bloom', growth: 1, harvestReady: true })],
+      });
+      TestBed.tick();
+    });
+
+    it('collects the seeds on a tap', () => {
+      tap(400, 300);
+
+      http.expectOne({ method: 'POST', url: '/api/garden/plants/clover-1/harvest' });
+      expect(placement.card()).toBeNull();
+    });
+
+    it('pins the card on Enter, which offers to collect them', () => {
+      key('keydown', 'Enter', 'Enter');
+
+      http.expectNone('/api/garden/plants/clover-1/harvest');
+      expect(placement.card()?.id).toBe('clover-1');
+    });
+  });
+
+  it('pins the card of a bloom without seeds ready instead of collecting', () => {
+    TestBed.inject(PlanetStore).setSnapshot({
+      ...MOSSY,
+      plants: [plantAt('clover-1', 0, 0, { stage: 'bloom', growth: 1, harvestReady: false })],
+    });
+    TestBed.tick();
+
+    tap(400, 300);
+
+    http.expectNone('/api/garden/plants/clover-1/harvest');
+    expect(placement.card()?.id).toBe('clover-1');
   });
 
   it('stops placing on Escape', () => {

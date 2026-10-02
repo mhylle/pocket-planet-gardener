@@ -7,7 +7,6 @@ import { CatalogueService } from '../../core/services/catalogue.service';
 import { PlacementService } from '../../core/services/placement.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
-import { ReceiptService } from '../../core/services/receipt.service';
 import { CATALOGUE, MOSSY, plantAt } from '../../testing/garden-fixtures';
 import { PlacementHudComponent } from './placement-hud.component';
 
@@ -22,12 +21,7 @@ describe('PlacementHudComponent', () => {
     localStorage.clear();
     TestBed.configureTestingModule({
       imports: [PlacementHudComponent],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        PlacementService,
-        ReceiptService,
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), PlacementService],
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(CatalogueService).load();

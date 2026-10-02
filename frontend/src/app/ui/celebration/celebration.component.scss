@@ -1,0 +1,105 @@
+/* Top middle of the planet view, clear of the inventory and the receipts. */
+:host {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.celebrations {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+}
+
+.celebration {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 700;
+  white-space: nowrap;
+  animation: fade var(--celebration-ms) ease-out forwards;
+}
+
+.celebration.burst {
+  animation-name: pop;
+}
+
+.sparkles {
+  position: absolute;
+  inset: 0;
+}
+
+/* Above the sparkles as they fly out. */
+.text {
+  position: relative;
+}
+
+.sparkle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  color: var(--accent);
+  opacity: 0;
+}
+
+.burst .sparkle {
+  animation: burst 900ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration {
+    animation-name: fade;
+  }
+
+  .sparkle {
+    animation: none;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  18%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  10%,
+  80% {
+    opacity: 1;
+  }
+}
+
+@keyframes burst {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(6rem);
+  }
+}

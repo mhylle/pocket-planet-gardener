@@ -55,6 +55,8 @@ export interface PlanetSnapshotDto extends PlanetDto {
   /** Each cloud as of serverTime. */
   clouds: CloudState[];
   sun: SunStateDto;
+  /** The creatures living here; the snapshot names them from Phase 11 on, so missing means none. */
+  creatures?: readonly unknown[];
 }
 
 /** Something that happened on the planet, such as a creature arriving. */

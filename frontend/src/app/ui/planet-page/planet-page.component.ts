@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CatalogueService } from '../../core/services/catalogue.service';
+import { CelebrationService } from '../../core/services/celebration.service';
 import { PlacementService } from '../../core/services/placement.service';
 import { PlanetService } from '../../core/services/planet.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
@@ -15,7 +16,9 @@ import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
 import { SkyService } from '../../scene/sky.service';
 import { SunDragController } from '../../scene/sun-drag.controller';
-import { ContextMenuComponent } from '../context-menu/context-menu.component';
+import { CatalogueComponent } from '../catalogue/catalogue.component';
+import { CelebrationComponent } from '../celebration/celebration.component';
+import { InfoCardComponent } from '../info-card/info-card.component';
 import { InventoryPanelComponent } from '../inventory-panel/inventory-panel.component';
 import { LoadingComponent } from '../loading/loading.component';
 import { PlacementHudComponent } from '../placement-hud/placement-hud.component';
@@ -26,8 +29,8 @@ import { SettingsPanelComponent } from '../settings-panel/settings-panel.compone
 import { SkyListComponent } from '../sky-list/sky-list.component';
 
 /**
- * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory and
- * settings around it. Loads the stored planet when it is not known yet (startup, or after opening by
+ * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory,
+ * catalogue and settings around it. Loads the stored planet when it is not known yet (startup, or after opening by
  * code) and keeps it in sync while it is shown. Pip shows until the planet is loaded and first
  * drawn (NFR-03). The page owns the 3D scene and the gardening state, so every panel on it can
  * reach them.
@@ -35,7 +38,9 @@ import { SkyListComponent } from '../sky-list/sky-list.component';
 @Component({
   selector: 'app-planet-page',
   imports: [
-    ContextMenuComponent,
+    CatalogueComponent,
+    CelebrationComponent,
+    InfoCardComponent,
     InventoryPanelComponent,
     LoadingComponent,
     PlacementHudComponent,
@@ -46,7 +51,7 @@ import { SkyListComponent } from '../sky-list/sky-list.component';
     SettingsPanelComponent,
     SkyListComponent,
   ],
-  providers: [SCENE_PROVIDERS, PlacementService, ReceiptService],
+  providers: [SCENE_PROVIDERS, PlacementService, ReceiptService, CelebrationService],
   templateUrl: './planet-page.component.html',
   styleUrl: './planet-page.component.scss',
 })
@@ -57,7 +62,8 @@ export class PlanetPageComponent {
   protected readonly planet = inject(PlanetStore).snapshot;
   protected readonly sceneReady = inject(SceneService).ready;
   protected readonly loadFailed = signal(false);
-  protected readonly settingsOpen = signal(false);
+  /** The settings or the catalogue, whichever is open; they share the space over the planet. */
+  protected readonly panel = signal<'settings' | 'catalogue' | null>(null);
   private readonly loaded = computed(() => this.planet() !== null);
 
   constructor() {
@@ -73,6 +79,7 @@ export class PlanetPageComponent {
     inject(SkyService);
     inject(CloudDragController);
     inject(SunDragController);
+    inject(CelebrationService);
     // The cleanup also runs when the page closes, so the heartbeat never outlives it.
     effect((onCleanup) => {
       if (this.loaded()) {
@@ -80,6 +87,11 @@ export class PlanetPageComponent {
         onCleanup(() => this.sync.stopHeartbeat());
       }
     });
+  }
+
+  /** Opens the panel, or closes it when it is already open. */
+  protected toggle(panel: 'settings' | 'catalogue'): void {
+    this.panel.update((open) => (open === panel ? null : panel));
   }
 
   protected async load(): Promise<void> {

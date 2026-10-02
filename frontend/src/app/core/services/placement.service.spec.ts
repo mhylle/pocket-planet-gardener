@@ -9,7 +9,6 @@ import { CatalogueService } from './catalogue.service';
 import { PlacementService } from './placement.service';
 import { PlanetIdentityService } from './planet-identity.service';
 import { PlanetStore } from './planet-store.service';
-import { ReceiptService } from './receipt.service';
 
 const clover = { itemType: 'clover', kind: 'seed' } as const;
 const pond = { itemType: 'pond', kind: 'decoration' } as const;
@@ -27,12 +26,7 @@ describe('PlacementService', () => {
   beforeEach(() => {
     localStorage.clear();
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        PlacementService,
-        ReceiptService,
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), PlacementService],
     });
     http = TestBed.inject(HttpTestingController);
     store = TestBed.inject(PlanetStore);
@@ -130,12 +124,12 @@ describe('PlacementService', () => {
   });
 
   describe('selection', () => {
-    it('toggles an item, closing any menu and clearing an old message', () => {
-      placement.openMenu({ kind: 'plant', id: 'plant-1', x: 10, y: 10 });
+    it('toggles an item, closing any card and clearing an old message', () => {
+      placement.openCard({ kind: 'plant', id: 'plant-1', x: 10, y: 10 });
 
       placement.select(clover);
       expect(placement.selected()).toEqual({ mode: 'place', itemType: 'clover', kind: 'seed' });
-      expect(placement.menu()).toBeNull();
+      expect(placement.card()).toBeNull();
 
       placement.select(clover);
       expect(placement.selected()).toBeNull();
@@ -242,7 +236,7 @@ describe('PlacementService', () => {
 
     it('digs up a plant with DELETE /garden/plants/:id (GRD-07 AC1)', async () => {
       withPlanet({ plants: [plantAt('plant-1', 3, 4)] });
-      placement.openMenu({ kind: 'plant', id: 'plant-1', x: 1, y: 2 });
+      placement.openCard({ kind: 'plant', id: 'plant-1', x: 1, y: 2 });
 
       const dug = placement.digUp('plant-1');
       const request = http.expectOne({ method: 'DELETE', url: '/api/garden/plants/plant-1' });
@@ -250,7 +244,7 @@ describe('PlacementService', () => {
       request.flush(respond({ ...MOSSY, version: 2 }));
       await dug;
 
-      expect(placement.menu()).toBeNull();
+      expect(placement.card()).toBeNull();
       expect(store.snapshot()?.plants).toEqual([]);
     });
 
@@ -314,6 +308,68 @@ describe('PlacementService', () => {
 
       expect(placement.message()).toBeNull();
       expect(store.reloadRequired()).toBe(true);
+    });
+  });
+
+  describe('harvesting', () => {
+    const bloom = plantAt('plant-1', 3, 4, { stage: 'bloom', growth: 1, harvestReady: true });
+
+    it('collects the seeds of a ready bloom with POST /garden/plants/:id/harvest (GRD-08 AC2)', async () => {
+      withPlanet({ plants: [bloom] });
+      placement.openCard({ kind: 'plant', id: 'plant-1', x: 1, y: 2 });
+
+      const harvested = placement.harvest('plant-1');
+      const request = http.expectOne({ method: 'POST', url: '/api/garden/plants/plant-1/harvest' });
+      expect(request.request.body).toEqual({ expectedVersion: 1 });
+      request.flush(
+        respond({
+          ...MOSSY,
+          version: 2,
+          plants: [{ ...bloom, harvestReady: false }],
+          inventory: [{ itemType: 'clover', kind: 'seed', count: 5 }],
+        }),
+      );
+      await harvested;
+
+      expect(placement.card()).toBeNull();
+      expect(store.snapshot()?.plants[0].stage).toBe('bloom');
+    });
+
+    it("shows the server's line when it is too soon (GRD-08 AC3)", async () => {
+      withPlanet({ plants: [bloom] });
+
+      const harvested = placement.harvest('plant-1');
+      http
+        .expectOne('/api/garden/plants/plant-1/harvest')
+        .flush(...refusal('These seeds need a little longer.', 'cooldown'));
+      await harvested;
+
+      expect(placement.message()).toBe('These seeds need a little longer.');
+    });
+  });
+
+  describe('hover card', () => {
+    const over = (id: string, x = 5) => ({ kind: 'plant' as const, id, x, y: 5 });
+
+    it('follows the pointer and closes when it moves away (NAV-03 AC3)', () => {
+      placement.setHoverCard(over('plant-1'));
+      expect(placement.hoverCard()).toEqual(over('plant-1'));
+
+      placement.setHoverCard(null);
+      expect(placement.hoverCard()).toBeNull();
+    });
+
+    it('stays closed after Escape until the pointer moves on to something else', () => {
+      placement.setHoverCard(over('plant-1'));
+      placement.dismissHoverCard();
+
+      placement.setHoverCard(over('plant-1', 6));
+      expect(placement.hoverCard()).toBeNull();
+
+      placement.setHoverCard(over('plant-2'));
+      expect(placement.hoverCard()?.id).toBe('plant-2');
+      placement.setHoverCard(over('plant-1'));
+      expect(placement.hoverCard()?.id).toBe('plant-1');
     });
   });
 });

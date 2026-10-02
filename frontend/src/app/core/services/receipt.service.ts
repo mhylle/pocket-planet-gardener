@@ -38,14 +38,6 @@ export class ReceiptService {
     inject(DestroyRef).onDestroy(() => this.timers.forEach((timer) => clearTimeout(timer)));
   }
 
-  /** Announces item types the player may use for the first time (a response's newlyUnlocked). */
-  unlocked(itemTypes: string[]): void {
-    for (const itemType of itemTypes) {
-      const kind = this.catalogue.decoration(itemType) ? 'decoration' : 'seed';
-      this.show(`New: ${this.catalogue.itemName({ itemType, kind })}`);
-    }
-  }
-
   private compare(snapshot: PlanetSnapshotDto | null): void {
     if (!snapshot) {
       this.seen = null;

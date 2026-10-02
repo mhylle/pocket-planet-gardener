@@ -6,7 +6,6 @@ import { toVector } from '../core/helpers/surface-coords';
 import { CatalogueService } from '../core/services/catalogue.service';
 import { PlacementService } from '../core/services/placement.service';
 import { PlanetStore } from '../core/services/planet-store.service';
-import { ReceiptService } from '../core/services/receipt.service';
 import { CATALOGUE, MOSSY, plantAt } from '../testing/garden-fixtures';
 import { NullSceneRenderer } from './null-scene-renderer';
 import { GHOST_ALLOWED, GHOST_REFUSED, PlacementGhostService } from './placement-ghost.service';
@@ -24,7 +23,6 @@ describe('PlacementGhostService', () => {
         provideHttpClientTesting(),
         SceneService,
         PlacementService,
-        ReceiptService,
         PlacementGhostService,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],

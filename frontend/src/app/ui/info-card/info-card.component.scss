@@ -1,0 +1,50 @@
+/* The card is placed against the planet view around it, not against this host. */
+:host {
+  display: contents;
+}
+
+.card {
+  position: absolute;
+  display: grid;
+  gap: 0.4rem;
+  min-width: 10rem;
+  max-width: 17.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+  /* Centred just below the spot, so the thing itself stays in view. */
+  transform: translate(-50%, 0.75rem);
+  /* A hover card never gets in the way of the pointer on the planet. */
+  pointer-events: none;
+}
+
+.card.pinned {
+  pointer-events: auto;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.statuses {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statuses li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.actions {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}

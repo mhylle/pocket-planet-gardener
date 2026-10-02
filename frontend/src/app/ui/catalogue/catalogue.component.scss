@@ -1,0 +1,80 @@
+.catalogue {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+h3,
+h4,
+h5,
+p {
+  margin: 0;
+}
+
+h4 {
+  margin-bottom: 0.5rem;
+}
+
+.entries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+
+/* A locked item gives nothing away: one plain shape, no name and no colour of its own. */
+.locked {
+  border-style: dashed;
+  color: var(--fg-muted);
+}
+
+.silhouette {
+  width: 2.5rem;
+  height: 2.5rem;
+  fill: var(--border);
+}
+
+.needs {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.needs li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bloom {
+  font-weight: 600;
+}
+
+.cosy {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}

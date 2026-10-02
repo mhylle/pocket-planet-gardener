@@ -79,11 +79,14 @@ describe('ReceiptService', () => {
   it('lets each receipt go after its time', () => {
     owning([{ itemType: 'clover', kind: 'seed', count: 4 }]);
     vi.advanceTimersByTime(RECEIPT_MS / 2);
-    receipts.unlocked(['sunflower']);
+    owning([
+      { itemType: 'clover', kind: 'seed', count: 4 },
+      { itemType: 'sunflower', kind: 'seed', count: 1 },
+    ]);
 
-    expect(texts()).toEqual(['+1 Clover seed', 'New: Sunflower seed']);
+    expect(texts()).toEqual(['+1 Clover seed', '+1 Sunflower seed']);
     vi.advanceTimersByTime(RECEIPT_MS / 2);
-    expect(texts()).toEqual(['New: Sunflower seed']);
+    expect(texts()).toEqual(['+1 Sunflower seed']);
     vi.advanceTimersByTime(RECEIPT_MS / 2);
     expect(texts()).toEqual([]);
   });

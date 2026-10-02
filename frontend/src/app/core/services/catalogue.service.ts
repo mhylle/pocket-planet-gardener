@@ -43,6 +43,11 @@ export class CatalogueService {
     return this.decorations().get(id);
   }
 
+  /** What the catalogue calls a plant type or decoration, such as "Tulip" or "Lamp post". */
+  name(id: string): string {
+    return this.plant(id)?.name ?? this.decoration(id)?.name ?? readable(id);
+  }
+
   /** What the player calls an inventory item, such as "Clover seed", "Clover seeds" or "Pond". */
   itemName({ itemType, kind }: Pick<InventoryItemDto, 'itemType' | 'kind'>, count = 1): string {
     if (kind === 'decoration') {

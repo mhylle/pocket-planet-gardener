@@ -98,6 +98,20 @@ describe('SyncService', () => {
       await saved;
     });
 
+    it('passes on the item types a response names as newly unlocked (ITM-04 AC3)', async () => {
+      const unlocked: string[][] = [];
+      sync.newlyUnlocked.subscribe((types) => unlocked.push(types));
+
+      const first = sync.send(plant('/first'));
+      http.expectOne('/api/first').flush({ ...answer(atVersion(2)), newlyUnlocked: ['tulip'] });
+      await first;
+      const second = sync.send(plant('/second'));
+      http.expectOne('/api/second').flush({ ...answer(atVersion(3)), newlyUnlocked: [] });
+      await second;
+
+      expect(unlocked).toEqual([['tulip']]);
+    });
+
     it('sends one at a time in order, each with the version current when it goes', async () => {
       const first = sync.send(plant('/first'));
       const second = sync.send(plant('/second'));

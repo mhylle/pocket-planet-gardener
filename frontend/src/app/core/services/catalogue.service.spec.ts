@@ -37,6 +37,9 @@ describe('CatalogueService', () => {
     expect(catalogue.itemName({ itemType: 'clover', kind: 'seed' })).toBe('Clover seed');
     expect(catalogue.itemName({ itemType: 'clover', kind: 'seed' }, 2)).toBe('Clover seeds');
     expect(catalogue.itemName({ itemType: 'pond', kind: 'decoration' })).toBe('Pond');
+    expect([catalogue.name('clover'), catalogue.name('pond'), catalogue.name('lamp-post')]).toEqual(
+      ['Clover', 'Pond', 'Lamp post'],
+    );
   });
 
   it('falls back to readable ids when loading fails, and may load again later', () => {

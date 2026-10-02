@@ -34,6 +34,17 @@ export class GardenController {
     return this.garden.plant(planetId, body);
   }
 
+  // Like the sky commands, a harvest creates nothing, so 200.
+  @Post('plants/:id/harvest')
+  @HttpCode(200)
+  harvest(
+    @CurrentPlanet() planetId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: GardenCommandDto,
+  ): Promise<MutationResult> {
+    return this.garden.harvest(planetId, id, body);
+  }
+
   @Delete('plants/:id')
   digUp(
     @CurrentPlanet() planetId: string,

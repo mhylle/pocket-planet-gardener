@@ -166,6 +166,27 @@ describe('PlanetPageComponent', () => {
     expect(page.querySelector('app-settings-panel')).toBeNull();
   });
 
+  it('opens the catalogue from its button, and Escape closes it with the focus back (ITM-03)', async () => {
+    render();
+    http.expectOne('/api/planet').flush(mossy);
+    await settle();
+    const button = page.querySelector<HTMLButtonElement>(
+      'button[aria-controls="catalogue-panel"]',
+    )!;
+
+    button.focus();
+    button.click();
+    await fixture.whenStable();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    const dialog = page.querySelector<HTMLElement>('#catalogue-panel [role="dialog"]')!;
+    expect(document.activeElement).toBe(dialog);
+
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await fixture.whenStable();
+    expect(page.querySelector('app-catalogue')).toBeNull();
+    expect(document.activeElement).toBe(button);
+  });
+
   describe('saving and sync', () => {
     const PLANT = '/api/garden/plant';
     const SYNC = '/api/planet/sync';

@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–7 implemented and validated (see section 9). Next: Phase 8. |
+| **Progress** | Phases 1–8 implemented and validated (see section 9). Next: Phase 9. |
 
 ---
 
@@ -551,6 +551,16 @@ Notes:
 - `MIN_RAIN_WATER` = 0.2: below it a cloud counts as empty and does not rain (GRD-02 AC2 "stops raining" despite continuous refill; ~12 s rest from empty).
 - Sky commands answer 200. Each rain command bumps the version, so a second open tab shows the reload banner (ACC-04 AC2 as intended).
 - A translucent wet patch marks a raining cloud (streaks are invisible from above). A cloud or the sun in front of the planet blocks taps behind it.
+
+### Phase 8 — done (2 Oct 2026)
+
+All tasks 8.1–8.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 484/484, e2e 119/119; frontend `tsc` 0, tests 557/557, build 0 (815 kB). Live (3102/4302): harvest gives 1–2 seeds and a second harvest is refused with `cooldown`; the hover card shows stage, water and light as icon + text with suggestions; tapping a ready bloom harvests it with a receipt toast; Enter → "Collect seeds" works by keyboard; the catalogue shows unlocked items with needs and bloom time and locked ones as silhouettes with hints; a first-time unlock shows "New in your catalogue: X". **Not run:** backend `npm run build`.
+
+Notes:
+- `POST /api/garden/plants/:id/harvest` refuses with `not-ready` or `cooldown`; `SimulationService` re-arms seeds after `harvestCooldownMinutes`. The snapshot carries no `lastHarvestedAt` (no client countdown).
+- The info card replaced the Phase 5 context menu (`PlacementService` card API). Settings and Catalogue share one panel slot.
+- `CelebrationService` handles `newlyUnlocked`; sync responses still carry none (Phase 12).
+- The e2e Jest `testTimeout` is 30 s (`test/jest-e2e.json`): a 5 s hook timed out under CPU contention from a parallel frontend build.
 
 ---
 

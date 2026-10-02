@@ -4,6 +4,7 @@ import {
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
+import { RandomService } from '../common/random.service';
 import type { DecorationId, DecorationType } from '../content/content.types';
 import { DECORATIONS } from '../content/decorations';
 import { GameConfigService } from '../game-config/game-config.service';
@@ -56,17 +57,25 @@ const REFUSALS: Record<Exclude<PlacementReason, 'ok'>, string> = {
   'occupied-water': 'That spot is a little too splashy. Try a dry one.',
 };
 
+/** Why a harvest is refused, and what the player is told (GRD-08 AC3). */
+type HarvestRefusal = 'not-ready' | 'cooldown';
+
+const HARVEST_REFUSALS: Record<HarvestRefusal, string> = {
+  'not-ready': "This one isn't ready to give seeds yet.",
+  cooldown: 'It needs a little while to make more seeds.',
+};
+
 // The DTOs let only content ids in, so every stored type is listed here.
 const DECORATION_TYPES = Object.fromEntries(
   DECORATIONS.map((decoration) => [decoration.id, decoration]),
 ) as Record<DecorationId, DecorationType>;
 
 /**
- * Planting and digging up, placing, moving and putting away decorations, and
- * the sky: clouds that drift and rain, and the sun the player can drag
- * (GRD-01, GRD-02, GRD-03, GRD-07, ITM-02). Every command runs through
- * mutate(), so a refusal throws inside the transaction and leaves the planet
- * and inventory as they were.
+ * Planting, harvesting and digging up, placing, moving and putting away
+ * decorations, and the sky: clouds that drift and rain, and the sun the
+ * player can drag (GRD-01, GRD-02, GRD-03, GRD-07, GRD-08, ITM-02). Every
+ * command runs through mutate(), so a refusal throws inside the transaction
+ * and leaves the planet and inventory as they were.
  */
 @Injectable()
 export class GardenService implements OnModuleInit {
@@ -77,6 +86,7 @@ export class GardenService implements OnModuleInit {
     private readonly planetState: PlanetStateService,
     private readonly inventory: InventoryService,
     private readonly config: GameConfigService,
+    private readonly random: RandomService,
   ) {
     this.cloudTunables = {
       driftDegreesPerMinute: config.cloudDriftDegreesPerMinute,
@@ -192,6 +202,51 @@ export class GardenService implements OnModuleInit {
     );
   }
 
+  /**
+   * Picks seeds of its type from a bloom whose seeds are ready, and it stays
+   * in bloom (GRD-08 AC2). The simulation makes it ready again
+   * harvestCooldownMinutes later (AC3).
+   */
+  harvest(
+    planetId: string,
+    plantId: string,
+    body: GardenCommandDto,
+  ): Promise<MutationResult> {
+    return this.planetState.mutate(
+      planetId,
+      body.expectedVersion,
+      async (ctx) => {
+        const plant = await this.findPlant(ctx, plantId);
+        if (plant.stage !== 'bloom' || !plant.harvestReady) {
+          // The simulation has just re-armed every bloom whose cooldown is
+          // over, so a harvested bloom that is not ready is still in it.
+          const reason: HarvestRefusal =
+            plant.stage === 'bloom' && plant.lastHarvestedAt
+              ? 'cooldown'
+              : 'not-ready';
+          throw new BadRequestException({
+            statusCode: 400,
+            message: HARVEST_REFUSALS[reason],
+            reason,
+          });
+        }
+        await this.giveBack(ctx, {
+          itemType: plant.type,
+          kind: 'seed',
+          count: this.random.int(
+            this.config.seedsPerHarvestMin,
+            this.config.seedsPerHarvestMax,
+          ),
+        });
+        await ctx.em.update(
+          Plant,
+          { id: plant.id },
+          { lastHarvestedAt: ctx.now, harvestReady: false },
+        );
+      },
+    );
+  }
+
   /** Removes a plant; a seed or sprout returns its seed (GRD-07 AC1). */
   digUp(
     planetId: string,
@@ -202,10 +257,7 @@ export class GardenService implements OnModuleInit {
       planetId,
       body.expectedVersion,
       async (ctx) => {
-        const plant = await ctx.em.findOneBy(Plant, { id: plantId, planetId });
-        if (!plant) {
-          throw new NotFoundException(GONE);
-        }
+        const plant = await this.findPlant(ctx, plantId);
         await ctx.em.delete(Plant, { id: plant.id });
         if (plant.stage === 'seed' || plant.stage === 'sprout') {
           await this.giveBack(ctx, {
@@ -321,6 +373,18 @@ export class GardenService implements OnModuleInit {
     }
   }
 
+  /** The planet's plant with this id, or a 404. */
+  private async findPlant(ctx: MutationContext, id: string): Promise<Plant> {
+    const plant = await ctx.em.findOneBy(Plant, {
+      id,
+      planetId: ctx.planet.id,
+    });
+    if (!plant) {
+      throw new NotFoundException(GONE);
+    }
+    return plant;
+  }
+
   /** The planet's decoration with this id, or a 404. */
   private async findDecoration(
     ctx: MutationContext,
@@ -345,7 +409,7 @@ export class GardenService implements OnModuleInit {
     return cloud;
   }
 
-  /** Puts an item back into the inventory, announcing it if new. */
+  /** Puts an item into the inventory, announcing it if new. */
   private async giveBack(ctx: MutationContext, item: GrantItem): Promise<void> {
     const { newlyUnlocked } = await this.inventory.grant(
       ctx.em,

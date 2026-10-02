@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { hasStatus } from '../helpers/error-message';
 import { CommandResponse, SyncResponse } from '../models/planet-snapshot';
 import { ApiService } from './api.service';
@@ -50,6 +50,10 @@ export class SyncService {
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private retryDelay = FIRST_RETRY_MS;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly unlocks = new Subject<string[]>();
+
+  /** The item types a command response named as the player's for the first time (ITM-04 AC3). */
+  readonly newlyUnlocked = this.unlocks.asObservable();
 
   /**
    * Queues a command. Resolves once the server applied it. Rejects with the HttpErrorResponse
@@ -104,6 +108,9 @@ export class SyncService {
         this.store.setSnapshot(response.snapshot);
         this.queue.shift();
         this.countPending();
+        if (response.newlyUnlocked?.length) {
+          this.unlocks.next(response.newlyUnlocked);
+        }
         head.resolve(response);
       },
       (error) => {
