@@ -13,7 +13,7 @@ import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
 import { SkyService } from '../../scene/sky.service';
-import { CATALOGUE, MOSSY, creatureAt, plantAt } from '../../testing/garden-fixtures';
+import { CATALOGUE, CLOVER_WANT, MOSSY, creatureAt, plantAt } from '../../testing/garden-fixtures';
 import { InfoCardComponent } from './info-card.component';
 
 const plant = (id: string): CardTarget => ({ kind: 'plant', id, x: 300, y: 200 });
@@ -252,6 +252,83 @@ describe('InfoCardComponent', () => {
     });
   });
 
+  describe('digging up a plant a want needs (GRD-07 AC3)', () => {
+    const wishing = (id: string, name: string) =>
+      creatureAt(id, 20, 20, { name, want: CLOVER_WANT });
+
+    /** The clover at 0, 0 and the pond the wants name, a step away or far off. */
+    function garden(creatures: CreatureDto[], pondLon = 5) {
+      TestBed.inject(PlanetStore).setSnapshot({
+        ...MOSSY,
+        plants: [plantAt('clover-1', 0, 0)],
+        decorations: [{ id: 'pond-1', type: 'pond', lat: 0, lon: pondLon }],
+        creatures,
+      });
+    }
+
+    const warning = () => card()?.querySelector('[role="alert"]')?.textContent?.trim();
+
+    it('names the creature first, and only digs it up after Confirm', async () => {
+      garden([wishing('mira', 'Mira')]);
+      await pin(plant('clover-1'));
+
+      button('Dig up').click();
+      await fixture.whenStable();
+
+      http.expectNone({ method: 'DELETE', url: '/api/garden/plants/clover-1' });
+      expect(warning()).toBe(
+        "Mira will notice — this clover is part of Mira's wish. Dig it up anyway?",
+      );
+      expect(labels()).toEqual(['Confirm', 'Keep it']);
+      expect(document.activeElement).toBe(button('Confirm'));
+
+      button('Confirm').click();
+      await fixture.whenStable();
+
+      http.expectOne({ method: 'DELETE', url: '/api/garden/plants/clover-1' });
+      expect(card()).toBeNull();
+      expect(focusCanvas).toHaveBeenCalled();
+    });
+
+    it('keeps the plant on "Keep it"', async () => {
+      garden([wishing('mira', 'Mira')]);
+      await pin(plant('clover-1'));
+      button('Dig up').click();
+      await fixture.whenStable();
+
+      button('Keep it').click();
+      await fixture.whenStable();
+
+      expect(warning()).toBeUndefined();
+      expect(labels()).toEqual(['Dig up']);
+      expect(document.activeElement).toBe(button('Dig up'));
+      http.expectNone({ method: 'DELETE', url: '/api/garden/plants/clover-1' });
+    });
+
+    it('names every creature that would notice', async () => {
+      garden([wishing('mira', 'Mira'), wishing('sam', 'Sam'), creatureAt('pip', 0, 0)]);
+      await pin(plant('clover-1'));
+
+      button('Dig up').click();
+      await fixture.whenStable();
+
+      expect(warning()).toBe(
+        'Mira and Sam will notice — this clover is part of their wishes. Dig it up anyway?',
+      );
+    });
+
+    it('digs up at once a plant no want needs', async () => {
+      garden([wishing('mira', 'Mira')], 40);
+      await pin(plant('clover-1'));
+
+      button('Dig up').click();
+      await fixture.whenStable();
+
+      expect(warning()).toBeUndefined();
+      http.expectOne({ method: 'DELETE', url: '/api/garden/plants/clover-1' });
+    });
+  });
+
   describe('a creature (NAV-03 AC2, CRT-03 AC1)', () => {
     const mira = creatureAt('mira', 5, 5);
     const sam = creatureAt('sam', 20, 40, {
@@ -326,6 +403,84 @@ describe('InfoCardComponent', () => {
       button('Less').click();
       await fixture.whenStable();
       expect(text()).not.toContain(mira.backstory);
+    });
+
+    it('shows its want in its own voice, with the plain description beneath (WNT-01 AC3, WNT-02 AC2)', async () => {
+      meet({ want: CLOVER_WANT });
+
+      await hover(creature('mira'));
+
+      expect(card()!.querySelector('.voice')?.textContent?.trim()).toBe(CLOVER_WANT.text);
+      expect(card()!.querySelector('.plain')?.textContent?.trim()).toBe(
+        '3 clovers within 2 steps of the pond',
+      );
+      expect(statuses().map(({ icon }) => icon)).toEqual(['content', 'wish']);
+      expect(text()).not.toContain('No wish right now');
+      expect(labels()).toEqual([]);
+    });
+
+    it('sets the want aside on "Maybe later" with a friendly line, the mood unchanged (WNT-05 AC1, AC2)', async () => {
+      meet({ want: CLOVER_WANT, mood: 'cheerful' });
+      await pin(creature('mira'));
+      expect(labels()).toEqual(['More', 'Maybe later']);
+      expect(document.activeElement).toBe(button('More'));
+
+      button('Maybe later').click();
+      const request = http.expectOne({ method: 'POST', url: '/api/wants/want-1/maybe-later' });
+      expect(request.request.body).toEqual({ expectedVersion: 1 });
+      request.flush({
+        snapshot: {
+          ...MOSSY,
+          version: 2,
+          creatures: [{ ...mira, mood: 'cheerful', want: null }, sam],
+        },
+        events: [],
+      });
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+
+      expect(card()!.querySelector('.note[role="status"]')?.textContent?.trim()).toBe(
+        'No rush — Mira will think of something else.',
+      );
+      expect(statuses()).toEqual([
+        { icon: 'cheerful', text: 'Cheerful' },
+        { icon: 'wish', text: 'No wish right now' },
+      ]);
+      expect(labels()).toEqual(['More']);
+      expect(document.activeElement).toBe(button('More'));
+    });
+
+    it('says why when "Maybe later" does not go through', async () => {
+      meet({ want: CLOVER_WANT });
+      await pin(creature('mira'));
+
+      button('Maybe later').click();
+      http
+        .expectOne('/api/wants/want-1/maybe-later')
+        .flush(
+          { statusCode: 404, message: 'That wish has already changed.' },
+          { status: 404, statusText: 'Not Found' },
+        );
+      await new Promise((resolve) => setTimeout(resolve));
+      await fixture.whenStable();
+
+      expect(card()!.querySelector('.note')?.textContent?.trim()).toBe(
+        'That wish has already changed.',
+      );
+      expect(labels()).toEqual(['More', 'Maybe later']);
+    });
+
+    it('keeps the story open when a heartbeat brings the same creature again', async () => {
+      meet();
+      await pin(creature('mira'));
+      button('More').click();
+      await fixture.whenStable();
+
+      meet({ mood: 'cheerful' });
+      await fixture.whenStable();
+
+      expect(labels()).toEqual(['Less']);
+      expect(text()).toContain(mira.backstory);
     });
 
     it("starts with the next creature's story closed", async () => {

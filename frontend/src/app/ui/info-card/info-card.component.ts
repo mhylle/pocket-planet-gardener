@@ -4,6 +4,7 @@ import {
   afterRenderEffect,
   computed,
   inject,
+  linkedSignal,
   viewChild,
 } from '@angular/core';
 import { lightStatus, waterStatus } from '../../core/helpers/growth-rules';
@@ -28,8 +29,8 @@ import { StatusIconComponent } from '../status-icon/status-icon.component';
 /** Room the card needs from the canvas edges, in CSS pixels, so it is never cut off. */
 const CARD_HALF_WIDTH = 140;
 const CARD_HEIGHT = 200;
-/** A creature's card is taller, the more so with its story open. */
-const CREATURE_CARD_HEIGHT = 360;
+/** A creature's card is taller, the more so with its want and its story open. */
+const CREATURE_CARD_HEIGHT = 440;
 
 /** What the card shows. */
 interface CardView extends CardTarget {
@@ -49,7 +50,8 @@ interface CardView extends CardTarget {
  * plant, its stage, water and light as icon and words with what would help (GRD-04, SET-04);
  * for a creature, its name over the creature card (AC2). Moving away closes it. A tap (or
  * Enter at the middle of the view) pins it with its actions: "Collect seeds" for a ready bloom
- * (GRD-08 AC2), "Dig up" for a plant (GRD-07 AC1), "Move" and "Put away" for a decoration
+ * (GRD-08 AC2), "Dig up" for a plant (GRD-07 AC1), which first names the creatures whose want
+ * needs it and waits for Confirm or Keep it (AC3), "Move" and "Put away" for a decoration
  * (ITM-02), "More" for a creature (CRT-03 AC1). The pinned card takes the focus; Escape or a
  * press anywhere else closes it, and Escape and the actions give the focus back to the
  * planet. The light is worked out here from where the sun is now, so the card follows the sun
@@ -75,6 +77,11 @@ export class InfoCardComponent {
   private readonly box = viewChild<ElementRef<HTMLElement>>('box');
 
   protected readonly statusLine = statusLine;
+  /** Who would notice the pinned plant going, while "Dig up" waits for an answer (GRD-07 AC3). */
+  protected readonly warning = linkedSignal<string | null, string | null>({
+    source: () => this.placement.card()?.id ?? null,
+    computation: () => null,
+  });
 
   protected readonly card = computed<CardView | null>(() => {
     const pinned = this.placement.card();
@@ -114,8 +121,10 @@ export class InfoCardComponent {
   });
 
   constructor() {
-    // Runs when a card is pinned, once its buttons are drawn.
+    // Runs when a card is pinned, and when its dig-up question comes or goes, once its
+    // buttons are drawn.
     afterRenderEffect(() => {
+      this.warning();
       if (this.placement.card()) {
         this.box()?.nativeElement.querySelector('button')?.focus();
       }
@@ -127,7 +136,21 @@ export class InfoCardComponent {
     void this.placement.harvest(id);
   }
 
-  protected digUp(id: string): void {
+  /** Digs the plant up, unless a creature's want needs it: then it asks first, naming them. */
+  protected digUp(id: string, title: string): void {
+    const names = this.placement.noticedBy(id).map(({ name }) => name);
+    if (names.length === 0) {
+      this.confirmDigUp(id);
+      return;
+    }
+    const whose = names.length === 1 ? `${names[0]}'s wish` : 'their wishes';
+    this.warning.set(
+      `${listOf(names)} will notice — this ${title.toLowerCase()} is part of ${whose}. ` +
+        'Dig it up anyway?',
+    );
+  }
+
+  protected confirmDigUp(id: string): void {
     this.scene.focusCanvas();
     void this.placement.digUp(id);
   }
@@ -167,4 +190,9 @@ export class InfoCardComponent {
       y: clamp(y, 0, this.scene.height - height),
     };
   }
+}
+
+/** "Mira", "Mira and Sam", "Mira, Sam and Pip". */
+function listOf(names: string[]): string {
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
 }

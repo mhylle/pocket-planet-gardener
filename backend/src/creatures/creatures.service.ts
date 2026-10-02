@@ -179,5 +179,7 @@ export function toCreatureDto(creature: Creature): CreatureDto {
     lon: creature.lon,
     arrivedAt: creature.arrivedAt.toISOString(),
     identitySource: creature.identitySource,
+    // WantsModule's snapshot contributor fills in the active want.
+    want: null,
   };
 }

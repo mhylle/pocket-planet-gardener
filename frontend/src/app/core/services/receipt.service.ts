@@ -18,6 +18,8 @@ export const RECEIPT_MS = 1800;
  * and each count that went up gives one receipt. So a seed back from digging up, a decoration
  * put away and later harvests or gifts are all announced once, whichever response brought
  * them. Provided by the planet page; the first snapshot it sees counts as the starting point.
+ * While held, such as while a reward is being shown (WNT-04 AC1), receipts wait and show once
+ * released.
  */
 @Injectable()
 export class ReceiptService {
@@ -26,8 +28,21 @@ export class ReceiptService {
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private seen: { planetId: string; counts: Map<string, number> } | null = null;
   private nextId = 1;
+  private waiting: string[] | null = null;
 
   readonly receipts = this.list.asReadonly();
+
+  /** Keeps new receipts back until release(). */
+  hold(): void {
+    this.waiting ??= [];
+  }
+
+  /** Shows the receipts kept back, and every later one as it comes. */
+  release(): void {
+    const waiting = this.waiting ?? [];
+    this.waiting = null;
+    waiting.forEach((text) => this.show(text));
+  }
 
   constructor() {
     const store = inject(PlanetStore);
@@ -56,6 +71,10 @@ export class ReceiptService {
   }
 
   private show(text: string): void {
+    if (this.waiting) {
+      this.waiting.push(text);
+      return;
+    }
     const receipt = { id: this.nextId++, text };
     this.list.update((list) => [...list, receipt]);
     const timer = setTimeout(() => {

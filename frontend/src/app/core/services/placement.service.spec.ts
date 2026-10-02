@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { CATALOGUE, MOSSY, plantAt } from '../../testing/garden-fixtures';
+import { CATALOGUE, CLOVER_WANT, MOSSY, creatureAt, plantAt } from '../../testing/garden-fixtures';
 import { PLANT_FOOTPRINT_STEPS, PlacementState, canPlaceAt } from '../helpers/placement-rules';
 import { SurfacePoint } from '../helpers/surface-coords';
+import { WantSpec } from '../helpers/want-evaluator';
 import { PlanetSnapshotDto } from '../models/planet-snapshot';
+import { WantDto } from '../models/want';
 import { CatalogueService } from './catalogue.service';
 import { PlacementService } from './placement.service';
 import { PlanetIdentityService } from './planet-identity.service';
@@ -370,6 +372,43 @@ describe('PlacementService', () => {
       expect(placement.hoverCard()?.id).toBe('plant-2');
       placement.setHoverCard(over('plant-1'));
       expect(placement.hoverCard()?.id).toBe('plant-1');
+    });
+  });
+
+  describe('who would notice a plant going (GRD-07 AC3)', () => {
+    /** Mira's home is at 30, 30; Sam has no want. */
+    const mira = (want: WantDto) => creatureAt('mira', 30, 30, { want });
+    const sam = creatureAt('sam', 0, 0, { name: 'Sam', species: 'snail' });
+    const near = (spec: WantSpec): WantDto => ({ ...CLOVER_WANT, spec });
+
+    beforeEach(() =>
+      withPlanet({
+        plants: [plantAt('by-pond', 0, 1), plantAt('far', -40, -40), plantAt('at-home', 30, 31)],
+        decorations: [{ id: 'pond-1', type: 'pond', lat: 0, lon: 0 }],
+      }),
+    );
+    const noticing = (plantId: string) => placement.noticedBy(plantId).map(({ id }) => id);
+
+    it("names the creatures whose want needs the plant, by the want's own rules", () => {
+      withPlanet({ ...store.snapshot()!, creatures: [mira(CLOVER_WANT), sam] });
+
+      expect(noticing('by-pond')).toEqual(['mira']);
+      expect(noticing('far')).toEqual([]);
+    });
+
+    it("measures a want near home from the creature's home", () => {
+      const variety = near({ type: 'variety', distinct: 2, withinSteps: 1 });
+      withPlanet({ ...store.snapshot()!, creatures: [mira(variety)] });
+
+      expect(noticing('at-home')).toEqual(['mira']);
+      expect(noticing('by-pond')).toEqual([]);
+    });
+
+    it('names nobody for a plant that is not there, or with no wants', () => {
+      withPlanet({ ...store.snapshot()!, creatures: [sam] });
+
+      expect(noticing('by-pond')).toEqual([]);
+      expect(noticing('gone')).toEqual([]);
     });
   });
 });

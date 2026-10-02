@@ -6,8 +6,16 @@ import { PlanetIdentityService } from '../../core/services/planet-identity.servi
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SyncService } from '../../core/services/sync.service';
 import { ViewStateService } from '../../core/services/view-state.service';
+import { CreatureMeshService } from '../../scene/creature-mesh.service';
 import { NullSceneRenderer } from '../../scene/null-scene-renderer';
 import { SCENE_RENDERER } from '../../scene/scene-renderer';
+import {
+  CATALOGUE,
+  CLOVER_WANT,
+  THANK_YOU,
+  creatureAt,
+  wantFulfilled,
+} from '../../testing/garden-fixtures';
 import { PlanetPageComponent } from './planet-page.component';
 
 const mossy: PlanetSnapshotDto = {
@@ -294,6 +302,42 @@ describe('PlanetPageComponent', () => {
       expect(summary.textContent).toContain('Welcome back!');
       expect(summary.textContent).toContain('1 plant bloomed');
       expect(document.activeElement).toBe(summary);
+    });
+
+    it('cheers a fulfilled want: a hop, the thank-you and the reward, then its receipt (WNT-03 AC1, WNT-04 AC1)', async () => {
+      const mira = creatureAt('mira', 5, 5, { want: CLOVER_WANT });
+      TestBed.inject(PlanetStore).setSnapshot({ ...mossy, creatures: [mira] });
+      render();
+      http.expectOne('/api/catalogue').flush(CATALOGUE);
+      await fixture.whenStable();
+
+      http.expectOne({ method: 'POST', url: SYNC }).flush({
+        snapshot: {
+          ...mossy,
+          creatures: [{ ...mira, mood: 'cheerful', want: null }],
+          inventory: [{ itemType: 'tulip', kind: 'seed', count: 2 }],
+        },
+        events: [wantFulfilled(mira)],
+      });
+      await fixture.whenStable();
+
+      const creatures = fixture.debugElement.injector.get(CreatureMeshService);
+      expect(creatures.creature('mira')?.cheer?.kind).toBe('hop');
+      const reveal = page.querySelector<HTMLElement>('app-reward-reveal [role="dialog"]')!;
+      expect(reveal.querySelector('.bubble')?.textContent?.trim()).toBe(THANK_YOU);
+      expect(reveal.textContent).toContain('Mira gives you:');
+      expect(reveal.textContent).toContain('2 × Tulip seeds');
+      const receipts = () =>
+        [...page.querySelectorAll('app-receipt-toast .receipt')].map((each) =>
+          each.textContent!.trim(),
+        );
+      expect(receipts()).toEqual([]);
+
+      reveal.querySelector('button')!.click();
+      await fixture.whenStable();
+
+      expect(page.querySelector('app-reward-reveal [role="dialog"]')).toBeNull();
+      expect(receipts()).toEqual(['+2 Tulip seeds']);
     });
   });
 });

@@ -1,5 +1,7 @@
 import { WritableSignal, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import * as THREE from 'three';
 import type { MockInstance } from 'vitest';
 import { WANDER_RADIUS_STEPS } from '../core/helpers/creature-wander';
@@ -12,10 +14,12 @@ import {
 } from '../core/helpers/surface-coords';
 import { CreatureDto } from '../core/models/creature';
 import { PlanetStore } from '../core/services/planet-store.service';
-import { MOSSY, creatureAt } from '../testing/garden-fixtures';
+import { SyncService } from '../core/services/sync.service';
+import { MOSSY, creatureAt, wantFulfilled } from '../testing/garden-fixtures';
 import { seededRandom } from '../testing/seeded-random';
 import {
   ARRIVAL_SECONDS,
+  CHEER_SECONDS,
   CREATURE_TICK_MS,
   CreatureMeshService,
   HOVER_STEPS,
@@ -49,6 +53,8 @@ describe('CreatureMeshService', () => {
     sunAngle = signal(25);
     TestBed.configureTestingModule({
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         SceneService,
         PickingService,
         PlanetMeshService,
@@ -249,6 +255,68 @@ describe('CreatureMeshService', () => {
       expect(snail.arrival).toBeNull();
       expect(snail.body.material.transparent).toBe(false);
       expect(snail.body.material.opacity).toBe(1);
+    });
+  });
+
+  describe('cheering a fulfilled want (CRT-04 AC1)', () => {
+    /** A heartbeat whose response says the creature's want was fulfilled. */
+    const fulfil = (creature: CreatureDto) => {
+      TestBed.inject(SyncService).syncNow();
+      TestBed.inject(HttpTestingController)
+        .expectOne('/api/planet/sync')
+        .flush({ snapshot: store.snapshot(), events: [wantFulfilled(creature)] });
+      TestBed.tick();
+    };
+
+    it('hops twice under rising sparkles, then stands as before', () => {
+      const creatures = start();
+      show([sam, mira]);
+      const snail = creatures.creature('sam')!;
+
+      fulfil(sam);
+
+      expect(snail.cheer).toEqual({ kind: 'hop', elapsed: 0 });
+      expect(snail.sparkles.parent).toBe(snail.group);
+      expect(creatures.creature('mira')!.cheer).toBeNull();
+      expect(requestRender).toHaveBeenCalled();
+
+      // The top of the first hop, then back on the ground between the two.
+      frame(CHEER_SECONDS / 4);
+      expect(standing(snail.group).lift).toBeGreaterThan(0.2);
+      const risen = snail.sparkles.position.y;
+      expect(risen).toBeGreaterThan(0);
+      frame(CHEER_SECONDS / 4);
+      expect(standing(snail.group).lift).toBeCloseTo(0, 6);
+      expect(snail.sparkles.position.y).toBeGreaterThan(risen);
+
+      frame(CHEER_SECONDS / 2);
+      expect(snail.cheer).toBeNull();
+      expect(standing(snail.group).lift).toBeCloseTo(0, 6);
+      expect(snail.sparkles.parent).toBeNull();
+    });
+
+    it('glows and fades instead of hopping with reduced motion, its sparkles still (SET-03)', () => {
+      const creatures = start({ reducedMotion: true });
+      show([sam]);
+      const snail = creatures.creature('sam')!;
+
+      fulfil(sam);
+
+      expect(snail.cheer?.kind).toBe('glow');
+      const glow = snail.body.material.emissive;
+      const bright = glow.r;
+      expect(bright).toBeGreaterThan(0);
+
+      frame(CHEER_SECONDS / 4);
+      expect(standing(snail.group).lift).toBeCloseTo(0, 6);
+      expect(glow.r).toBeLessThan(bright);
+      expect(snail.sparkles.parent).toBe(snail.group);
+      expect(snail.sparkles.position.y).toBe(0);
+
+      frame(CHEER_SECONDS);
+      expect(snail.cheer).toBeNull();
+      expect([glow.r, glow.g, glow.b]).toEqual([0, 0, 0]);
+      expect(snail.sparkles.parent).toBeNull();
     });
   });
 

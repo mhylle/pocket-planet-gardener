@@ -617,13 +617,28 @@ describe('PlanetStateService', () => {
       expect(result.events.map((event) => event.type)).toEqual(['bloomed']);
     });
 
-    it('answers just the snapshot and events when the contributors add nothing', async () => {
+    it('answers just the snapshot, events and unlocks when the contributors add nothing', async () => {
       const { service } = buildService();
       service.registerSyncContributor(() => ({}));
 
       const result = await service.sync(PLANET_ID, 3);
 
-      expect(Object.keys(result).sort()).toEqual(['events', 'snapshot']);
+      expect(Object.keys(result).sort()).toEqual([
+        'events',
+        'newlyUnlocked',
+        'snapshot',
+      ]);
+    });
+
+    it('returns what a hook unlocked during the heartbeat (ITM-04 AC3)', async () => {
+      const { service } = buildService();
+      service.registerPostMutationEvaluator((ctx) => {
+        ctx.newlyUnlocked.push('tulip');
+      });
+
+      const result = await service.sync(PLANET_ID, 3);
+
+      expect(result.newlyUnlocked).toEqual(['tulip']);
     });
 
     it('returns the snapshot at the clock time and the facts as events, nothing more', async () => {
@@ -638,7 +653,11 @@ describe('PlanetStateService', () => {
 
       const result = await service.sync(PLANET_ID, 3);
 
-      expect(Object.keys(result).sort()).toEqual(['events', 'snapshot']);
+      expect(Object.keys(result).sort()).toEqual([
+        'events',
+        'newlyUnlocked',
+        'snapshot',
+      ]);
       expect(result.snapshot).toMatchObject({
         id: PLANET_ID,
         serverTime: T1.toISOString(),

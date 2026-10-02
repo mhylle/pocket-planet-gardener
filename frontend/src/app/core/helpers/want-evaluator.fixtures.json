@@ -1,0 +1,456 @@
+{
+  "home": { "lat": 0, "lon": 0 },
+  "worlds": {
+    "empty": { "plants": [], "decorations": [] },
+    "garden": {
+      "decorations": [
+        { "type": "lamp-post", "lat": 0, "lon": 90 },
+        { "type": "pond", "lat": 0, "lon": -90 }
+      ],
+      "plants": [
+        { "type": "clover", "stage": "seed", "lat": 0, "lon": 5 },
+        { "type": "clover", "stage": "bloom", "lat": 5, "lon": 0 },
+        { "type": "tulip", "stage": "young", "lat": 0, "lon": -7.5 },
+        { "type": "fern", "stage": "sprout", "lat": -7.5, "lon": 0 },
+        { "type": "sunflower", "stage": "bloom", "lat": 0, "lon": 17.5 },
+        { "type": "moonflower", "stage": "seed", "lat": 0, "lon": 95 },
+        { "type": "moonflower", "stage": "bloom", "lat": 0, "lon": 102.5 },
+        { "type": "moonflower", "stage": "bloom", "lat": 0, "lon": 107.5 },
+        { "type": "tulip", "stage": "bloom", "lat": 60, "lon": 0 },
+        { "type": "tulip", "stage": "bloom", "lat": 60, "lon": 90 },
+        { "type": "tulip", "stage": "bloom", "lat": 60, "lon": 180 },
+        { "type": "tulip", "stage": "bloom", "lat": 60, "lon": -90 },
+        { "type": "mushroom", "stage": "young", "lat": 0, "lon": -95 }
+      ]
+    },
+    "two-lamp-posts": {
+      "decorations": [
+        { "type": "lamp-post", "lat": 0, "lon": 90 },
+        { "type": "lamp-post", "lat": 0, "lon": -90 }
+      ],
+      "plants": [
+        { "type": "moonflower", "stage": "young", "lat": 0, "lon": 95 },
+        { "type": "moonflower", "stage": "young", "lat": 0, "lon": -95 }
+      ]
+    },
+    "clover-patch": {
+      "decorations": [],
+      "plants": [
+        { "type": "clover", "stage": "bloom", "lat": 0, "lon": 5 },
+        { "type": "clover", "stage": "bloom", "lat": 5, "lon": 0 },
+        { "type": "clover", "stage": "bloom", "lat": -5, "lon": 0 }
+      ]
+    }
+  },
+  "evaluate": [
+    {
+      "name": "plant-near a decoration: 2 moonflowers within 3 steps of the lamp-post, a seed among them",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "expect": true
+    },
+    {
+      "name": "plant-near a decoration: the third moonflower is 3.5 steps away",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 3, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "plant-near a decoration: a wider radius takes in the third",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 3, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 4 },
+      "expect": true
+    },
+    {
+      "name": "plant-near a decoration: clovers grow by the home, not the lamp-post",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 1, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 6 },
+      "expect": false
+    },
+    {
+      "name": "plant-near a decoration: no bench on the planet",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 1, "near": { "kind": "decoration", "decoration": "bench" }, "withinSteps": 6 },
+      "expect": false
+    },
+    {
+      "name": "plant-near a decoration: plants by either of two lamp-posts count",
+      "world": "two-lamp-posts",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 2 },
+      "expect": true
+    },
+    {
+      "name": "plant-near the home: 2 clovers within 2 steps",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 2 },
+      "expect": true
+    },
+    {
+      "name": "plant-near the home: only 2 clovers there",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 3, "near": { "kind": "home" }, "withinSteps": 2 },
+      "expect": false
+    },
+    {
+      "name": "plant-near the home: the sunflower is 3.5 steps away",
+      "world": "garden",
+      "spec": { "type": "plant-near", "plant": "sunflower", "count": 1, "near": { "kind": "home" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming: 4 tulips in bloom",
+      "world": "garden",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 4 },
+      "expect": true
+    },
+    {
+      "name": "count-blooming: 5 tulips, but the young one does not count",
+      "world": "garden",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 5 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming: the only mushroom is young",
+      "world": "garden",
+      "spec": { "type": "count-blooming", "plant": "mushroom", "count": 1 },
+      "expect": false
+    },
+    {
+      "name": "place-decoration: the pond is there",
+      "world": "garden",
+      "spec": { "type": "place-decoration", "decoration": "pond" },
+      "expect": true
+    },
+    {
+      "name": "place-decoration: no bench",
+      "world": "garden",
+      "spec": { "type": "place-decoration", "decoration": "bench" },
+      "expect": false
+    },
+    {
+      "name": "variety: clover, tulip and fern within 2 steps of home",
+      "world": "garden",
+      "spec": { "type": "variety", "distinct": 3, "withinSteps": 2 },
+      "expect": true
+    },
+    {
+      "name": "variety: the sunflower is outside 2 steps",
+      "world": "garden",
+      "spec": { "type": "variety", "distinct": 4, "withinSteps": 2 },
+      "expect": false
+    },
+    {
+      "name": "variety: 4 steps take in the sunflower",
+      "world": "garden",
+      "spec": { "type": "variety", "distinct": 4, "withinSteps": 4 },
+      "expect": true
+    },
+    {
+      "name": "variety: three clovers are one type",
+      "world": "clover-patch",
+      "spec": { "type": "variety", "distinct": 2, "withinSteps": 2 },
+      "expect": false
+    },
+    {
+      "name": "bring-back a plant: a moonflower is back, even as a seed",
+      "world": "garden",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "moonflower" },
+      "expect": true
+    },
+    {
+      "name": "bring-back a plant: no cactus",
+      "world": "garden",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "cactus" },
+      "expect": false
+    },
+    {
+      "name": "bring-back a decoration: the pond is back",
+      "world": "garden",
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "pond" },
+      "expect": true
+    },
+    {
+      "name": "bring-back a decoration: no pond on an empty planet",
+      "world": "empty",
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "pond" },
+      "expect": false
+    }
+  ],
+  "capacity": { "unlocked": ["clover", "tulip", "moonflower", "lamp-post", "pond"], "maxPlants": 40, "plantCount": 12 },
+  "achievable": [
+    {
+      "name": "plant-near an unlocked plant and decoration",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "expect": true
+    },
+    {
+      "name": "plant-near the home",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 5, "near": { "kind": "home" }, "withinSteps": 6 },
+      "expect": true
+    },
+    {
+      "name": "plant-near a locked plant (WNT-02 AC1)",
+      "spec": { "type": "plant-near", "plant": "cactus", "count": 2, "near": { "kind": "home" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "plant-near a locked decoration (WNT-02 AC1)",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "bench" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "plant-near a plant id that names a decoration",
+      "spec": { "type": "plant-near", "plant": "pond", "count": 1, "near": { "kind": "home" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "plant-near 0 steps",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 0 },
+      "expect": false
+    },
+    {
+      "name": "plant-near 7 steps",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 7 },
+      "expect": false
+    },
+    {
+      "name": "plant-near 1 step",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 1, "near": { "kind": "home" }, "withinSteps": 1 },
+      "expect": true
+    },
+    {
+      "name": "plant-near 2.5 steps",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 2.5 },
+      "expect": false
+    },
+    {
+      "name": "plant-near with no anchor",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "plant-near with an unknown anchor kind",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "tree" }, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming an unlocked plant",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 5 },
+      "expect": true
+    },
+    {
+      "name": "count-blooming a locked plant (WNT-02 AC1)",
+      "spec": { "type": "count-blooming", "plant": "sunflower", "count": 2 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming 0",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 0 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming 6",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 6 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming a count given as text",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": "3" },
+      "expect": false
+    },
+    {
+      "name": "count-blooming more than the planet can hold",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 4 },
+      "capacity": { "maxPlants": 3 },
+      "expect": false
+    },
+    {
+      "name": "place-decoration an unlocked one",
+      "spec": { "type": "place-decoration", "decoration": "pond" },
+      "expect": true
+    },
+    {
+      "name": "place-decoration a locked one (WNT-02 AC1)",
+      "spec": { "type": "place-decoration", "decoration": "bench" },
+      "expect": false
+    },
+    {
+      "name": "variety at the limits",
+      "spec": { "type": "variety", "distinct": 4, "withinSteps": 6 },
+      "expect": true
+    },
+    {
+      "name": "variety of 1",
+      "spec": { "type": "variety", "distinct": 1, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "variety of 5",
+      "spec": { "type": "variety", "distinct": 5, "withinSteps": 3 },
+      "expect": false
+    },
+    {
+      "name": "variety within 7 steps",
+      "spec": { "type": "variety", "distinct": 3, "withinSteps": 7 },
+      "expect": false
+    },
+    {
+      "name": "bring-back an unlocked plant",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "clover" },
+      "expect": true
+    },
+    {
+      "name": "bring-back an unlocked decoration",
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "pond" },
+      "expect": true
+    },
+    {
+      "name": "bring-back a locked decoration (WNT-02 AC1)",
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "bench" },
+      "expect": false
+    },
+    {
+      "name": "bring-back a decoration as a plant",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "pond" },
+      "expect": false
+    },
+    {
+      "name": "bring-back with an unknown item kind",
+      "spec": { "type": "bring-back", "itemKind": "creature", "item": "clover" },
+      "expect": false
+    },
+    {
+      "name": "an unknown want type",
+      "spec": { "type": "dance", "count": 2 },
+      "expect": false
+    },
+    {
+      "name": "no spec at all",
+      "spec": null,
+      "expect": false
+    }
+  ],
+  "names": {
+    "plants": { "clover": "Clover", "tulip": "Tulip", "moonflower": "Moonflower", "cactus": "Cactus" },
+    "decorations": { "pond": "Pond", "lamp-post": "Lamp-post", "bench": "Bench", "tiny-house": "Tiny house" },
+    "creatureName": "Mira"
+  },
+  "describe": [
+    {
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "expect": "2 moonflowers within 3 steps of the lamp-post"
+    },
+    {
+      "spec": { "type": "plant-near", "plant": "cactus", "count": 1, "near": { "kind": "home" }, "withinSteps": 1 },
+      "expect": "1 cactus within 1 step of Mira's home"
+    },
+    {
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 5 },
+      "expect": "5 tulips in bloom"
+    },
+    {
+      "spec": { "type": "count-blooming", "plant": "cactus", "count": 3 },
+      "expect": "3 cacti in bloom"
+    },
+    {
+      "spec": { "type": "place-decoration", "decoration": "bench" },
+      "expect": "A bench on the planet"
+    },
+    {
+      "spec": { "type": "place-decoration", "decoration": "tiny-house" },
+      "expect": "A tiny house on the planet"
+    },
+    {
+      "spec": { "type": "variety", "distinct": 3, "withinSteps": 2 },
+      "expect": "3 different plants within 2 steps of Mira's home"
+    },
+    {
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "pond" },
+      "expect": "Bring back the pond"
+    },
+    {
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "clover" },
+      "expect": "Bring back a clover"
+    }
+  ],
+  "dependsOn": [
+    {
+      "name": "plant-near: a moonflower 1 step from the lamp-post",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "plant": { "type": "moonflower", "lat": 0, "lon": 95 },
+      "expect": true
+    },
+    {
+      "name": "plant-near: a moonflower 3.5 steps from the lamp-post",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "plant": { "type": "moonflower", "lat": 0, "lon": 107.5 },
+      "expect": false
+    },
+    {
+      "name": "plant-near: a clover by the lamp-post",
+      "spec": { "type": "plant-near", "plant": "moonflower", "count": 2, "near": { "kind": "decoration", "decoration": "lamp-post" }, "withinSteps": 3 },
+      "plant": { "type": "clover", "lat": 0, "lon": 95 },
+      "expect": false
+    },
+    {
+      "name": "plant-near the home: a clover 1 step away",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 2 },
+      "plant": { "type": "clover", "lat": 0, "lon": 5 },
+      "expect": true
+    },
+    {
+      "name": "plant-near the home: a clover 3.5 steps away",
+      "spec": { "type": "plant-near", "plant": "clover", "count": 2, "near": { "kind": "home" }, "withinSteps": 2 },
+      "plant": { "type": "clover", "lat": 0, "lon": 17.5 },
+      "expect": false
+    },
+    {
+      "name": "count-blooming: a tulip anywhere",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 5 },
+      "plant": { "type": "tulip", "lat": 60, "lon": 180 },
+      "expect": true
+    },
+    {
+      "name": "count-blooming: a sunflower",
+      "spec": { "type": "count-blooming", "plant": "tulip", "count": 5 },
+      "plant": { "type": "sunflower", "lat": 0, "lon": 17.5 },
+      "expect": false
+    },
+    {
+      "name": "place-decoration: no plant matters",
+      "spec": { "type": "place-decoration", "decoration": "pond" },
+      "plant": { "type": "mushroom", "lat": 0, "lon": -95 },
+      "expect": false
+    },
+    {
+      "name": "variety: any plant 1.5 steps from home",
+      "spec": { "type": "variety", "distinct": 3, "withinSteps": 2 },
+      "plant": { "type": "fern", "lat": -7.5, "lon": 0 },
+      "expect": true
+    },
+    {
+      "name": "variety: a plant 3.5 steps from home",
+      "spec": { "type": "variety", "distinct": 3, "withinSteps": 2 },
+      "plant": { "type": "sunflower", "lat": 0, "lon": 17.5 },
+      "expect": false
+    },
+    {
+      "name": "bring-back a plant: one of that type",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "moonflower" },
+      "plant": { "type": "moonflower", "lat": 0, "lon": 95 },
+      "expect": true
+    },
+    {
+      "name": "bring-back a plant: another type",
+      "spec": { "type": "bring-back", "itemKind": "plant", "item": "moonflower" },
+      "plant": { "type": "clover", "lat": 0, "lon": 5 },
+      "expect": false
+    },
+    {
+      "name": "bring-back a decoration: no plant matters",
+      "spec": { "type": "bring-back", "itemKind": "decoration", "item": "pond" },
+      "plant": { "type": "moonflower", "lat": 0, "lon": -95 },
+      "expect": false
+    }
+  ]
+}

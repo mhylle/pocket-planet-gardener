@@ -3,23 +3,45 @@
   <p>{{ creature().summary }}</p>
   <p class="quirk"><span class="label">Quirk:</span> {{ creature().quirk }}</p>
   <ul class="statuses">
-    @for (status of statuses(); track status.icon) {
+    <li>
+      <app-status-icon [icon]="mood().icon" />
+      <span>{{ mood().text }}</span>
+    </li>
+    @if (creature().want; as want) {
+      <li class="want">
+        <app-status-icon icon="wish" />
+        <span>
+          <q class="voice">{{ want.text }}</q>
+          <span class="plain">{{ want.plainDescription }}</span>
+        </span>
+      </li>
+    } @else {
       <li>
-        <app-status-icon [icon]="status.icon" />
-        <span>{{ status.text }}</span>
+        <app-status-icon [icon]="noWish.icon" />
+        <span>{{ noWish.text }}</span>
       </li>
     }
   </ul>
 </div>
 @if (pinned()) {
-  <button
-    type="button"
-    class="secondary"
-    [attr.aria-expanded]="expanded()"
-    (click)="expanded.set(!expanded())"
-  >
-    {{ expanded() ? 'Less' : 'More' }}
-  </button>
+  @if (note(); as note) {
+    <p class="note" role="status">{{ note }}</p>
+  }
+  <div class="actions">
+    <button
+      type="button"
+      class="secondary"
+      [attr.aria-expanded]="expanded()"
+      (click)="expanded.set(!expanded())"
+    >
+      {{ expanded() ? 'Less' : 'More' }}
+    </button>
+    @if (creature().want; as want) {
+      <button type="button" class="secondary" [disabled]="saving()" (click)="maybeLater(want.id)">
+        Maybe later
+      </button>
+    }
+  </div>
   @if (expanded()) {
     <dl class="more">
       <dt>Personality</dt>

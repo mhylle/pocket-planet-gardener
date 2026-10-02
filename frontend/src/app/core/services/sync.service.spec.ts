@@ -7,7 +7,12 @@ import {
 } from '@angular/common/http/testing';
 import { GENERIC_ERROR_MESSAGE, errorMessage } from '../helpers/error-message';
 import { DEFAULT_GAME_CONFIG } from '../models/game-config';
-import { CommandResponse, PlanetSnapshotDto, WelcomeBack } from '../models/planet-snapshot';
+import {
+  CommandResponse,
+  EventDto,
+  PlanetSnapshotDto,
+  WelcomeBack,
+} from '../models/planet-snapshot';
 import { GameConfigService } from './game-config.service';
 import { PlanetIdentityService } from './planet-identity.service';
 import { PlanetStore } from './planet-store.service';
@@ -33,6 +38,11 @@ const mossy: PlanetSnapshotDto = {
 };
 
 const atVersion = (version: number): PlanetSnapshotDto => ({ ...mossy, version });
+const fulfilled: EventDto = {
+  type: 'want-fulfilled',
+  occurredAt: '2026-10-01T10:05:00.000Z',
+  payload: { creatureId: 'mira' },
+};
 const answer = (snapshot: PlanetSnapshotDto): CommandResponse => ({ snapshot, events: [] });
 const plant = (path = '/garden/plant'): Command => ({
   method: 'POST',
@@ -111,6 +121,20 @@ describe('SyncService', () => {
       await second;
 
       expect(unlocked).toEqual([['tulip']]);
+    });
+
+    it("passes on a response's events once its snapshot is stored", async () => {
+      const seen: { events: EventDto[]; version: number | null }[] = [];
+      sync.events.subscribe((events) => seen.push({ events, version: store.version() }));
+
+      const first = sync.send(plant('/first'));
+      http.expectOne('/api/first').flush({ snapshot: atVersion(2), events: [fulfilled] });
+      await first;
+      const second = sync.send(plant('/second'));
+      http.expectOne('/api/second').flush(answer(atVersion(3)));
+      await second;
+
+      expect(seen).toEqual([{ events: [fulfilled], version: 2 }]);
     });
 
     it('sends one at a time in order, each with the version current when it goes', async () => {
@@ -335,6 +359,23 @@ describe('SyncService', () => {
 
       expectAfter(5000, SYNC).flush({ snapshot: mossy, events: [], welcomeBack: second });
       expect(store.welcomeBack()).toEqual(second);
+    });
+
+    it('passes on what a sync names as newly unlocked and what happened (ITM-04 AC3)', () => {
+      const unlocked: string[][] = [];
+      const happened: EventDto[][] = [];
+      sync.newlyUnlocked.subscribe((types) => unlocked.push(types));
+      sync.events.subscribe((events) => happened.push(events));
+
+      sync.syncNow();
+      http
+        .expectOne(SYNC)
+        .flush({ snapshot: mossy, events: [fulfilled], newlyUnlocked: ['tulip'] });
+      sync.syncNow();
+      http.expectOne(SYNC).flush({ snapshot: mossy, events: [] });
+
+      expect(unlocked).toEqual([['tulip']]);
+      expect(happened).toEqual([[fulfilled]]);
     });
   });
 

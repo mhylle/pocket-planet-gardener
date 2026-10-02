@@ -1,0 +1,102 @@
+/* In the middle of the planet view; only the reveal itself takes presses. */
+:host {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  pointer-events: none;
+}
+
+.reveal {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  max-width: 20rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid var(--accent);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+  text-align: center;
+  pointer-events: auto;
+  animation: fade 400ms ease-out;
+}
+
+.reveal.hop {
+  animation: hop 600ms ease-out;
+}
+
+p {
+  margin: 0;
+}
+
+/* The creature's words, in a bubble with a little tail. */
+.bubble {
+  position: relative;
+  padding: 0.5rem 0.75rem;
+  border-radius: 1rem;
+  background: var(--bg);
+  font-style: italic;
+}
+
+.bubble::after {
+  position: absolute;
+  bottom: -0.45rem;
+  left: 1.5rem;
+  border: 0.5rem solid transparent;
+  border-top-color: var(--bg);
+  border-bottom: 0;
+  content: '';
+}
+
+.lead {
+  color: var(--fg-muted);
+}
+
+.items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items li {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation-name: fade;
+  }
+}
+
+@keyframes hop {
+  0% {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.9);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(-0.6rem);
+  }
+  75% {
+    transform: translateY(0.15rem);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

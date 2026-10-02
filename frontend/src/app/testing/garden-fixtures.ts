@@ -1,6 +1,7 @@
 import { CatalogueDto } from '../core/models/catalogue';
 import { CreatureDto } from '../core/models/creature';
-import { PlanetSnapshotDto, PlantDto } from '../core/models/planet-snapshot';
+import { EventDto, PlanetSnapshotDto, PlantDto } from '../core/models/planet-snapshot';
+import { WantDto } from '../core/models/want';
 
 /** Test data shared by the gardening specs: a small catalogue and a planet to garden on. */
 
@@ -86,6 +87,21 @@ export const MOSSY: PlanetSnapshotDto = {
   creatures: [],
 };
 
+/** A want for clover by the pond, as Mira might put it. */
+export const CLOVER_WANT: WantDto = {
+  id: 'want-1',
+  type: 'plant-near',
+  text: 'Clover by the pond, if you please. It hums so nicely there.',
+  plainDescription: '3 clovers within 2 steps of the pond',
+  spec: {
+    type: 'plant-near',
+    plant: 'clover',
+    count: 3,
+    near: { kind: 'decoration', decoration: 'pond' },
+    withinSteps: 2,
+  },
+};
+
 /** A creature of the snapshot shape, with only what a spec cares about given. */
 export function creatureAt(
   id: string,
@@ -108,7 +124,45 @@ export function creatureAt(
     lon,
     arrivedAt: '2026-10-01T10:00:00.000Z',
     identitySource: 'ai',
+    want: null,
     ...extra,
+  };
+}
+
+/** The thank-you line in wantFulfilled(). */
+export const THANK_YOU = 'Oh, clover by the pond! You are a dear.';
+
+/** The event of the creature's want being fulfilled, with two tulip seeds as the reward. */
+export function wantFulfilled({ id, name, species, lat, lon }: CreatureDto): EventDto {
+  return {
+    type: 'want-fulfilled',
+    occurredAt: '2026-10-01T10:05:00.000Z',
+    payload: {
+      creatureId: id,
+      name,
+      species,
+      lat,
+      lon,
+      wantText: CLOVER_WANT.text,
+      thankYou: THANK_YOU,
+      reward: [{ itemType: 'tulip', kind: 'seed', count: 2 }],
+    },
+  };
+}
+
+/** The event of an overjoyed creature handing over a rock (CRT-04 AC2). */
+export function giftReceived({ id, name, species, lat, lon }: CreatureDto): EventDto {
+  return {
+    type: 'gift-received',
+    occurredAt: '2026-10-01T10:05:00.000Z',
+    payload: {
+      creatureId: id,
+      name,
+      species,
+      lat,
+      lon,
+      item: { itemType: 'rock', kind: 'decoration', count: 1 },
+    },
   };
 }
 

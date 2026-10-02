@@ -1,0 +1,22 @@
+@for (reveal of shown(); track reveal.id) {
+  <section
+    class="reveal"
+    role="dialog"
+    aria-labelledby="reward-reveal-lead reward-reveal-items"
+    [attr.aria-describedby]="reveal.thankYou ? 'reward-reveal-thanks' : null"
+    [class.hop]="!still"
+  >
+    @if (reveal.thankYou) {
+      <p id="reward-reveal-thanks" class="bubble">
+        <q>{{ reveal.thankYou }}</q>
+      </p>
+    }
+    <p id="reward-reveal-lead" class="lead">{{ reveal.lead }}</p>
+    <ul id="reward-reveal-items" class="items">
+      @for (item of reveal.items; track $index) {
+        <li>{{ item }}</li>
+      }
+    </ul>
+    <button #done type="button" (click)="dismiss()">Into my inventory</button>
+  </section>
+}

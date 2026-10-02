@@ -49,6 +49,8 @@
           <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
         }
       }
+      <!-- Last, so a reward shows over everything else on the planet. -->
+      <app-reward-reveal />
     </div>
   </section>
 } @else if (loadFailed()) {

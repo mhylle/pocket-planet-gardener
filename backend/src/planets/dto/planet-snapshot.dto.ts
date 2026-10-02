@@ -8,6 +8,7 @@ import type { IdentitySource } from '../../creatures/identity.types';
 import type { PlantStage } from '../../garden/plant.entity';
 import type { ItemKind } from '../../inventory/inventory-item.entity';
 import type { CloudState } from '../../simulation/cloud-rules';
+import type { WantSpec, WantType } from '../../wants/want-evaluator';
 import type { PlanetDto } from './planet.dto';
 
 /** A plant as the client draws it. */
@@ -56,6 +57,21 @@ export interface CreatureDto {
   // ISO timestamp.
   arrivedAt: string;
   identitySource: IdentitySource;
+  // Its active want, if any (WNT-01 AC2). Filled in by WantsModule's
+  // snapshot contributor.
+  want: WantDto | null;
+}
+
+/** A creature's active want, as its card shows it. */
+export interface WantDto {
+  id: string;
+  type: WantType;
+  // In the creature's own voice (WNT-01 AC3).
+  text: string;
+  // Such as "2 moonflowers within 3 steps of the lamp-post" (WNT-02 AC2).
+  plainDescription: string;
+  // The condition, e.g. for the dig-up warning (GRD-07 AC3).
+  spec: WantSpec;
 }
 
 /** One inventory stack; only stacks the planet still holds are served. */

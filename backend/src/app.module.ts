@@ -12,6 +12,7 @@ import { GardenModule } from './garden/garden.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { PlanetsModule } from './planets/planets.module';
 import { SimulationModule } from './simulation/simulation.module';
+import { WantsModule } from './wants/wants.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { SimulationModule } from './simulation/simulation.module';
     AdminModule,
     AiModule,
     CreaturesModule,
+    WantsModule,
   ],
 })
 export class AppModule {}

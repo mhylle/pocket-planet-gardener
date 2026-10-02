@@ -89,14 +89,14 @@ export interface WelcomeBack {
 export interface SyncResponse {
   snapshot: PlanetSnapshotDto;
   events: EventDto[];
+  /** Item types the player got for the first time, such as from a reward (ITM-04 AC3). */
+  newlyUnlocked?: string[];
   /** Only on a sync after the player was away long enough and something happened. */
   welcomeBack?: WelcomeBack;
 }
 
 /** The 200 response of every gameplay command. */
-export interface CommandResponse extends SyncResponse {
-  newlyUnlocked?: string[];
-}
+export type CommandResponse = SyncResponse;
 
 /** The 200 response of POST /api/garden/rain. */
 export interface RainResponse extends CommandResponse {

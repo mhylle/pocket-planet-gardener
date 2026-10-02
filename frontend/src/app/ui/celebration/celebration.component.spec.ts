@@ -94,6 +94,21 @@ describe('CelebrationComponent', () => {
     expect(celebrations()).toEqual([]);
   });
 
+  it('celebrates a first-time item a heartbeat brings, such as a reward (ITM-04 AC3)', () => {
+    render();
+
+    TestBed.inject(SyncService).syncNow();
+    http.expectOne('/api/planet/sync').flush({
+      snapshot: { ...MOSSY, unlocks: [...MOSSY.unlocks, 'tulip'] },
+      events: [],
+      newlyUnlocked: ['tulip'],
+    });
+    TestBed.tick();
+    fixture.detectChanges();
+
+    expect(texts()).toEqual(['New in your catalogue: Tulip']);
+  });
+
   it('cheers each creature that moves in once, but none that were there already (CRT-01 AC1)', () => {
     const store = TestBed.inject(PlanetStore);
     const sam = creatureAt('sam', 0, 0, { species: 'snail', name: 'Sam' });

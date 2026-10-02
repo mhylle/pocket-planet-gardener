@@ -1,3 +1,5 @@
+import { WantDto } from './want';
+
 /** The creature species of the first release (CRT-01). */
 export type Species = 'worm' | 'snail' | 'bee' | 'moth' | 'hedgehog' | 'frog';
 
@@ -25,4 +27,6 @@ export interface CreatureDto {
   /** ISO timestamp. */
   arrivedAt: string;
   identitySource: 'ai' | 'fallback';
+  /** Its one active want; null between wants (WNT-01). */
+  want: WantDto | null;
 }

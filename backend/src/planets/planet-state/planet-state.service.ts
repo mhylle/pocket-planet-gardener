@@ -26,8 +26,12 @@ import { toEventDto, toPlanetSnapshot } from './snapshot.mappers';
 
 const DRIFTED_AWAY = 'This planet has drifted away';
 
-/** What sync() returns, and POST /api/planet/sync answers with. */
-export type SyncResult = Pick<MutationResult, 'snapshot' | 'events'> & {
+/**
+ * What sync() returns, and POST /api/planet/sync answers with. Like a
+ * command it carries newlyUnlocked, for a reward that arrives during a
+ * heartbeat (ITM-04 AC3).
+ */
+export type SyncResult = MutationResult & {
   // Added by EventsModule's sync contributor for a returning player (TIM-03).
   welcomeBack?: WelcomeBackDto;
 };
@@ -104,7 +108,7 @@ export class PlanetStateService {
    */
   async sync(planetId: string, expectedVersion: number): Promise<SyncResult> {
     const contributed: object = {};
-    const { snapshot, events } = await this.run(planetId, expectedVersion, {
+    const result = await this.run(planetId, expectedVersion, {
       beforeSave: async (ctx) => {
         for (const contribute of this.syncContributors) {
           Object.assign(
@@ -116,7 +120,7 @@ export class PlanetStateService {
         ctx.planet.lastSeenAt = ctx.now;
       },
     });
-    return { snapshot, events, ...contributed };
+    return { ...result, ...contributed };
   }
 
   private run(

@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, Subject, Subscription } from 'rxjs';
 import { hasStatus } from '../helpers/error-message';
-import { CommandResponse, SyncResponse } from '../models/planet-snapshot';
+import { CommandResponse, EventDto, SyncResponse } from '../models/planet-snapshot';
 import { ApiService } from './api.service';
 import { GameConfigService } from './game-config.service';
 import { PlanetStore } from './planet-store.service';
@@ -51,9 +51,18 @@ export class SyncService {
   private retryDelay = FIRST_RETRY_MS;
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly unlocks = new Subject<string[]>();
+  private readonly happenings = new Subject<EventDto[]>();
 
-  /** The item types a command response named as the player's for the first time (ITM-04 AC3). */
+  /**
+   * The item types a command or sync response named as the player's for the first time
+   * (ITM-04 AC3).
+   */
   readonly newlyUnlocked = this.unlocks.asObservable();
+  /**
+   * What happened on the planet, as each command or sync response tells it, such as a want
+   * fulfilled. Sent straight after the response's snapshot is stored.
+   */
+  readonly events = this.happenings.asObservable();
 
   /**
    * Queues a command. Resolves once the server applied it. Rejects with the HttpErrorResponse
@@ -113,12 +122,9 @@ export class SyncService {
     this.dispatch(
       this.call<CommandResponse>(method, path, payload),
       (response) => {
-        this.store.setSnapshot(response.snapshot);
+        this.apply(response);
         this.queue.shift();
         this.countPending();
-        if (response.newlyUnlocked?.length) {
-          this.unlocks.next(response.newlyUnlocked);
-        }
         head.resolve(response);
       },
       (error) => {
@@ -143,7 +149,7 @@ export class SyncService {
     this.dispatch(
       this.api.post<SyncResponse>('/planet/sync', { expectedVersion: version }),
       (response) => {
-        this.store.setSnapshot(response.snapshot);
+        this.apply(response);
         if (response.welcomeBack) {
           this.store.setWelcomeBack(response.welcomeBack);
         }
@@ -151,6 +157,17 @@ export class SyncService {
       // A failed heartbeat has nothing to reject; offline and 409 are already recorded.
       () => undefined,
     );
+  }
+
+  /** Stores the response's snapshot, then passes on what it says is new. */
+  private apply(response: SyncResponse): void {
+    this.store.setSnapshot(response.snapshot);
+    if (response.newlyUnlocked?.length) {
+      this.unlocks.next(response.newlyUnlocked);
+    }
+    if (response.events.length) {
+      this.happenings.next(response.events);
+    }
   }
 
   /** Sends one request on the shared lane, records reachability and conflicts, then moves on. */

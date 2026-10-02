@@ -5,6 +5,7 @@ import { PlacementService } from '../../core/services/placement.service';
 import { PlanetService } from '../../core/services/planet.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
+import { RewardRevealService } from '../../core/services/reward-reveal.service';
 import { SyncService } from '../../core/services/sync.service';
 import { CloudDragController } from '../../scene/cloud-drag.controller';
 import { CreatureMeshService } from '../../scene/creature-mesh.service';
@@ -25,6 +26,7 @@ import { LoadingComponent } from '../loading/loading.component';
 import { PlacementHudComponent } from '../placement-hud/placement-hud.component';
 import { ReceiptToastComponent } from '../receipt-toast/receipt-toast.component';
 import { ReloadBannerComponent } from '../reload-banner/reload-banner.component';
+import { RewardRevealComponent } from '../reward-reveal/reward-reveal.component';
 import { SaveIndicatorComponent } from '../save-indicator/save-indicator.component';
 import { SettingsPanelComponent } from '../settings-panel/settings-panel.component';
 import { SkyListComponent } from '../sky-list/sky-list.component';
@@ -49,12 +51,19 @@ import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
     PlanetViewComponent,
     ReceiptToastComponent,
     ReloadBannerComponent,
+    RewardRevealComponent,
     SaveIndicatorComponent,
     SettingsPanelComponent,
     SkyListComponent,
     WelcomeBackComponent,
   ],
-  providers: [SCENE_PROVIDERS, PlacementService, ReceiptService, CelebrationService],
+  providers: [
+    SCENE_PROVIDERS,
+    PlacementService,
+    ReceiptService,
+    CelebrationService,
+    RewardRevealService,
+  ],
   templateUrl: './planet-page.component.html',
   styleUrl: './planet-page.component.scss',
 })
@@ -84,6 +93,7 @@ export class PlanetPageComponent {
     inject(CloudDragController);
     inject(SunDragController);
     inject(CelebrationService);
+    inject(RewardRevealService);
     // Syncs at once, then on the heartbeat. The cleanup also runs when the page closes, so the
     // heartbeat never outlives it.
     effect((onCleanup) => {

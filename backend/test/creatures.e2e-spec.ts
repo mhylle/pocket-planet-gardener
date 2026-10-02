@@ -181,14 +181,16 @@ describe('Creatures (e2e)', () => {
     await plantClovers();
     await placePond();
     await bloomAll();
-    ai.respondWith(JSON.stringify(SHELLY));
 
     // Syncs 20 s apart are live play; the condition holds from the first.
+    // The first also gives the worm its want (Phase 12).
     for (let seconds = 20; seconds <= 120; seconds += 20) {
       const early = await sync(at(seconds));
       expect(arrivals(early)).toEqual([]);
       expect(early.snapshot.creatures).toHaveLength(1);
     }
+    ai.reset();
+    ai.respondWith(JSON.stringify(SHELLY));
     const result = await sync(at(140));
 
     const snail = result.snapshot.creatures?.[1];
@@ -207,6 +209,8 @@ describe('Creatures (e2e)', () => {
       lon: expect.any(Number) as unknown,
       arrivedAt: at(140),
       identitySource: 'ai',
+      // Its first want comes at the next sync (Phase 12).
+      want: null,
     } satisfies Record<keyof CreatureDto, unknown>);
     // At home beside the pond that drew it, clear of the water.
     expect(stepsBetween(snail!, POND_SPOT)).toBeGreaterThanOrEqual(2);
@@ -288,7 +292,7 @@ describe('Creatures (e2e)', () => {
     expect(worm).toMatchObject({ species: 'worm', identitySource: 'fallback' });
     expect(WORM_NAMES).toContain(worm.name);
     const usage = await db.query<{ feature: string; used_fallback: boolean }[]>(
-      `SELECT "feature", "used_fallback" FROM "ai_usage" WHERE "planet_id" = $1`,
+      `SELECT "feature", "used_fallback" FROM "ai_usage" WHERE "planet_id" = $1 AND "feature" = 'identity'`,
       [planetId],
     );
     expect(usage).toEqual([{ feature: 'identity', used_fallback: true }]);
@@ -307,7 +311,14 @@ describe('Creatures (e2e)', () => {
 
     const after = await sync(at(30 * DAY));
 
-    expect(after.snapshot.creatures).toEqual(before);
+    // Wistful now, with the want it got meanwhile (Phase 12), but unchanged.
+    expect(after.snapshot.creatures).toEqual(
+      before?.map((creature) => ({
+        ...creature,
+        wistful: true,
+        want: expect.any(Object) as unknown,
+      })),
+    );
     expect(await db.getRepository(Creature).countBy({ planetId })).toBe(1);
   });
 
@@ -328,7 +339,12 @@ describe('Creatures (e2e)', () => {
 
     expect(arrivals(result)).toEqual([]);
     expect(result.snapshot.creatures).toHaveLength(8);
-    expect(ai.calls).toEqual([]);
+    // No identity was asked for; the residents' wants are Phase 12's.
+    const identities = await db.query<unknown[]>(
+      `SELECT 1 FROM "ai_usage" WHERE "planet_id" = $1 AND "feature" = 'identity'`,
+      [planetId],
+    );
+    expect(identities).toEqual([]);
   });
 
   it('removes the creatures with their planet (ACC-05)', async () => {

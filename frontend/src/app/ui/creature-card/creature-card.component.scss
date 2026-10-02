@@ -32,6 +32,31 @@ p {
   gap: 0.4rem;
 }
 
+/* The creature's words, with what it needs in plain words beneath. */
+.statuses .want {
+  align-items: flex-start;
+}
+
+.voice {
+  font-style: italic;
+}
+
+.plain,
+.note {
+  display: block;
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.actions button {
+  flex: 1;
+}
+
 /* A long story scrolls, so the card stays inside the view. */
 .more {
   display: grid;

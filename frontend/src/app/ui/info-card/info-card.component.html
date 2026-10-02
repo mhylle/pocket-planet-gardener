@@ -25,13 +25,19 @@
         }
       </ul>
     }
-    @if (card.pinned && !card.creature) {
+    @if (card.pinned && warning(); as question) {
+      <p class="warning" role="alert">{{ question }}</p>
+      <div class="actions">
+        <button type="button" (click)="confirmDigUp(card.id)">Confirm</button>
+        <button type="button" class="secondary" (click)="warning.set(null)">Keep it</button>
+      </div>
+    } @else if (card.pinned && !card.creature) {
       <div class="actions">
         @if (card.kind === 'plant') {
           @if (card.ready) {
             <button type="button" (click)="harvest(card.id)">Collect seeds</button>
           }
-          <button type="button" [class.secondary]="card.ready" (click)="digUp(card.id)">
+          <button type="button" [class.secondary]="card.ready" (click)="digUp(card.id, card.title)">
             Dig up
           </button>
         } @else {

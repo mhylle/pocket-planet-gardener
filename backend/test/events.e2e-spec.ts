@@ -146,6 +146,7 @@ describe('Event log and welcome-back summary (e2e)', () => {
 
       expect(Object.keys(result).sort()).toEqual([
         'events',
+        'newlyUnlocked',
         'snapshot',
         'welcomeBack',
       ]);

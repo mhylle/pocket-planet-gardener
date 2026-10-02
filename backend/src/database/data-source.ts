@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util';
 import { DataSource } from 'typeorm';
 import { AdminSetting } from '../admin/admin-setting.entity';
 import { AiUsage } from '../admin/ai-usage.entity';
+import { CreatureMemory } from '../creatures/creature-memory.entity';
 import { Creature } from '../creatures/creature.entity';
 import { PlanetEvent } from '../events/event.entity';
 import { Decoration } from '../garden/decoration.entity';
@@ -10,6 +11,7 @@ import { Plant } from '../garden/plant.entity';
 import { InventoryItem } from '../inventory/inventory-item.entity';
 import { Unlock } from '../inventory/unlock.entity';
 import { Planet } from '../planets/planet.entity';
+import { Want } from '../wants/want.entity';
 import { ChatSchema1790850718762 } from './migrations/1790850718762-ChatSchema';
 import { DropMessages1790859180028 } from './migrations/1790859180028-DropMessages';
 import { PlanetSchema1790860588377 } from './migrations/1790860588377-PlanetSchema';
@@ -17,6 +19,7 @@ import { GardenSchema1790877455866 } from './migrations/1790877455866-GardenSche
 import { EventsSchema1790939416415 } from './migrations/1790939416415-EventsSchema';
 import { AdminSchema1790944327657 } from './migrations/1790944327657-AdminSchema';
 import { CreaturesSchema1790949734700 } from './migrations/1790949734700-CreaturesSchema';
+import { WantsSchema1790956158609 } from './migrations/1790956158609-WantsSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -41,6 +44,7 @@ export const MIGRATIONS = [
   EventsSchema1790939416415,
   AdminSchema1790944327657,
   CreaturesSchema1790949734700,
+  WantsSchema1790956158609,
 ];
 
 export default new DataSource({
@@ -60,6 +64,8 @@ export default new DataSource({
     AdminSetting,
     AiUsage,
     Creature,
+    Want,
+    CreatureMemory,
   ],
   migrations: MIGRATIONS,
   synchronize: false,

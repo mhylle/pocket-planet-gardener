@@ -9,6 +9,8 @@ import {
   canPlaceAt,
 } from '../helpers/placement-rules';
 import { SurfacePoint } from '../helpers/surface-coords';
+import { dependsOn } from '../helpers/want-evaluator';
+import { CreatureDto } from '../models/creature';
 import { InventoryItemDto } from '../models/planet-snapshot';
 import { CatalogueService } from './catalogue.service';
 import { PlanetStore } from './planet-store.service';
@@ -166,6 +168,21 @@ export class PlacementService {
     if (finished) {
       this.selection.set(null);
     }
+  }
+
+  /**
+   * The creatures whose active want needs the plant, so they would notice it going (GRD-07
+   * AC3); none when it is not on the planet.
+   */
+  noticedBy(plantId: string): CreatureDto[] {
+    const snapshot = this.store.snapshot();
+    const plant = snapshot?.plants.find(({ id }) => id === plantId);
+    if (!snapshot || !plant) {
+      return [];
+    }
+    return snapshot.creatures.filter(({ want, lat, lon }) =>
+      want ? dependsOn(want.spec, plant, snapshot, { lat, lon }) : false,
+    );
   }
 
   /** Digs up a plant; a seed or sprout comes back to the inventory (GRD-07 AC1). */

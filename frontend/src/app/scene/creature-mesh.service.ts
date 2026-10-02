@@ -1,4 +1,5 @@
 import { DestroyRef, Injectable, effect, inject, untracked } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as THREE from 'three';
 import { along, wanderStep } from '../core/helpers/creature-wander';
 import { prefersReducedMotion } from '../core/helpers/reduced-motion';
@@ -6,13 +7,17 @@ import { lightAt } from '../core/helpers/sun-model';
 import { STEP_ARC, SurfacePoint, stepsBetween, toVector } from '../core/helpers/surface-coords';
 import { CreatureDto } from '../core/models/creature';
 import { PlanetSnapshotDto } from '../core/models/planet-snapshot';
+import { WantFulfilledPayload } from '../core/models/want';
 import { PlanetStore } from '../core/services/planet-store.service';
+import { SyncService } from '../core/services/sync.service';
 import { FLYING_SPECIES, creatureModel, napTexture } from './creature-models';
+import { sparkleModel } from './garden-models';
 import { spinOf, standOn } from './low-poly';
 import { PickingService } from './picking.service';
 import { planetRadius } from './planet-mesh.service';
 import { SceneService } from './scene.service';
 import { CLOUD_HEIGHT, SkyService } from './sky.service';
+import { SPARKLE_COLOUR } from './sparkles';
 
 /** How often the creatures move on: often enough to look alive, far less than every frame. */
 export const CREATURE_TICK_MS = 125;
@@ -35,6 +40,20 @@ const BOUNCE_STEPS = 0.5;
 /** A napping creature lies lower and a little wider, under a "z" this many steps tall. */
 const NAP_SQUASH = new THREE.Vector3(1.12, 0.65, 1.12);
 const NAP_SIZE = 0.5;
+/** How long a creature's happy reaction to a fulfilled want takes, in seconds (CRT-04 AC1). */
+export const CHEER_SECONDS = 1.2;
+/** How high each of its two little hops goes, in steps. */
+const HOP_STEPS = 0.35;
+/** How far its sparkles rise, in steps; with reduced motion they stand still. */
+const SPARKLE_RISE_STEPS = 0.5;
+/** Where each sparkle sits over the top of the creature, in steps. */
+const SPARKLE_SPOTS: [number, number, number][] = [
+  [0.3, 0.1, 0],
+  [-0.25, 0.25, 0.1],
+  [0.05, 0.4, -0.2],
+];
+/** The warm glow it brightens with instead of hopping when motion is reduced. */
+const GLOW = new THREE.Color('#ffd76a');
 
 const UP = new THREE.Vector3(0, 1, 0);
 const AWAKE = new THREE.Vector3(1, 1, 1);
@@ -54,6 +73,10 @@ export interface DrawnCreature {
   readonly asleep: boolean;
   /** How it is moving in, and for how long so far in seconds; null once it is down. */
   readonly arrival: { readonly kind: 'drop' | 'fade'; readonly elapsed: number } | null;
+  /** The sparkles over it, in the group only while it cheers. */
+  readonly sparkles: THREE.Group;
+  /** How it cheers a fulfilled want, and for how long so far in seconds; null otherwise. */
+  readonly cheer: { readonly kind: 'hop' | 'glow'; readonly elapsed: number } | null;
 }
 
 interface Creature extends DrawnCreature {
@@ -61,6 +84,7 @@ interface Creature extends DrawnCreature {
   point: SurfacePoint;
   asleep: boolean;
   arrival: { kind: 'drop' | 'fade'; elapsed: number } | null;
+  cheer: { kind: 'hop' | 'glow'; elapsed: number } | null;
   flies: boolean;
   /** Radians about its up axis; 0 faces the way standOn() turns 0 to. */
   heading: number;
@@ -92,7 +116,9 @@ export function dropLift(t: number): number {
  * as they go), and on the night side it naps, lower and under a little "z". A creature that
  * was not in the previous snapshot of the planet moves in: it drops from the sky with a little
  * bounce, or fades in when motion is reduced, and with reduced motion nothing wanders either
- * (SET-03). The creatures there when the planet opens are simply there.
+ * (SET-03). The creatures there when the planet opens are simply there. A creature whose want
+ * is fulfilled cheers (CRT-04 AC1): two little hops under rising sparkles, or with reduced
+ * motion a warm glow that fades under sparkles that stand still.
  */
 @Injectable()
 export class CreatureMeshService {
@@ -111,6 +137,8 @@ export class CreatureMeshService {
     transparent: true,
     depthWrite: false,
   });
+  private readonly sparkleGeometry = sparkleModel();
+  private readonly sparkleMaterial = new THREE.MeshBasicMaterial({ color: SPARKLE_COLOUR });
   private readonly drawn = new Map<string, Creature>();
   private planetId: string | null = null;
   private radius = planetRadius(1);
@@ -128,7 +156,16 @@ export class CreatureMeshService {
       clearInterval(timer);
       this.napMaterial.map?.dispose();
     });
-    this.scene.onFrame((dt) => this.arrive(dt));
+    this.scene.onFrame((dt) => this.animate(dt));
+    inject(SyncService)
+      .events.pipe(takeUntilDestroyed())
+      .subscribe((events) => {
+        for (const { type, payload } of events) {
+          if (type === 'want-fulfilled') {
+            this.cheer((payload as unknown as WantFulfilledPayload).creatureId);
+          }
+        }
+      });
   }
 
   /** Every creature as drawn now, in the snapshot's order. */
@@ -138,6 +175,21 @@ export class CreatureMeshService {
 
   creature(id: string): DrawnCreature | undefined {
     return this.drawn.get(id);
+  }
+
+  /** Starts the creature's happy reaction to a fulfilled want (CRT-04 AC1). */
+  cheer(id: string): void {
+    const creature = this.drawn.get(id);
+    if (!creature) {
+      return;
+    }
+    const kind = this.reducedMotion ? 'glow' : 'hop';
+    creature.cheer = { kind, elapsed: 0 };
+    if (kind === 'glow') {
+      creature.body.material.emissive.copy(GLOW);
+    }
+    this.pose(creature);
+    this.scene.requestRender();
   }
 
   /**
@@ -196,6 +248,13 @@ export class CreatureMeshService {
     nap.name = 'nap';
     nap.scale.setScalar(NAP_SIZE);
     nap.position.set(0.15, geometry.boundingBox!.max.y + NAP_SIZE * 0.6, 0);
+    const sparkles = new THREE.Group();
+    sparkles.name = 'sparkles';
+    for (const [x, y, z] of SPARKLE_SPOTS) {
+      const sparkle = new THREE.Mesh(this.sparkleGeometry, this.sparkleMaterial);
+      sparkle.position.set(x, geometry.boundingBox!.max.y + y, z);
+      sparkles.add(sparkle);
+    }
     const group = new THREE.Group();
     group.name = id;
     group.add(body);
@@ -212,10 +271,12 @@ export class CreatureMeshService {
       group,
       body,
       nap,
+      sparkles,
       home,
       point: home,
       asleep: false,
       arrival: arriving ? { kind, elapsed: 0 } : null,
+      cheer: null,
       flies: FLYING_SPECIES.has(species),
       heading: spinOf(id),
       walk: null,
@@ -271,8 +332,18 @@ export class CreatureMeshService {
     return true;
   }
 
-  /** Moves the arriving creatures on, every frame until each is down. */
-  private arrive(dt: number): void {
+  /** Moves the arriving and cheering creatures on, every frame until each is done. */
+  private animate(dt: number): void {
+    const arriving = this.arrive(dt);
+    const cheering = this.cheerOn(dt);
+    if (arriving || cheering) {
+      // Keeps drawing while anyone moves in or cheers; the loop rests once all are done.
+      this.scene.requestRender();
+    }
+  }
+
+  /** Moves the arriving creatures on; true while any is still on its way. */
+  private arrive(dt: number): boolean {
     let arriving = false;
     for (const creature of this.drawn.values()) {
       const arrival = creature.arrival;
@@ -291,19 +362,48 @@ export class CreatureMeshService {
       }
       this.pose(creature);
     }
-    if (arriving) {
-      // Keeps drawing while anyone moves in; the loop rests once all are down.
-      this.scene.requestRender();
-    }
+    return arriving;
   }
 
-  /** Stands the creature where it is now, napping, hovering or on its way down. */
+  /** Moves the cheering creatures on; true while any is still cheering. */
+  private cheerOn(dt: number): boolean {
+    let cheering = false;
+    for (const creature of this.drawn.values()) {
+      const cheer = creature.cheer;
+      if (!cheer) {
+        continue;
+      }
+      cheering = true;
+      cheer.elapsed += dt;
+      const glow = creature.body.material.emissive;
+      if (cheer.elapsed >= CHEER_SECONDS) {
+        creature.cheer = null;
+        glow.setRGB(0, 0, 0);
+      } else if (cheer.kind === 'glow') {
+        glow.copy(GLOW).multiplyScalar(1 - cheer.elapsed / CHEER_SECONDS);
+      }
+      this.pose(creature);
+    }
+    return cheering;
+  }
+
+  /** Stands the creature where it is now, napping, hovering, cheering or on its way down. */
   private pose(creature: Creature): void {
-    const { arrival, asleep, flies } = creature;
+    const { arrival, asleep, flies, cheer } = creature;
     let lift = arrival?.kind === 'drop' ? dropLift(arrival.elapsed / ARRIVAL_SECONDS) : 0;
     if (flies && !asleep) {
       const bob = this.reducedMotion ? 0 : Math.sin((this.seconds / BOB_SECONDS) * 2 * Math.PI);
       lift += HOVER_STEPS + BOB_STEPS * bob;
+    }
+    if (cheer) {
+      const t = cheer.elapsed / CHEER_SECONDS;
+      // Two hops, each a little arc.
+      const hop = (t * 2) % 1;
+      lift += cheer.kind === 'hop' ? HOP_STEPS * 4 * hop * (1 - hop) : 0;
+      creature.sparkles.position.y = cheer.kind === 'hop' ? SPARKLE_RISE_STEPS * t : 0;
+      creature.group.add(creature.sparkles);
+    } else {
+      creature.sparkles.removeFromParent();
     }
     standOn(creature.point, this.radius, creature.heading)
       .multiply(new THREE.Matrix4().makeTranslation(0, lift, 0))

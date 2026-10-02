@@ -76,6 +76,25 @@ describe('ReceiptService', () => {
     expect(texts()).toEqual([]);
   });
 
+  it('keeps receipts back while held and shows them once released (WNT-04 AC1)', () => {
+    receipts.hold();
+    owning([{ itemType: 'clover', kind: 'seed', count: 4 }]);
+    owning([
+      { itemType: 'clover', kind: 'seed', count: 4 },
+      { itemType: 'tulip', kind: 'seed', count: 2 },
+    ]);
+    expect(texts()).toEqual([]);
+
+    receipts.release();
+    expect(texts()).toEqual(['+1 Clover seed', '+2 Tulip seeds']);
+
+    owning([
+      { itemType: 'clover', kind: 'seed', count: 5 },
+      { itemType: 'tulip', kind: 'seed', count: 2 },
+    ]);
+    expect(texts()).toEqual(['+1 Clover seed', '+2 Tulip seeds', '+1 Clover seed']);
+  });
+
   it('lets each receipt go after its time', () => {
     owning([{ itemType: 'clover', kind: 'seed', count: 4 }]);
     vi.advanceTimersByTime(RECEIPT_MS / 2);

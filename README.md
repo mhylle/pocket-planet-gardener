@@ -85,7 +85,7 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/planet`                          |        | Create a planet from `{ name }`; 201 with its snapshot           |
 | GET    | `/api/planet`                          | yes    | The planet's snapshot, see below                                 |
 | PATCH  | `/api/planet/name`                     | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
-| POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events }`, on return also `welcomeBack` |
+| POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events, newlyUnlocked }`, on return also `welcomeBack` |
 | GET    | `/api/planet/by-code/:code`            |        | `{ id }` of the planet with that code (any case); 404 if none    |
 | DELETE | `/api/planet`                          | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
 | POST   | `/api/garden/plants`                   | yes    | Plant a seed from `{ itemType, lat, lon }`; 201                  |
@@ -97,6 +97,7 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/garden/rain`                     | yes    | Rain from `{ cloudId, lat, lon, seconds }`; adds `cloudEmpty`    |
 | POST   | `/api/garden/clouds/:id/position`      | yes    | Put a cloud down at `{ lat, lon }`; 200                          |
 | POST   | `/api/garden/sun`                      | yes    | Hold the sun over `{ angle }`, 0 up to 360; 200                  |
+| POST   | `/api/wants/:id/maybe-later`           | yes    | Put a creature's active want off; 200, mood unchanged            |
 | GET    | `/api/admin/settings`                  |        | `{ aiEnabled, aiDailyBudget, aiRequestsToday }`                  |
 | PATCH  | `/api/admin/settings`                  |        | Change `{ aiEnabled?, aiDailyBudget? }` (an integer ≥ 0); 200 with the same shape |
 
@@ -191,8 +192,43 @@ the gateway, or from `content/fallback-identities.ts` when that fails, and
 starts `content`. The arrival is a `creature-arrived` event
 (`{ creatureId, species, name, lat, lon, milestone: true }`). The snapshot's
 `creatures` are `{ id, species, name, summary, traits, quirk, speakingStyle,
-backstory, mood, wistful, lat, lon, arrivedAt, identitySource }` each, oldest
-first. Nothing removes a creature except deleting its planet.
+backstory, mood, wistful, lat, lon, arrivedAt, identitySource, want }` each,
+oldest first. Nothing removes a creature except deleting its planet.
+
+Creatures ask for things (`wants/`). `want` is the creature's active want,
+`{ id, type, text, plainDescription, spec }`, or `null`: `text` in the
+creature's own voice, `plainDescription` such as `2 clovers in bloom`, and
+`spec` the condition (`wants/want-evaluator.ts`). After every sync and
+command, in this order:
+
+- An active want whose condition holds is fulfilled: the creature's mood goes
+  up one level (`content`, `cheerful`, `overjoyed`, no higher), it remembers
+  the wish (`creature_memories`), the planet gets a reward of one or two item
+  types straight into the inventory, and a `want-fulfilled` event
+  (`{ creatureId, name, species, lat, lon, wantText, thankYou, reward }`)
+  carries a scripted thank-you line from `content/thank-you-lines.ts`. Every
+  `GAME_UNLOCK_EVERY_N_REWARDS`-th (3rd) reward holds an item the planet has
+  never had while any is left; the others are seeds of unlocked plants, now
+  and then an unlocked decoration.
+- A creature is `wistful` while its species' arrival condition no longer
+  holds, for example after its pond was put away.
+- One creature without a want gets a new one from the model through the
+  gateway, or from `content/fallback-wants.ts`: one that never had a want at
+  once, otherwise `GAME_WANT_COOLDOWN_MINUTES` (60) after its last want was
+  fulfilled or put off. At most one want is made per sync or command, and
+  none in the one that brought a creature, so the next sync gives it.
+  The planet's first want can be met with the seeds it holds; a wistful
+  creature asks for its missing decoration, or a plant type of which none is
+  left, back.
+
+Wants never expire. `maybe-later` puts the active want off without changing
+the mood and starts the cooldown again; a want that is not this planet's
+active one is a 400 with `reason` `not-waiting`. A creature that has been
+`overjoyed` for `GAME_OVERJOYED_GIFT_HOURS` (24) gives one gift of an unlocked
+item, a `gift-received` event (`{ creatureId, name, species, lat, lon, item }`)
+dated when it was due, and is `cheerful` again. A reward or gift that brings
+a type the planet has never had unlocks it and lists it in `newlyUnlocked`,
+in a sync's answer as in a command's.
 
 Every AI feature goes through `AiGatewayService.generate()` in `ai/`, never
 straight to `AiService`. It uses the feature's pre-written fallback instead
@@ -275,6 +311,9 @@ backend/src
 ├── creatures/               CreaturesService (arrivals after every sync and command,
 │                            creatures in the snapshot), IdentityService, and pure
 │                            rules: arrival conditions, home spot
+├── wants/                   WantsService (fulfilment, mood, gifts, new wants after every
+│                            sync and command; maybe-later), WantGenerationService,
+│                            RewardService, and pure rules: want evaluator, mood, rewards
 ├── admin/                   GET/PATCH /api/admin/settings: AdminSettingsService
 │                            (AI switch, daily budget) and AiUsageService (ai_usage log)
 └── ai/

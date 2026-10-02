@@ -277,6 +277,7 @@ describe('CreaturesService', () => {
           lon: 0,
           arrivedAt: T0.toISOString(),
           identitySource: 'ai',
+          want: null,
         },
       ],
     });

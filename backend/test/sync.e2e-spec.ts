@@ -54,7 +54,11 @@ describe('POST /api/planet/sync (e2e)', () => {
     const res = await sync({ expectedVersion: 1 }).expect(200);
     const result = res.body as SyncResult;
 
-    expect(Object.keys(result).sort()).toEqual(['events', 'snapshot']);
+    expect(Object.keys(result).sort()).toEqual([
+      'events',
+      'newlyUnlocked',
+      'snapshot',
+    ]);
     expect(result.snapshot).toMatchObject({
       id: planetId,
       name: 'Moonbeam',
