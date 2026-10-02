@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(var(--sky-top), var(--sky-bottom));
+  cursor: grab;
+  /* The browser must not pan or zoom the page while a finger turns the planet. */
+  touch-action: none;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+/* Drawn inside the canvas, where the edge of the page cannot clip it. */
+canvas:focus-visible {
+  outline-offset: -6px;
+}

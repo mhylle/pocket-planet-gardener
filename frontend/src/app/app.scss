@@ -3,3 +3,11 @@
   margin: 0 auto;
   padding: 1rem;
 }
+
+/* The planet screen fills the window, so the 3D view gets all the room there is. */
+.shell.planet {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  height: 100dvh;
+}

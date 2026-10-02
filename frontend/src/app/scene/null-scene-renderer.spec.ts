@@ -14,7 +14,7 @@ describe('NullSceneRenderer', () => {
     expect(() => {
       renderer.attach(document.createElement('canvas'));
       renderer.resize(800, 600);
-      renderer.render();
+      renderer.render(new THREE.Scene(), new THREE.PerspectiveCamera());
       renderer.dispose();
     }).not.toThrow();
   });

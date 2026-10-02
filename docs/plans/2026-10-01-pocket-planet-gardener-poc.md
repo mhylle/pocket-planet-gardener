@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–3 implemented and validated 1 Oct 2026 (see section 9). Next: Phase 4. |
+| **Progress** | Phases 1–4 implemented and validated (see section 9). Next: Phase 5. |
 
 ---
 
@@ -507,6 +507,17 @@ Carried into later phases:
 - Rename still bypasses `mutate()`/`SyncService` and does not bump the version.
 - Sync events are discarded by the frontend until Phase 9 consumes them.
 - e2e probe controllers reach `PlanetStateService` through `ModuleRef` (AppModule does not re-export PlanetsModule).
+
+### Phase 4 — done (2 Oct 2026)
+
+All tasks 4.1–4.5 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 293/293, e2e 58/58; frontend `tsc` 0, tests 247/247, build 0 (737 kB initial including three.js, under the 1.5 MB warning). Live Playwright: low-poly planet renders with WebGL; drag, wheel and arrow keys each change the view; Pip's loading screen goes once the planet is ready. **Not run:** backend `npm run build`.
+
+Notes:
+- `surface-coords.ts` and its fixtures are byte-identical in `backend/src/simulation/` and `frontend/src/app/core/helpers/`; a backend spec fails on drift — edit both together. Convention: degrees, y up, lon 0 faces +z, `STEP_ARC` = 5°.
+- Rendering is on demand (dirty flag); later animated features must call `requestRender()` or keep the scene dirty while animating.
+- Pickable objects register with `PickingService.register(object3d, { kind, id })`; meshes for plants, decorations, creatures, clouds and sun must do so.
+- `CameraControlsService` reads `prefers-reduced-motion` once; Phase 16 replaces that with `MotionPreferenceService`.
+- The session restarted mid-phase; both dev servers were restarted by the orchestrator (backend `start:dev`, frontend `npm start`).
 
 ---
 

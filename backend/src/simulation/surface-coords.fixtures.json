@@ -1,0 +1,205 @@
+{
+  "points": [
+    {
+      "name": "lat 0, lon 0 faces +z",
+      "point": { "lat": 0, "lon": 0 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": 0, "y": 0, "z": 1 },
+        "point": { "lat": 0, "lon": 0 }
+      }
+    },
+    {
+      "name": "lon 90 faces +x",
+      "point": { "lat": 0, "lon": 90 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": 1, "y": 0, "z": 0 },
+        "point": { "lat": 0, "lon": 90 }
+      }
+    },
+    {
+      "name": "lon -90 faces -x",
+      "point": { "lat": 0, "lon": -90 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": -1, "y": 0, "z": 0 },
+        "point": { "lat": 0, "lon": -90 }
+      }
+    },
+    {
+      "name": "lon 180 faces -z",
+      "point": { "lat": 0, "lon": 180 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": 0, "y": 0, "z": -1 },
+        "point": { "lat": 0, "lon": 180 }
+      }
+    },
+    {
+      "name": "lat 90 (north pole) is +y",
+      "point": { "lat": 90, "lon": 0 },
+      "radius": 2,
+      "expect": {
+        "vector": { "x": 0, "y": 2, "z": 0 },
+        "point": { "lat": 90 }
+      }
+    },
+    {
+      "name": "the north pole ignores longitude",
+      "point": { "lat": 90, "lon": 135 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": 0, "y": 1, "z": 0 },
+        "point": { "lat": 90 }
+      }
+    },
+    {
+      "name": "lat -90 (south pole) is -y",
+      "point": { "lat": -90, "lon": -45 },
+      "radius": 1.5,
+      "expect": {
+        "vector": { "x": 0, "y": -1.5, "z": 0 },
+        "point": { "lat": -90 }
+      }
+    },
+    {
+      "name": "lon -180 comes back as 180",
+      "point": { "lat": 10, "lon": -180 },
+      "radius": 2,
+      "expect": {
+        "vector": { "x": 0, "y": 0.34729635533386066, "z": -1.969615506024416 },
+        "point": { "lat": 10, "lon": 180 }
+      }
+    },
+    {
+      "name": "lon 180 stays 180",
+      "point": { "lat": 10, "lon": 180 },
+      "radius": 2,
+      "expect": {
+        "vector": { "x": 0, "y": 0.34729635533386066, "z": -1.969615506024416 },
+        "point": { "lat": 10, "lon": 180 }
+      }
+    },
+    {
+      "name": "just west of the antimeridian",
+      "point": { "lat": -20, "lon": -179.5 },
+      "radius": 1,
+      "expect": {
+        "vector": {
+          "x": -0.008200261012848266,
+          "y": -0.3420201433256687,
+          "z": -0.939656840170288
+        },
+        "point": { "lat": -20, "lon": -179.5 }
+      }
+    },
+    {
+      "name": "45 north, 45 east",
+      "point": { "lat": 45, "lon": 45 },
+      "radius": 2,
+      "expect": {
+        "vector": { "x": 1, "y": 1.4142135623730951, "z": 1 },
+        "point": { "lat": 45, "lon": 45 }
+      }
+    },
+    {
+      "name": "30 north, 60 west",
+      "point": { "lat": 30, "lon": -60 },
+      "radius": 1,
+      "expect": {
+        "vector": { "x": -0.75, "y": 0.5, "z": 0.4330127018922193 },
+        "point": { "lat": 30, "lon": -60 }
+      }
+    },
+    {
+      "name": "60 south, 120 east",
+      "point": { "lat": -60, "lon": 120 },
+      "radius": 3,
+      "expect": {
+        "vector": { "x": 1.299038105676658, "y": -2.598076211353316, "z": -0.75 },
+        "point": { "lat": -60, "lon": 120 }
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "name": "the same point",
+      "a": { "lat": 12, "lon": 34 },
+      "b": { "lat": 12, "lon": 34 },
+      "expect": { "radians": 0, "steps": 0 }
+    },
+    {
+      "name": "one step north from lat 0, lon 0",
+      "a": { "lat": 0, "lon": 0 },
+      "b": { "lat": 5, "lon": 0 },
+      "expect": { "radians": 0.08726646259971647, "steps": 1 }
+    },
+    {
+      "name": "one step along the equator",
+      "a": { "lat": 0, "lon": 100 },
+      "b": { "lat": 0, "lon": 105 },
+      "expect": { "radians": 0.08726646259971647, "steps": 1 }
+    },
+    {
+      "name": "one step across the antimeridian",
+      "a": { "lat": 0, "lon": 177.5 },
+      "b": { "lat": 0, "lon": -177.5 },
+      "expect": { "radians": 0.08726646259971647, "steps": 1 }
+    },
+    {
+      "name": "a quarter turn along the equator",
+      "a": { "lat": 0, "lon": 0 },
+      "b": { "lat": 0, "lon": 90 },
+      "expect": { "radians": 1.5707963267948966, "steps": 18 }
+    },
+    {
+      "name": "the north pole to the equator",
+      "a": { "lat": 90, "lon": 0 },
+      "b": { "lat": 0, "lon": 123 },
+      "expect": { "radians": 1.5707963267948966, "steps": 18 }
+    },
+    {
+      "name": "the north pole at two longitudes is one point",
+      "a": { "lat": 90, "lon": 0 },
+      "b": { "lat": 90, "lon": 120 },
+      "expect": { "radians": 0, "steps": 0 }
+    },
+    {
+      "name": "45 north, 90 degrees of longitude apart",
+      "a": { "lat": 45, "lon": 0 },
+      "b": { "lat": 45, "lon": 90 },
+      "expect": { "radians": 1.0471975511965976, "steps": 12 }
+    },
+    {
+      "name": "antipodes on the equator",
+      "a": { "lat": 0, "lon": 0 },
+      "b": { "lat": 0, "lon": 180 },
+      "expect": { "radians": 3.141592653589793, "steps": 36 }
+    },
+    {
+      "name": "antipodes through the poles",
+      "a": { "lat": 90, "lon": 0 },
+      "b": { "lat": -90, "lon": 0 },
+      "expect": { "radians": 3.141592653589793, "steps": 36 }
+    },
+    {
+      "name": "antipodes off the axes",
+      "a": { "lat": 30, "lon": 45 },
+      "b": { "lat": -30, "lon": -135 },
+      "expect": { "radians": 3.141592653589793, "steps": 36 }
+    },
+    {
+      "name": "a millionth of a degree apart",
+      "a": { "lat": 0, "lon": 0 },
+      "b": { "lat": 0, "lon": 0.000001 },
+      "expect": { "radians": 1.7453292519943295e-8, "steps": 2e-7 }
+    },
+    {
+      "name": "a millionth of a degree short of opposite",
+      "a": { "lat": 0, "lon": 0 },
+      "b": { "lat": 0, "lon": 179.999999 },
+      "expect": { "radians": 3.1415926361365005, "steps": 35.9999998 }
+    }
+  ]
+}

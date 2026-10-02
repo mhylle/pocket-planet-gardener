@@ -6,6 +6,8 @@ import { PlanetIdentityService } from '../../core/services/planet-identity.servi
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SyncService } from '../../core/services/sync.service';
 import { ViewStateService } from '../../core/services/view-state.service';
+import { NullSceneRenderer } from '../../scene/null-scene-renderer';
+import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { PlanetPageComponent } from './planet-page.component';
 
 const mossy: PlanetSnapshotDto = {
@@ -35,7 +37,11 @@ describe('PlanetPageComponent', () => {
     localStorage.clear();
     TestBed.configureTestingModule({
       imports: [PlanetPageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
+      ],
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PlanetIdentityService).set(mossy.id);
@@ -60,6 +66,8 @@ describe('PlanetPageComponent', () => {
   }
 
   const heading = () => page.querySelector('h2')?.textContent?.trim();
+  const pip = () => page.querySelector('app-loading');
+  const canvas = () => page.querySelector('app-planet-view canvas');
   const failWith = (status: number) =>
     http.expectOne('/api/planet').flush({ statusCode: status }, { status, statusText: 'Error' });
 
@@ -70,16 +78,31 @@ describe('PlanetPageComponent', () => {
     await fixture.whenStable();
 
     expect(heading()).toBe('Mossy');
+    expect(canvas()).not.toBeNull();
   });
 
-  it('loads the stored planet, showing a calm line while it waits', async () => {
+  it('shows Pip while the planet loads and until it is first drawn (NFR-03)', async () => {
+    vi.useFakeTimers();
     render();
 
-    expect(page.querySelector('[role="status"]')?.textContent).toContain('Opening your planet');
+    expect(pip()?.querySelector('[role="status"]')?.textContent).toContain(
+      'Pip is fetching your planet',
+    );
+    expect(canvas()).toBeNull();
+
     http.expectOne({ method: 'GET', url: '/api/planet' }).flush(mossy);
-    await settle();
+    await vi.advanceTimersByTimeAsync(0);
+    fixture.detectChanges();
 
     expect(heading()).toBe('Mossy');
+    expect(canvas()).not.toBeNull();
+    expect(pip()).not.toBeNull();
+
+    await vi.advanceTimersByTimeAsync(50);
+    fixture.detectChanges();
+
+    expect(pip()).toBeNull();
+    expect(canvas()).not.toBeNull();
   });
 
   it('returns to create-planet when the planet has drifted away', async () => {

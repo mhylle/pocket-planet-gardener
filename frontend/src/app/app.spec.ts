@@ -5,6 +5,8 @@ import { App } from './app';
 import { PlanetSnapshotDto } from './core/models/planet-snapshot';
 import { DRIFTED_AWAY_NOTICE } from './core/services/planet.service';
 import { ViewStateService } from './core/services/view-state.service';
+import { NullSceneRenderer } from './scene/null-scene-renderer';
+import { SCENE_RENDERER } from './scene/scene-renderer';
 
 const mossy: PlanetSnapshotDto = {
   id: '6f1c2d3e-0000-4000-8000-000000000001',
@@ -31,7 +33,11 @@ describe('App', () => {
     localStorage.clear();
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
   });

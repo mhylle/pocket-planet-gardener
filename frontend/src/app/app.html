@@ -1,4 +1,4 @@
-<main class="shell">
+<main class="shell" [class.planet]="view() === 'planet'">
   <h1>Pocket Planet Gardener</h1>
   @switch (view()) {
     @case ('create-planet') {

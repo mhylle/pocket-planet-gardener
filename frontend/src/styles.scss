@@ -9,6 +9,12 @@
   --border: #d3dae3;
   --accent: #0b5cad;
   --danger-fg: #8a1c1c;
+
+  /* The sky behind the planet, top to bottom, and Pip the cloud. */
+  --sky-top: #bfe2fb;
+  --sky-bottom: #fdf2df;
+  --cloud: #ffffff;
+  --cloud-shadow: rgb(70 110 150 / 22%);
 }
 
 * {

@@ -14,10 +14,15 @@
         Settings
       </button>
     </div>
-    @if (settingsOpen()) {
-      <app-settings-panel id="settings-panel" [planet]="planet" />
-    }
-    <div class="placeholder">Your little world will appear here soon.</div>
+    <div class="stage">
+      <app-planet-view [name]="planet.name" [radiusLevel]="planet.radiusLevel" />
+      @if (!sceneReady()) {
+        <app-loading />
+      }
+      @if (settingsOpen()) {
+        <app-settings-panel id="settings-panel" [planet]="planet" />
+      }
+    </div>
   </section>
 } @else if (loadFailed()) {
   <div class="status" role="alert">
@@ -25,5 +30,5 @@
     <button type="button" (click)="load()">Try again</button>
   </div>
 } @else {
-  <p class="status" role="status">Opening your planet…</p>
+  <app-loading class="opening" />
 }
