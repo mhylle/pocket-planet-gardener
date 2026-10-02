@@ -96,6 +96,28 @@ describe('checkText', () => {
         ),
       ).toEqual([]);
     });
+
+    // Sensitive terms match exactly: letter repeats once turned "good" into "god".
+    it.each([
+      'good',
+      'Goods for the market.',
+      'Very good indeed!',
+      'Good morning, gardener!',
+      'Goodnight, little planet.',
+      'Oh, my goodness.',
+      'A sleepy bear by the pool.',
+      'The bee buzzed in a loop around the roof.',
+      'What a wee little seed.',
+      'The moth looked at the moon and the noon sun.',
+    ])('passes the everyday text %j', (text) => {
+      expect(checkText(text)).toEqual([]);
+    });
+
+    it('still flags a listed term spelled exactly', () => {
+      expect(checkText('Do you believe in a god of rain?')).toEqual([
+        'sensitive-topic',
+      ]);
+    });
   });
 
   describe('url-or-email', () => {

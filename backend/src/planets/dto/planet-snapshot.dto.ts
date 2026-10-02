@@ -1,4 +1,10 @@
-import type { DecorationId, PlantId } from '../../content/content.types';
+import type {
+  DecorationId,
+  PlantId,
+  SpeciesId,
+} from '../../content/content.types';
+import type { CreatureMood } from '../../creatures/creature.entity';
+import type { IdentitySource } from '../../creatures/identity.types';
 import type { PlantStage } from '../../garden/plant.entity';
 import type { ItemKind } from '../../inventory/inventory-item.entity';
 import type { CloudState } from '../../simulation/cloud-rules';
@@ -27,6 +33,29 @@ export interface DecorationDto {
   type: DecorationId;
   lat: number;
   lon: number;
+}
+
+/** A creature as its card and the scene show it (CRT-03 AC1, NAV-03 AC2). */
+export interface CreatureDto {
+  id: string;
+  species: SpeciesId;
+  name: string;
+  // The one-line personality summary.
+  summary: string;
+  traits: string[];
+  quirk: string;
+  speakingStyle: string;
+  // Shown when the card is opened.
+  backstory: string;
+  mood: CreatureMood;
+  // A variant of content: its arrival condition no longer holds (CRT-04 AC3).
+  wistful: boolean;
+  // Its home spot in degrees.
+  lat: number;
+  lon: number;
+  // ISO timestamp.
+  arrivedAt: string;
+  identitySource: IdentitySource;
 }
 
 /** One inventory stack; only stacks the planet still holds are served. */
@@ -69,6 +98,9 @@ export interface PlanetSnapshotDto extends PlanetDto {
   // is later. Empty until the planet's first command or sync (Task 7.2).
   clouds: CloudState[];
   sun: SunStateDto;
+  // Oldest arrival first, then by id. Added by CreaturesModule's snapshot
+  // contributor.
+  creatures?: CreatureDto[];
 }
 
 /** Something that happened on the planet, such as a plant blooming. */

@@ -98,7 +98,7 @@ export class CatalogueComponent {
 
   /** The planet holds as many creatures as it can (CRT-02 AC1). */
   protected readonly cosy = computed(
-    () => (this.snapshot()?.creatures?.length ?? 0) >= this.config().maxCreatures,
+    () => (this.snapshot()?.creatures.length ?? 0) >= this.config().maxCreatures,
   );
 
   constructor() {

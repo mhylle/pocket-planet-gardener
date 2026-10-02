@@ -9,16 +9,18 @@ import { PickKind, PickResult, PickingService } from './picking.service';
 import { SceneService } from './scene.service';
 
 /** Hits on these stand for the surface point under them. */
-const SURFACE_KINDS: readonly PickKind[] = ['planet', 'plant', 'decoration'];
+const SURFACE_KINDS: readonly PickKind[] = ['planet', 'plant', 'decoration', 'creature'];
+/** Hits on these open their card. */
+const CARD_KINDS = ['plant', 'decoration', 'creature'] as const;
 const ENTER_CODES = ['Enter', 'NumpadEnter'];
 
 /**
  * Turns gestures on the canvas into gardening. With an item selected, the preview follows
  * the mouse (or sits at the middle of the view when there is no mouse over the canvas) and a
- * tap, or Enter, puts the item down there. Without one, the mouse over a plant or decoration
- * shows its card; tapping it (or pressing Enter while it is in the middle of the view) pins
- * the card, except that tapping a bloom with seeds ready collects them (GRD-08 AC2). Escape
- * stops placing.
+ * tap, or Enter, puts the item down there. Without one, the mouse over a plant, decoration or
+ * creature shows its card; tapping it (or pressing Enter while it is in the middle of the view)
+ * pins the card, except that tapping a bloom with seeds ready collects them (GRD-08 AC2).
+ * Escape stops placing.
  */
 @Injectable()
 export class GardenInputService {
@@ -122,9 +124,8 @@ function surfaceOf(hit: PickResult | null): SurfacePoint | null {
   return hit && SURFACE_KINDS.includes(hit.kind) ? (hit.surface ?? null) : null;
 }
 
-/** The card for a hit plant or decoration, at a canvas point; null for anything else. */
+/** The card for a hit plant, decoration or creature, at a canvas point; null for anything else. */
 function cardOf(hit: PickResult | null, at: { x: number; y: number }): CardTarget | null {
-  return hit?.id && (hit.kind === 'plant' || hit.kind === 'decoration')
-    ? { kind: hit.kind, id: hit.id, x: at.x, y: at.y }
-    : null;
+  const kind = CARD_KINDS.find((each) => each === hit?.kind);
+  return hit?.id && kind ? { kind, id: hit.id, x: at.x, y: at.y } : null;
 }

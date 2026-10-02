@@ -13,6 +13,10 @@ import { FakeAiService } from './support/fake-ai';
 const CREATED = '2030-01-01T00:00:00.000Z';
 const SPOT = { lat: 10, lon: 20 };
 
+function isPlantEvent(event: { type: string }): boolean {
+  return event.type.startsWith('plant-');
+}
+
 // Uses the dev database and empties the planets table and its children.
 describe('Growth and away catch-up (e2e)', () => {
   let app: INestApplication<App>;
@@ -73,7 +77,8 @@ describe('Growth and away catch-up (e2e)', () => {
       growth: 1,
       harvestReady: true,
     });
-    expect(events).toEqual([
+    // The worm the first bloom brings is test/creatures.e2e-spec.ts's.
+    expect(events.filter(isPlantEvent)).toEqual([
       {
         type: 'plant-stage',
         occurredAt: '2030-01-01T00:40:00.000Z',
@@ -108,7 +113,7 @@ describe('Growth and away catch-up (e2e)', () => {
       water: 0,
     });
     expect(events.map((event) => event.type)).toContain('plant-bloomed');
-    for (const event of events) {
+    for (const event of events.filter(isPlantEvent)) {
       expect(event.occurredAt <= '2030-01-08T00:00:00.000Z').toBe(true);
     }
     expect((await storedPlanet()).lastSimulatedAt.toISOString()).toBe(now);

@@ -430,6 +430,22 @@ describe('PlanetStateService', () => {
       expect(result.snapshot.serverTime).toBe(T0.toISOString());
     });
 
+    it('hands the hooks lastSimulatedAt as it was before the steps moved it, as previousSimulatedAt', async () => {
+      const { service, clock } = buildService();
+      clock.set(T1);
+      const seen: Date[] = [];
+      service.registerSimulationStep((ctx) => {
+        ctx.planet.lastSimulatedAt = ctx.now;
+      });
+      service.registerPostMutationEvaluator((ctx) => {
+        seen.push(ctx.previousSimulatedAt, ctx.planet.lastSimulatedAt);
+      });
+
+      await service.mutate(PLANET_ID, 3);
+
+      expect(seen).toEqual([T0, T1]);
+    });
+
     it('passes the facts of every hook to the sinks and returns them as events', async () => {
       const { service } = buildService();
       const sunk: Fact[][] = [];

@@ -29,6 +29,7 @@ const mossySnapshot: PlanetSnapshotDto = {
   unlocks: [],
   clouds: [],
   sun: { angle: 0, overrideAngle: null, overrideAt: null },
+  creatures: [],
 };
 
 describe('PlanetService', () => {

@@ -1,0 +1,51 @@
+/* Lays its parts out in the info card's own column. */
+:host {
+  display: contents;
+}
+
+.about {
+  display: grid;
+  gap: 0.3rem;
+}
+
+p {
+  margin: 0;
+}
+
+.species,
+.label {
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
+
+.statuses {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statuses li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* A long story scrolls, so the card stays inside the view. */
+.more {
+  display: grid;
+  gap: 0.15rem;
+  max-height: 8rem;
+  margin: 0;
+  overflow-y: auto;
+}
+
+dt {
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
+
+dd {
+  margin: 0 0 0.25rem;
+}

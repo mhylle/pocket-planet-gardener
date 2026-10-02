@@ -19,9 +19,9 @@ export type PlacementSelection =
   | { mode: 'place'; itemType: string; kind: InventoryItemDto['kind'] }
   | { mode: 'move'; itemType: string; decorationId: string };
 
-/** A plant or decoration whose info card is open, and where on the canvas, in CSS pixels. */
+/** A plant, decoration or creature whose card is open, and where on the canvas, in CSS pixels. */
 export interface CardTarget {
-  kind: 'plant' | 'decoration';
+  kind: 'plant' | 'decoration' | 'creature';
   id: string;
   x: number;
   y: number;

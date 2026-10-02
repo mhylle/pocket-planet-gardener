@@ -1,0 +1,31 @@
+<div id="creature-card-about" class="about">
+  <p class="species">{{ species() }}</p>
+  <p>{{ creature().summary }}</p>
+  <p class="quirk"><span class="label">Quirk:</span> {{ creature().quirk }}</p>
+  <ul class="statuses">
+    @for (status of statuses(); track status.icon) {
+      <li>
+        <app-status-icon [icon]="status.icon" />
+        <span>{{ status.text }}</span>
+      </li>
+    }
+  </ul>
+</div>
+@if (pinned()) {
+  <button
+    type="button"
+    class="secondary"
+    [attr.aria-expanded]="expanded()"
+    (click)="expanded.set(!expanded())"
+  >
+    {{ expanded() ? 'Less' : 'More' }}
+  </button>
+  @if (expanded()) {
+    <dl class="more">
+      <dt>Personality</dt>
+      <dd>{{ traits() }}</dd>
+      <dt>Story</dt>
+      <dd>{{ creature().backstory }}</dd>
+    </dl>
+  }
+}

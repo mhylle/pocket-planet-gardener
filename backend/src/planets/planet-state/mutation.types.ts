@@ -22,6 +22,9 @@ export interface MutationContext {
   readonly planet: Planet;
   // Read from the clock once, so every hook sees the same instant.
   readonly now: Date;
+  // planet.lastSimulatedAt before the simulation steps moved it to now, so a
+  // later hook can tell live play from away time.
+  readonly previousSimulatedAt: Date;
   // Push to these; they are returned to the caller.
   readonly facts: Fact[];
   readonly newlyUnlocked: string[];

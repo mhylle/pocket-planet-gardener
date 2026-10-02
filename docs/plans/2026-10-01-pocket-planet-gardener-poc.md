@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–10 implemented and validated (see section 9). Next: Phase 11. |
+| **Progress** | Phases 1–11 implemented and validated (see section 9). Next: Phase 12. |
 
 ---
 
@@ -584,6 +584,17 @@ Notes:
 - Prompt builders may only take `prompt-context.ts` types (`PlanetPublicState`, `PublicEvent`); `findPrivateData` backs the privacy specs.
 - `mutate()` now locks the planet with `FOR NO KEY UPDATE` so a gateway call inside a command doesn't hang on the `ai_usage` foreign-key check.
 - AI daily budget default 1000 requests (SD Q-8 undecided). Admin settings are cached 60 s; the admin API and page are open in the PoC (D-0). A minimal admin page was added beyond the plan's API-only task so the switch can be used.
+
+### Phase 11 — done (2 Oct 2026)
+
+All tasks 11.1–11.5 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 691/691, e2e 151/151; `CreaturesSchema` reverts and re-applies cleanly; frontend `tsc` 0, tests 622/622, build 0 (844 kB). Live with the real model: a first bloom brought "Wiggleworth" the worm ("Believes that soil is actually a very soft, brown cake.", `identitySource: 'ai'`, 3.4 s) during a heartbeat, with the arrival toast and a nap on the night side in the browser. **Not run:** backend `npm run build`.
+
+Decisions and notes:
+- A first-bloom species (the worm, the tutorial creature) gets at most one creature per planet; other species are capped by `maxPerSpecies`.
+- Arrivals happen inside `mutate()`, so the identity AI call runs while the planet row is locked (other commands for that planet wait, ≤ 15 s) — an accepted PoC limitation.
+- Content-rules defect fixed: the disguised-spelling matcher turned "good" into "god"; now only banned words use it, and sensitive terms, phrases and famous names match exactly (plural allowed, multi-word names also run together).
+- The creature card shows name, species, summary, quirk and mood; traits and the backstory are under "More".
+- `ctx.previousSimulatedAt` is available to hooks. `CreaturesModule` exports nothing yet. Phase 15's no-delay first arrival is not built yet.
 
 ---
 

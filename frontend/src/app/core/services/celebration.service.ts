@@ -1,9 +1,14 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PlanetSnapshotDto } from '../models/planet-snapshot';
 import { CatalogueService } from './catalogue.service';
+import { PlanetStore } from './planet-store.service';
 import { SyncService } from './sync.service';
 
-/** A short cheer for something new in the catalogue, such as "New in your catalogue: Tulip". */
+/**
+ * A short cheer for something new, such as "New in your catalogue: Tulip" or "Mira the moth
+ * moved in!".
+ */
 export interface Celebration {
   id: number;
   text: string;
@@ -14,7 +19,9 @@ export const CELEBRATION_MS = 3200;
 
 /**
  * Cheers each item type the player gets for the first time (ITM-04 AC3), whichever command
- * brought it: every newlyUnlocked a command response names is celebrated once. Provided by
+ * brought it: every newlyUnlocked a command response names is celebrated once. Also cheers
+ * each creature that moves in (CRT-01 AC1): one the previous snapshot of the same planet did
+ * not have, so the creatures already there when the planet opens are not cheered. Provided by
  * the planet page, so it starts afresh with every planet.
  */
 @Injectable()
@@ -23,6 +30,7 @@ export class CelebrationService {
   private readonly list = signal<Celebration[]>([]);
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
   private readonly celebrated = new Set<string>();
+  private seen: { planetId: string; creatureIds: Set<string> } | null = null;
   private nextId = 1;
 
   readonly celebrations = this.list.asReadonly();
@@ -31,7 +39,30 @@ export class CelebrationService {
     inject(SyncService)
       .newlyUnlocked.pipe(takeUntilDestroyed())
       .subscribe((itemTypes) => this.celebrate(itemTypes));
+    const store = inject(PlanetStore);
+    effect(() => {
+      const snapshot = store.snapshot();
+      untracked(() => this.welcome(snapshot));
+    });
     inject(DestroyRef).onDestroy(() => this.timers.forEach((timer) => clearTimeout(timer)));
+  }
+
+  private welcome(snapshot: PlanetSnapshotDto | null): void {
+    if (!snapshot) {
+      this.seen = null;
+      return;
+    }
+    if (this.seen?.planetId === snapshot.id) {
+      for (const { id, name, species } of snapshot.creatures) {
+        if (!this.seen.creatureIds.has(id)) {
+          this.show(`${name} the ${this.catalogue.name(species).toLowerCase()} moved in!`);
+        }
+      }
+    }
+    this.seen = {
+      planetId: snapshot.id,
+      creatureIds: new Set(snapshot.creatures.map(({ id }) => id)),
+    };
   }
 
   private celebrate(itemTypes: string[]): void {

@@ -18,6 +18,7 @@ const mossy: PlanetSnapshotDto = {
   unlocks: [],
   clouds: [],
   sun: { angle: 0, overrideAngle: null, overrideAt: null },
+  creatures: [],
 };
 
 const welcomeBack: WelcomeBack = {

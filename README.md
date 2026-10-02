@@ -144,9 +144,10 @@ The snapshot is the whole planet. It keeps the fields served before it,
 `id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
 and adds `radiusLevel`, `maxPlants`, `tutorialStep`, `serverTime`, `plants`,
 `decorations`, `inventory` (only stacks with a count above 0), `unlocks`,
-`clouds` (`{ id, lat, lon, water, at }` each, see below) and `sun`
+`clouds` (`{ id, lat, lon, water, at }` each, see below), `sun`
 (`{ overrideAngle, overrideAt, angle }`, `angle` being the
-longitude in degrees the sun stands over at `serverTime`). Plants and decorations
+longitude in degrees the sun stands over at `serverTime`) and `creatures`
+(see below). Plants and decorations
 come oldest first; inventory and unlocks are sorted by item type. A new
 planet holds the first `GAME_STARTER_SEED_TYPES` seed stacks of
 `content/starter.ts`, already unlocked, and no decorations.
@@ -173,6 +174,25 @@ up to 1. From an empty cloud nothing falls and the answer carries
 `cloudEmpty: true`. Moving a cloud puts it down where it drifts on from. `sun`
 holds the sun over `angle` for `GAME_SUN_OVERRIDE_MINUTES`, then it drifts on
 from there. An unknown cloud id is a 404.
+
+Creatures move in by themselves (`creatures/`). After every sync and command
+the arrival conditions of `content/species.ts` are checked against the
+blooming plants and the placed decorations, and `arrival_tracking` on the
+planet keeps since when each one has held. A species is due once its
+condition has held for `GAME_ARRIVAL_DELAY_SECONDS` (120), or at once when
+the sync ends away time (a gap of more than three sync intervals). At most
+one creature arrives at a time, the first due species in content order, and
+none within `GAME_ARRIVAL_SPACING_MINUTES` (30) of the last arrival, while
+the planet has `GAME_MAX_CREATURES` (8), or for a species that already has
+`GAME_MAX_PER_SPECIES` (2). The worm's condition is the first bloom, so it
+brings one worm only. A new creature makes its home on a free spot near what
+drew it (the pond, its clovers), gets its identity from the model through
+the gateway, or from `content/fallback-identities.ts` when that fails, and
+starts `content`. The arrival is a `creature-arrived` event
+(`{ creatureId, species, name, lat, lon, milestone: true }`). The snapshot's
+`creatures` are `{ id, species, name, summary, traits, quirk, speakingStyle,
+backstory, mood, wistful, lat, lon, arrivedAt, identitySource }` each, oldest
+first. Nothing removes a creature except deleting its planet.
 
 Every AI feature goes through `AiGatewayService.generate()` in `ai/`, never
 straight to `AiService`. It uses the feature's pre-written fallback instead
@@ -252,6 +272,9 @@ backend/src
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list
 │   └── migrations/
+├── creatures/               CreaturesService (arrivals after every sync and command,
+│                            creatures in the snapshot), IdentityService, and pure
+│                            rules: arrival conditions, home spot
 ├── admin/                   GET/PATCH /api/admin/settings: AdminSettingsService
 │                            (AI switch, daily budget) and AiUsageService (ai_usage log)
 └── ai/

@@ -1,6 +1,7 @@
 import { Provider } from '@angular/core';
 import { CameraControlsService } from './camera-controls.service';
 import { CloudDragController } from './cloud-drag.controller';
+import { CreatureMeshService } from './creature-mesh.service';
 import { DecorationMeshService } from './decoration-mesh.service';
 import { GardenInputService } from './garden-input.service';
 import { InputService } from './input.service';
@@ -26,6 +27,7 @@ export const SCENE_PROVIDERS: Provider[] = [
   PickingService,
   PlantMeshService,
   DecorationMeshService,
+  CreatureMeshService,
   PlacementGhostService,
   GardenInputService,
   SkyService,

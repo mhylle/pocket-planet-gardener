@@ -42,6 +42,16 @@ describe('CatalogueService', () => {
     );
   });
 
+  it('names species as the catalogue does', () => {
+    catalogue.load();
+    http.expectOne('/api/catalogue').flush({
+      ...CATALOGUE,
+      species: [{ id: 'bee', name: 'Bumblebee', hint: 'Likes flowers.' }],
+    });
+
+    expect(catalogue.name('bee')).toBe('Bumblebee');
+  });
+
   it('falls back to readable ids when loading fails, and may load again later', () => {
     catalogue.load();
     http

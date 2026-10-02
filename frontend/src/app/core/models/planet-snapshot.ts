@@ -1,5 +1,6 @@
 import { CloudState } from '../helpers/cloud-rules';
 import { SurfacePoint } from '../helpers/surface-coords';
+import { CreatureDto } from './creature';
 import { PlanetDto } from './planet';
 
 export type PlantStage = 'seed' | 'sprout' | 'young' | 'bloom';
@@ -56,8 +57,8 @@ export interface PlanetSnapshotDto extends PlanetDto {
   /** Each cloud as of serverTime. */
   clouds: CloudState[];
   sun: SunStateDto;
-  /** The creatures living here; the snapshot names them from Phase 11 on, so missing means none. */
-  creatures?: readonly unknown[];
+  /** The creatures living here. */
+  creatures: CreatureDto[];
 }
 
 /** Something that happened on the planet, such as a creature arriving. */

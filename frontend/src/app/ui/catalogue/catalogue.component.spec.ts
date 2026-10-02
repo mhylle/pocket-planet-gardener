@@ -4,7 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { PlanetSnapshotDto } from '../../core/models/planet-snapshot';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
-import { CATALOGUE, MOSSY } from '../../testing/garden-fixtures';
+import { CATALOGUE, MOSSY, creatureAt } from '../../testing/garden-fixtures';
 import { CatalogueComponent } from './catalogue.component';
 
 describe('CatalogueComponent', () => {
@@ -112,10 +112,12 @@ describe('CatalogueComponent', () => {
     const note = () => section('Creatures').querySelector('.cosy');
     expect(note()).toBeNull();
 
-    await withPlanet({ creatures: Array.from({ length: 7 }, (_, i) => ({ id: `c${i}` })) });
+    const creatures = (count: number) =>
+      Array.from({ length: count }, (_, i) => creatureAt(`c${i}`, 0, i * 20));
+    await withPlanet({ creatures: creatures(7) });
     expect(note()).toBeNull();
 
-    await withPlanet({ creatures: Array.from({ length: 8 }, (_, i) => ({ id: `c${i}` })) });
+    await withPlanet({ creatures: creatures(8) });
     expect(note()?.textContent).toContain('Your planet is cosy enough for now');
   });
 

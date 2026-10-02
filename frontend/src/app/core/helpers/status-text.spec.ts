@@ -1,12 +1,16 @@
 import {
   LIGHT_PREF_TEXT,
   LIGHT_TEXT,
+  MOOD_TEXT,
+  NO_WISH_TEXT,
   SEEDS_READY_TEXT,
   STAGE_TEXT,
   StatusText,
   WATER_PREF_TEXT,
   WATER_TEXT,
+  WISTFUL_TEXT,
   lightText,
+  moodText,
   needsText,
   stageText,
   statusLine,
@@ -21,6 +25,8 @@ describe('statusText', () => {
     ['seeds ready', { ready: SEEDS_READY_TEXT }],
     ['water preference', WATER_PREF_TEXT],
     ['light preference', LIGHT_PREF_TEXT],
+    ['mood', { ...MOOD_TEXT, wistful: WISTFUL_TEXT }],
+    ['want', { none: NO_WISH_TEXT }],
   ];
   const entries = tables.flatMap(([table, rows]) =>
     Object.entries(rows).map(([key, status]) => ({ table, key, status })),
@@ -35,7 +41,12 @@ describe('statusText', () => {
   );
 
   it('gives each status within a table its own icon', () => {
-    for (const rows of [WATER_TEXT, LIGHT_TEXT, { ...STAGE_TEXT, ready: SEEDS_READY_TEXT }]) {
+    for (const rows of [
+      WATER_TEXT,
+      LIGHT_TEXT,
+      { ...STAGE_TEXT, ready: SEEDS_READY_TEXT },
+      { ...MOOD_TEXT, wistful: WISTFUL_TEXT },
+    ]) {
       const icons = Object.values(rows).map(({ icon }) => icon);
       expect(new Set(icons).size).toBe(icons.length);
     }
@@ -67,5 +78,12 @@ describe('statusText', () => {
       'Likes lots of water',
       'Likes the shade',
     ]);
+  });
+
+  it("names a creature's mood, and shows wistful as a variant of content (CRT-04)", () => {
+    expect(moodText('content', false).text).toBe('Content');
+    expect(moodText('cheerful', false).text).toBe('Cheerful');
+    expect(moodText('overjoyed', false).text).toBe('Overjoyed');
+    expect(moodText('content', true).text).toBe('A bit wistful');
   });
 });

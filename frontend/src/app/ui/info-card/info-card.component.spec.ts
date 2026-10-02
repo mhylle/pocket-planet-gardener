@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import type { MockInstance } from 'vitest';
+import { CreatureDto } from '../../core/models/creature';
 import { PlantDto } from '../../core/models/planet-snapshot';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { CardTarget, PlacementService } from '../../core/services/placement.service';
@@ -12,7 +13,7 @@ import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
 import { SkyService } from '../../scene/sky.service';
-import { CATALOGUE, MOSSY, plantAt } from '../../testing/garden-fixtures';
+import { CATALOGUE, MOSSY, creatureAt, plantAt } from '../../testing/garden-fixtures';
 import { InfoCardComponent } from './info-card.component';
 
 const plant = (id: string): CardTarget => ({ kind: 'plant', id, x: 300, y: 200 });
@@ -248,6 +249,96 @@ describe('InfoCardComponent', () => {
       await pin({ kind: 'plant', id: 'clover-1', x: 2, y: 590 });
 
       expect([card()!.style.left, card()!.style.top]).toEqual(['140px', '400px']);
+    });
+  });
+
+  describe('a creature (NAV-03 AC2, CRT-03 AC1)', () => {
+    const mira = creatureAt('mira', 5, 5);
+    const sam = creatureAt('sam', 20, 40, {
+      species: 'snail',
+      name: 'Sam',
+      backstory: 'Sam slid in after the rain.',
+    });
+    const creature = (id: string): CardTarget => ({ kind: 'creature', id, x: 300, y: 200 });
+
+    const meet = (changes: Partial<CreatureDto> = {}) =>
+      TestBed.inject(PlanetStore).setSnapshot({
+        ...MOSSY,
+        creatures: [{ ...mira, ...changes }, sam],
+      });
+    const text = () => card()!.textContent!;
+
+    const quirk = () => card()!.querySelector('.quirk')?.textContent?.trim();
+
+    it('shows its name, species, summary, quirk, and its mood and want as icon and words', async () => {
+      meet();
+
+      await hover(creature('mira'));
+
+      expect(title()).toBe('Mira');
+      expect(card()!.querySelector('.species')?.textContent?.trim()).toBe('Moth');
+      expect(text()).toContain('A gentle night owl who hums to the moonflowers.');
+      expect(quirk()).toBe('Quirk: Counts the stars out loud.');
+      expect(statuses()).toEqual([
+        { icon: 'content', text: 'Content' },
+        { icon: 'wish', text: 'No wish right now' },
+      ]);
+      expect(card()!.getAttribute('aria-describedby')).toBe('creature-card-about');
+      expect(labels()).toEqual([]);
+      expect(text()).not.toContain(mira.backstory);
+    });
+
+    it('shows each mood, and a creature missing what it came for as "A bit wistful" (CRT-04)', async () => {
+      meet({ mood: 'cheerful' });
+      await hover(creature('mira'));
+      expect(statuses()[0]).toEqual({ icon: 'cheerful', text: 'Cheerful' });
+
+      meet({ mood: 'overjoyed' });
+      await fixture.whenStable();
+      expect(statuses()[0]).toEqual({ icon: 'overjoyed', text: 'Overjoyed' });
+
+      meet({ wistful: true });
+      await fixture.whenStable();
+      expect(statuses()[0]).toEqual({ icon: 'wistful', text: 'A bit wistful' });
+    });
+
+    it('shows the quirk on the pinned card, with traits and backstory behind "More" (CRT-03 AC1)', async () => {
+      meet();
+      await pin(creature('mira'));
+
+      expect(labels()).toEqual(['More']);
+      expect(document.activeElement).toBe(button('More'));
+      expect(button('More').getAttribute('aria-expanded')).toBe('false');
+      expect(quirk()).toBe('Quirk: Counts the stars out loud.');
+      expect(text()).not.toContain(mira.backstory);
+      expect(text()).not.toContain('gentle, dreamy');
+
+      button('More').click();
+      await fixture.whenStable();
+
+      expect(button('Less').getAttribute('aria-expanded')).toBe('true');
+      const more = (tag: string) =>
+        [...card()!.querySelectorAll(tag)].map((each) => each.textContent!.trim());
+      expect(more('dt')).toEqual(['Personality', 'Story']);
+      expect(more('dd')).toEqual(['gentle, dreamy', mira.backstory]);
+      expect(quirk()).toBe('Quirk: Counts the stars out loud.');
+
+      button('Less').click();
+      await fixture.whenStable();
+      expect(text()).not.toContain(mira.backstory);
+    });
+
+    it("starts with the next creature's story closed", async () => {
+      meet();
+      await pin(creature('mira'));
+      button('More').click();
+      await fixture.whenStable();
+
+      await pin(creature('sam'));
+
+      expect(title()).toBe('Sam');
+      expect(labels()).toEqual(['More']);
+      expect(text()).not.toContain(sam.backstory);
     });
   });
 });

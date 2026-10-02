@@ -152,6 +152,7 @@ export class PlanetStateService {
         em,
         planet,
         now: this.clock.now(),
+        previousSimulatedAt: planet.lastSimulatedAt,
         facts: [],
         newlyUnlocked: [],
       };

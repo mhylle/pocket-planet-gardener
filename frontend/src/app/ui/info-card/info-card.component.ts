@@ -16,16 +16,20 @@ import {
   waterText,
 } from '../../core/helpers/status-text';
 import { lightAt } from '../../core/helpers/sun-model';
+import { CreatureDto } from '../../core/models/creature';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { CardTarget, PlacementService } from '../../core/services/placement.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SceneService } from '../../scene/scene.service';
 import { SkyService } from '../../scene/sky.service';
+import { CreatureCardComponent } from '../creature-card/creature-card.component';
 import { StatusIconComponent } from '../status-icon/status-icon.component';
 
 /** Room the card needs from the canvas edges, in CSS pixels, so it is never cut off. */
 const CARD_HALF_WIDTH = 140;
 const CARD_HEIGHT = 200;
+/** A creature's card is taller, the more so with its story open. */
+const CREATURE_CARD_HEIGHT = 360;
 
 /** What the card shows. */
 interface CardView extends CardTarget {
@@ -36,20 +40,24 @@ interface CardView extends CardTarget {
   ready: boolean;
   /** Opened by a tap, with actions; otherwise it shows what the mouse is over. */
   pinned: boolean;
+  /** The creature on a creature's card; null on any other. */
+  creature: CreatureDto | null;
 }
 
 /**
- * The card for a plant or decoration (NAV-03). Hovering shows what it is and, for a plant, its
- * stage, water and light as icon and words with what would help (GRD-04, SET-04); moving away
- * closes it. A tap (or Enter at the middle of the view) pins it with its actions: "Collect
- * seeds" for a ready bloom (GRD-08 AC2), "Dig up" for a plant (GRD-07 AC1), "Move" and "Put
- * away" for a decoration (ITM-02). The pinned card takes the focus; Escape or a press anywhere
- * else closes it, and Escape and the actions give the focus back to the planet. The light is
- * worked out here from where the sun is now, so the card follows the sun as it moves.
+ * The card for a plant, decoration or creature (NAV-03). Hovering shows what it is and, for a
+ * plant, its stage, water and light as icon and words with what would help (GRD-04, SET-04);
+ * for a creature, its name over the creature card (AC2). Moving away closes it. A tap (or
+ * Enter at the middle of the view) pins it with its actions: "Collect seeds" for a ready bloom
+ * (GRD-08 AC2), "Dig up" for a plant (GRD-07 AC1), "Move" and "Put away" for a decoration
+ * (ITM-02), "More" for a creature (CRT-03 AC1). The pinned card takes the focus; Escape or a
+ * press anywhere else closes it, and Escape and the actions give the focus back to the
+ * planet. The light is worked out here from where the sun is now, so the card follows the sun
+ * as it moves.
  */
 @Component({
   selector: 'app-info-card',
-  imports: [StatusIconComponent],
+  imports: [CreatureCardComponent, StatusIconComponent],
   templateUrl: './info-card.component.html',
   styleUrl: './info-card.component.scss',
   host: {
@@ -75,7 +83,13 @@ export class InfoCardComponent {
     if (!target || !snapshot) {
       return null;
     }
-    const card = { ...target, ...this.clamp(target), pinned: pinned !== null };
+    const card = { ...target, ...this.clamp(target), pinned: pinned !== null, creature: null };
+    if (target.kind === 'creature') {
+      const creature = snapshot.creatures.find(({ id }) => id === target.id);
+      return creature
+        ? { ...card, title: creature.name, statuses: [], ready: false, creature }
+        : null;
+    }
     if (target.kind === 'decoration') {
       const decoration = snapshot.decorations.find(({ id }) => id === target.id);
       return decoration
@@ -144,12 +158,13 @@ export class InfoCardComponent {
   }
 
   /** The card's spot on the canvas, kept clear of its edges. */
-  private clamp({ x, y }: CardTarget): { x: number; y: number } {
+  private clamp({ kind, x, y }: CardTarget): { x: number; y: number } {
     const clamp = (value: number, min: number, max: number) =>
       Math.min(Math.max(value, min), Math.max(min, max));
+    const height = kind === 'creature' ? CREATURE_CARD_HEIGHT : CARD_HEIGHT;
     return {
       x: clamp(x, CARD_HALF_WIDTH, this.scene.width - CARD_HALF_WIDTH),
-      y: clamp(y, 0, this.scene.height - CARD_HEIGHT),
+      y: clamp(y, 0, this.scene.height - height),
     };
   }
 }

@@ -47,26 +47,54 @@ const SENTENCE_END = /[.!?…]+["'’”)\]]*(?=\s|$)/u;
 const WORDLIKE = /[\p{L}\p{N}]/u;
 
 /**
- * True when the text holds a listed word or phrase as a whole word, matched
- * the way names are (name-rules): ignoring case, diacritics, l33t and
- * repeated letters, so "Scunthorpe" does not match "cunt".
+ * True when the text holds a banned word, matched the way names are
+ * (name-rules): ignoring case, diacritics, l33t and repeated letters, so a
+ * disguised spelling is caught while "Scunthorpe" still passes. Only banned
+ * words get this tolerance: for ordinary terms it turns "good" into "god".
  */
-function mentionsAny(text: string, phrases: readonly string[]): boolean {
-  return validateName(text, ANY_LENGTH, phrases) === 'offensive';
+function mentionsDisguised(text: string, words: readonly string[]): boolean {
+  return validateName(text, ANY_LENGTH, words) === 'offensive';
+}
+
+/** Lower-cased, without diacritics, every run of other characters one space, padded with spaces. */
+function asWords(text: string): string {
+  const words = text
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  return ` ${words} `;
+}
+
+/**
+ * True when the text holds a listed word or phrase as whole words, spelled
+ * exactly (case, diacritics and punctuation aside; a plural "s" allowed). A
+ * phrase also matches written as one word, so "DonaldDuck" is "donald duck".
+ */
+function mentionsExactly(text: string, phrases: readonly string[]): boolean {
+  const words = asWords(text);
+  return phrases.some((phrase) => {
+    const listed = asWords(phrase).trim();
+    const joined = listed.replace(/ /g, '');
+    return [listed, joined].some(
+      (form) => words.includes(` ${form} `) || words.includes(` ${form}s `),
+    );
+  });
 }
 
 /** The word-level rules in report order. */
 const RULES: readonly [Violation, (text: string) => boolean][] = [
-  ['banned-term', (text) => mentionsAny(text, BLOCKED_WORDS)],
-  ['sensitive-topic', (text) => mentionsAny(text, SENSITIVE_TERMS)],
-  ['guilt-trip', (text) => mentionsAny(text, GUILT_PHRASES)],
+  ['banned-term', (text) => mentionsDisguised(text, BLOCKED_WORDS)],
+  ['sensitive-topic', (text) => mentionsExactly(text, SENSITIVE_TERMS)],
+  ['guilt-trip', (text) => mentionsExactly(text, GUILT_PHRASES)],
   ['url-or-email', (text) => URL_OR_EMAIL.test(text)],
   [
     'personal-info-request',
-    (text) => mentionsAny(text, PERSONAL_INFO_REQUESTS),
+    (text) => mentionsExactly(text, PERSONAL_INFO_REQUESTS),
   ],
-  ['claims-to-be-real', (text) => mentionsAny(text, REAL_BEING_CLAIMS)],
-  ['famous-name', (text) => mentionsAny(text, FAMOUS_NAMES)],
+  ['claims-to-be-real', (text) => mentionsExactly(text, REAL_BEING_CLAIMS)],
+  ['famous-name', (text) => mentionsExactly(text, FAMOUS_NAMES)],
 ];
 
 /** Whitespace-separated words, so "lamp-post" is one word. */

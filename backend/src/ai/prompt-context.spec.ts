@@ -14,7 +14,7 @@ const uuidPattern =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 /** A snapshot that tempts a careless mapper with ids, the code and an email. */
-const snapshot: PlanetSnapshotDto & {
+const snapshot: Omit<PlanetSnapshotDto, 'creatures'> & {
   creatures: {
     id: string;
     planetId: string;

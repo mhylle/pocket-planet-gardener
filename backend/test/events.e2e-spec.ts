@@ -14,8 +14,16 @@ const CREATED = '2030-01-01T00:00:00.000Z';
 const SPOT = { lat: 10, lon: 20 };
 const OTHER_SPOT = { lat: -30, lon: 100 };
 
-const ONE_BLOOM = [
+// The first bloom also brings the worm, at the sync that finds the bloom
+// (Phase 11, test/creatures.e2e-spec.ts).
+const BLOOM_AND_WORM = [
   { kind: 'blooms', count: 1, text: '1 plant bloomed', focus: SPOT },
+  {
+    kind: 'creatures',
+    count: 1,
+    text: '1 new creature',
+    focus: expect.any(Object) as unknown,
+  },
 ];
 
 // Uses the dev database and empties the planets table and its children.
@@ -90,6 +98,7 @@ describe('Event log and welcome-back summary (e2e)', () => {
         ['plant-stage', '2030-01-01T00:40:00.000Z', false],
         ['plant-stage', '2030-01-01T01:20:00.000Z', false],
         ['plant-bloomed', '2030-01-01T02:00:00.000Z', true],
+        ['creature-arrived', '2030-01-01T03:00:00.000Z', true],
       ]);
       expect(events[2].payload).toEqual({
         plantId: expect.any(String) as unknown,
@@ -119,7 +128,7 @@ describe('Event log and welcome-back summary (e2e)', () => {
 
     it('removes the planet events with the planet (ACC-05)', async () => {
       await sync('2030-01-01T03:00:00.000Z');
-      expect(await storedEvents()).toHaveLength(3);
+      expect(await storedEvents()).toHaveLength(4);
 
       await request(app.getHttpServer())
         .delete('/api/planet')
@@ -140,7 +149,7 @@ describe('Event log and welcome-back summary (e2e)', () => {
         'snapshot',
         'welcomeBack',
       ]);
-      expect(result.welcomeBack).toEqual({ summary: ONE_BLOOM });
+      expect(result.welcomeBack).toEqual({ summary: BLOOM_AND_WORM });
     });
 
     it('says nothing on a sync 10 minutes after the previous one, even about a bloom (AC2)', async () => {
@@ -153,13 +162,14 @@ describe('Event log and welcome-back summary (e2e)', () => {
 
       expect(result.events.map((event) => event.type)).toEqual([
         'plant-bloomed',
+        'creature-arrived',
       ]);
       expect(result).not.toHaveProperty('welcomeBack');
     });
 
     it('says nothing 3 hours later when nothing happened since the last visit (AC2)', async () => {
       expect((await sync('2030-01-01T03:00:00.000Z')).welcomeBack).toEqual({
-        summary: ONE_BLOOM,
+        summary: BLOOM_AND_WORM,
       });
 
       const result = await sync('2030-01-01T06:00:00.000Z');
@@ -178,7 +188,7 @@ describe('Event log and welcome-back summary (e2e)', () => {
       expect(res.body).not.toHaveProperty('welcomeBack');
       // A GET is no visit: the sync after it still welcomes the player back.
       expect((await sync('2030-01-01T03:00:00.000Z')).welcomeBack).toEqual({
-        summary: ONE_BLOOM,
+        summary: BLOOM_AND_WORM,
       });
     });
   });

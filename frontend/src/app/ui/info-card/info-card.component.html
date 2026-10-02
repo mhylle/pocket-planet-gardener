@@ -4,12 +4,17 @@
     class="card"
     role="dialog"
     aria-labelledby="info-card-title"
-    [attr.aria-describedby]="card.statuses.length ? 'info-card-statuses' : null"
+    [attr.aria-describedby]="
+      card.statuses.length ? 'info-card-statuses' : card.creature ? 'creature-card-about' : null
+    "
     [class.pinned]="card.pinned"
     [style.left.px]="card.x"
     [style.top.px]="card.y"
   >
     <h3 id="info-card-title" class="title">{{ card.title }}</h3>
+    @if (card.creature; as creature) {
+      <app-creature-card [creature]="creature" [pinned]="card.pinned" />
+    }
     @if (card.statuses.length) {
       <ul id="info-card-statuses" class="statuses">
         @for (status of card.statuses; track status.icon) {
@@ -20,7 +25,7 @@
         }
       </ul>
     }
-    @if (card.pinned) {
+    @if (card.pinned && !card.creature) {
       <div class="actions">
         @if (card.kind === 'plant') {
           @if (card.ready) {

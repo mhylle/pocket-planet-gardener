@@ -33,7 +33,10 @@ function planetRow(overrides: Partial<Planet> = {}): Planet {
     sunOverrideAt: null,
     tutorialStep: 4,
     clouds: [{ id: 'c1', lat: 0, lon: 0, water: 1, at: T0.toISOString() }],
-    arrivalTracking: { worm: T0.toISOString() },
+    arrivalTracking: {
+      species: { worm: { metSince: T0.toISOString() } },
+      lastArrivalAt: null,
+    },
     rewardCounter: 7,
     createdAt: T0,
     ...overrides,

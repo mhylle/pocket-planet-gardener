@@ -3,8 +3,9 @@ import { prefersReducedMotion } from '../../core/helpers/reduced-motion';
 import { CELEBRATION_MS, CelebrationService } from '../../core/services/celebration.service';
 
 /**
- * "New in your catalogue: Tulip" with a small burst of sparkles (ITM-04 AC3). With reduced
- * motion it only fades in and out, and the sparkles stand still (SET-03).
+ * "New in your catalogue: Tulip" (ITM-04 AC3) or "Mira the moth moved in!" (CRT-01 AC1) with a
+ * small burst of sparkles. With reduced motion it only fades in and out, and the sparkles
+ * stand still (SET-03).
  */
 @Component({
   selector: 'app-celebration',

@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { CreatureDto } from '../../core/models/creature';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { CELEBRATION_MS, CelebrationService } from '../../core/services/celebration.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
 import { SyncService } from '../../core/services/sync.service';
-import { CATALOGUE, MOSSY } from '../../testing/garden-fixtures';
+import { CATALOGUE, MOSSY, creatureAt } from '../../testing/garden-fixtures';
 import { CelebrationComponent } from './celebration.component';
 
 describe('CelebrationComponent', () => {
@@ -91,6 +92,25 @@ describe('CelebrationComponent', () => {
     vi.advanceTimersByTime(CELEBRATION_MS);
     fixture.detectChanges();
     expect(celebrations()).toEqual([]);
+  });
+
+  it('cheers each creature that moves in once, but none that were there already (CRT-01 AC1)', () => {
+    const store = TestBed.inject(PlanetStore);
+    const sam = creatureAt('sam', 0, 0, { species: 'snail', name: 'Sam' });
+    const mira = creatureAt('mira', 10, 10);
+    const show = (version: number, creatures: CreatureDto[]) => {
+      store.setSnapshot({ ...MOSSY, version, creatures });
+      TestBed.tick();
+      fixture.detectChanges();
+    };
+    store.setSnapshot({ ...MOSSY, creatures: [sam] });
+    render();
+    expect(texts()).toEqual([]);
+
+    show(2, [sam, mira]);
+    show(3, [sam, mira]);
+
+    expect(texts()).toEqual(['Mira the moth moved in!']);
   });
 
   it('only fades, without the sparkle burst, when the device asks for reduced motion (SET-03)', async () => {

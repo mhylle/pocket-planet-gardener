@@ -5,6 +5,7 @@ import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { CommonModule } from './common/common.module';
+import { CreaturesModule } from './creatures/creatures.module';
 import { EventsModule } from './events/events.module';
 import { GameConfigModule } from './game-config/game-config.module';
 import { GardenModule } from './garden/garden.module';
@@ -39,6 +40,7 @@ import { SimulationModule } from './simulation/simulation.module';
     EventsModule,
     AdminModule,
     AiModule,
+    CreaturesModule,
   ],
 })
 export class AppModule {}

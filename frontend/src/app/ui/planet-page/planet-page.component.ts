@@ -7,6 +7,7 @@ import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
 import { SyncService } from '../../core/services/sync.service';
 import { CloudDragController } from '../../scene/cloud-drag.controller';
+import { CreatureMeshService } from '../../scene/creature-mesh.service';
 import { DecorationMeshService } from '../../scene/decoration-mesh.service';
 import { GardenInputService } from '../../scene/garden-input.service';
 import { PlacementGhostService } from '../../scene/placement-ghost.service';
@@ -76,6 +77,7 @@ export class PlanetPageComponent {
     // Created now so they follow the snapshot and the input from the start.
     inject(PlantMeshService);
     inject(DecorationMeshService);
+    inject(CreatureMeshService);
     inject(PlacementGhostService);
     inject(GardenInputService);
     inject(SkyService);

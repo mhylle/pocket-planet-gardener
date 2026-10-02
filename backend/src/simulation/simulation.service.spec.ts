@@ -127,6 +127,7 @@ async function simulate(
     em: em as unknown as EntityManager,
     planet,
     now,
+    previousSimulatedAt: planet.lastSimulatedAt,
     facts: [],
     newlyUnlocked: [],
   };

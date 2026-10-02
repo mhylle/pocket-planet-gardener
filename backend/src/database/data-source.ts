@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util';
 import { DataSource } from 'typeorm';
 import { AdminSetting } from '../admin/admin-setting.entity';
 import { AiUsage } from '../admin/ai-usage.entity';
+import { Creature } from '../creatures/creature.entity';
 import { PlanetEvent } from '../events/event.entity';
 import { Decoration } from '../garden/decoration.entity';
 import { Plant } from '../garden/plant.entity';
@@ -15,6 +16,7 @@ import { PlanetSchema1790860588377 } from './migrations/1790860588377-PlanetSche
 import { GardenSchema1790877455866 } from './migrations/1790877455866-GardenSchema';
 import { EventsSchema1790939416415 } from './migrations/1790939416415-EventsSchema';
 import { AdminSchema1790944327657 } from './migrations/1790944327657-AdminSchema';
+import { CreaturesSchema1790949734700 } from './migrations/1790949734700-CreaturesSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -38,6 +40,7 @@ export const MIGRATIONS = [
   GardenSchema1790877455866,
   EventsSchema1790939416415,
   AdminSchema1790944327657,
+  CreaturesSchema1790949734700,
 ];
 
 export default new DataSource({
@@ -56,6 +59,7 @@ export default new DataSource({
     PlanetEvent,
     AdminSetting,
     AiUsage,
+    Creature,
   ],
   migrations: MIGRATIONS,
   synchronize: false,

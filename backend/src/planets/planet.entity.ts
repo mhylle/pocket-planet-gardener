@@ -4,6 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import type { ArrivalTracking } from '../creatures/arrival-conditions';
 import type { CloudState } from '../simulation/cloud-rules';
 
 /**
@@ -57,8 +58,9 @@ export class Planet {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   clouds!: CloudState[];
 
+  // Kept by CreaturesService for the arrival rules; {} on a new planet.
   @Column({ name: 'arrival_tracking', type: 'jsonb', default: () => "'{}'" })
-  arrivalTracking!: Record<string, unknown>;
+  arrivalTracking!: Partial<ArrivalTracking>;
 
   @Column({ name: 'reward_counter', type: 'int', default: 0 })
   rewardCounter!: number;

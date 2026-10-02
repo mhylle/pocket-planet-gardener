@@ -5,7 +5,8 @@ import { CatalogueService } from '../core/services/catalogue.service';
 import { PlacementService } from '../core/services/placement.service';
 import { PlanetIdentityService } from '../core/services/planet-identity.service';
 import { PlanetStore } from '../core/services/planet-store.service';
-import { CATALOGUE, MOSSY, plantAt } from '../testing/garden-fixtures';
+import { CATALOGUE, MOSSY, creatureAt, plantAt } from '../testing/garden-fixtures';
+import { CreatureMeshService } from './creature-mesh.service';
 import { GardenInputService } from './garden-input.service';
 import { InputService } from './input.service';
 import { NullSceneRenderer } from './null-scene-renderer';
@@ -15,6 +16,7 @@ import { PlantMeshService } from './plant-mesh.service';
 import { SCENE_RENDERER } from './scene-renderer';
 import { SCENE_PROVIDERS } from './scene.providers';
 import { SceneService } from './scene.service';
+import { SkyService } from './sky.service';
 
 const clover = { itemType: 'clover', kind: 'seed' } as const;
 
@@ -206,6 +208,25 @@ describe('GardenInputService', () => {
 
     http.expectNone('/api/garden/plants/clover-1/harvest');
     expect(placement.card()?.id).toBe('clover-1');
+  });
+
+  it('shows and pins the card of a creature, and plants on the ground under one (NAV-03 AC2)', () => {
+    TestBed.inject(PlanetStore).setSnapshot({ ...MOSSY, creatures: [creatureAt('mira', 0, 0)] });
+    TestBed.inject(CreatureMeshService);
+    TestBed.tick();
+    // Out from between the camera and the creature.
+    TestBed.inject(SkyService).holdSun(60);
+
+    pointer('pointermove', 400, 300);
+    expect(placement.hoverCard()).toEqual({ kind: 'creature', id: 'mira', x: 400, y: 300 });
+    tap(400, 300);
+    expect(placement.card()).toEqual({ kind: 'creature', id: 'mira', x: 400, y: 300 });
+
+    select();
+    tap(400, 300);
+    const request = http.expectOne({ method: 'POST', url: '/api/garden/plants' });
+    expect(request.request.body.lat).toBeCloseTo(0, 0);
+    expect(request.request.body.lon).toBeCloseTo(0, 0);
   });
 
   it('stops placing on Escape', () => {

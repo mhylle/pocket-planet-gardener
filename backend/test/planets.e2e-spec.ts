@@ -15,6 +15,7 @@ const SNAPSHOT_KEYS = [
   'clouds',
   'code',
   'createdAt',
+  'creatures',
   'decorations',
   'id',
   'inventory',

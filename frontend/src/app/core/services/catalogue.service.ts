@@ -16,6 +16,7 @@ export class CatalogueService {
   readonly catalogue = this.current.asReadonly();
   private readonly plants = computed(() => byId(this.current()?.plants ?? []));
   private readonly decorations = computed(() => byId(this.current()?.decorations ?? []));
+  private readonly species = computed(() => byId(this.current()?.species ?? []));
 
   /** Fetches the catalogue unless it is loaded or on its way; after a failure it may retry. */
   load(): void {
@@ -43,9 +44,14 @@ export class CatalogueService {
     return this.decorations().get(id);
   }
 
-  /** What the catalogue calls a plant type or decoration, such as "Tulip" or "Lamp post". */
+  /** What the catalogue calls a plant type, decoration or species, such as "Lamp post". */
   name(id: string): string {
-    return this.plant(id)?.name ?? this.decoration(id)?.name ?? readable(id);
+    return (
+      this.plant(id)?.name ??
+      this.decoration(id)?.name ??
+      this.species().get(id)?.name ??
+      readable(id)
+    );
   }
 
   /** What the player calls an inventory item, such as "Clover seed", "Clover seeds" or "Pond". */

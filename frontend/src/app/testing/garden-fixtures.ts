@@ -1,4 +1,5 @@
 import { CatalogueDto } from '../core/models/catalogue';
+import { CreatureDto } from '../core/models/creature';
 import { PlanetSnapshotDto, PlantDto } from '../core/models/planet-snapshot';
 
 /** Test data shared by the gardening specs: a small catalogue and a planet to garden on. */
@@ -82,7 +83,34 @@ export const MOSSY: PlanetSnapshotDto = {
   unlocks: ['clover', 'pond'],
   clouds: [],
   sun: { angle: 0, overrideAngle: null, overrideAt: null },
+  creatures: [],
 };
+
+/** A creature of the snapshot shape, with only what a spec cares about given. */
+export function creatureAt(
+  id: string,
+  lat: number,
+  lon: number,
+  extra: Partial<CreatureDto> = {},
+): CreatureDto {
+  return {
+    id,
+    species: 'moth',
+    name: 'Mira',
+    summary: 'A gentle night owl who hums to the moonflowers.',
+    traits: ['gentle', 'dreamy'],
+    quirk: 'Counts the stars out loud.',
+    speakingStyle: 'Soft and slow.',
+    backstory: 'Mira followed the glow of a lamp-post here. She has stayed ever since.',
+    mood: 'content',
+    wistful: false,
+    lat,
+    lon,
+    arrivedAt: '2026-10-01T10:00:00.000Z',
+    identitySource: 'ai',
+    ...extra,
+  };
+}
 
 /** A plant of the snapshot shape, with only what a spec cares about given. */
 export function plantAt(

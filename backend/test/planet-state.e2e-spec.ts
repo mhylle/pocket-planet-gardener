@@ -156,6 +156,7 @@ describe('Planet state (e2e)', () => {
         clouds: [],
         // Ten minutes into the 60-minute sun day (SimulationModule).
         sun: { overrideAngle: null, overrideAt: null, angle: 60 },
+        creatures: [],
       });
     });
 

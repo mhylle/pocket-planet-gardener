@@ -1,3 +1,4 @@
+import { Mood } from '../models/creature';
 import { LightPref, LightStatus, Stage, WaterPref, WaterStatus } from './growth-rules';
 
 /** The shapes a status is drawn with; each status in a card has its own (SET-04). */
@@ -16,7 +17,12 @@ export type StatusIcon =
   | 'sprout'
   | 'young'
   | 'bloom'
-  | 'sparkle';
+  | 'sparkle'
+  | 'content'
+  | 'cheerful'
+  | 'overjoyed'
+  | 'wistful'
+  | 'wish';
 
 /**
  * A status in words with its icon, so it never relies on colour (SET-04), and what the player
@@ -72,6 +78,31 @@ export const LIGHT_PREF_TEXT: Readonly<Record<LightPref, StatusText>> = {
   partial: { icon: 'sun-cloud', text: 'Likes some sun', suggestion: null },
   'full-sun': { icon: 'sun', text: 'Likes full sun', suggestion: null },
 };
+
+/** A creature's mood (CRT-04). */
+export const MOOD_TEXT: Readonly<Record<Mood, StatusText>> = {
+  content: { icon: 'content', text: 'Content', suggestion: null },
+  cheerful: { icon: 'cheerful', text: 'Cheerful', suggestion: null },
+  overjoyed: { icon: 'overjoyed', text: 'Overjoyed', suggestion: null },
+};
+
+/** A creature missing what made it move in: a variant of content (CRT-04 AC3). */
+export const WISTFUL_TEXT: StatusText = {
+  icon: 'wistful',
+  text: 'A bit wistful',
+  suggestion: null,
+};
+
+/** A creature with no want at the moment. */
+export const NO_WISH_TEXT: StatusText = {
+  icon: 'wish',
+  text: 'No wish right now',
+  suggestion: null,
+};
+
+export function moodText(mood: Mood, wistful: boolean): StatusText {
+  return wistful ? WISTFUL_TEXT : MOOD_TEXT[mood];
+}
 
 export function waterText(status: WaterStatus): StatusText {
   return WATER_TEXT[status];
