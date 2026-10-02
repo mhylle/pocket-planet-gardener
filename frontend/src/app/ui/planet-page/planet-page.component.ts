@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { CelebrationService } from '../../core/services/celebration.service';
+import { ChatService } from '../../core/services/chat.service';
 import { PlacementService } from '../../core/services/placement.service';
 import { PlanetService } from '../../core/services/planet.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
@@ -20,6 +21,7 @@ import { SkyService } from '../../scene/sky.service';
 import { SunDragController } from '../../scene/sun-drag.controller';
 import { CatalogueComponent } from '../catalogue/catalogue.component';
 import { CelebrationComponent } from '../celebration/celebration.component';
+import { ChatPanelComponent } from '../chat-panel/chat-panel.component';
 import { InfoCardComponent } from '../info-card/info-card.component';
 import { InventoryPanelComponent } from '../inventory-panel/inventory-panel.component';
 import { LoadingComponent } from '../loading/loading.component';
@@ -34,16 +36,18 @@ import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
 
 /**
  * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory,
- * catalogue and settings around it, and what changed for a returning player. Loads the stored
- * planet when it is not known yet (startup, or after opening by code) and keeps it in sync
- * while it is shown. Pip shows until the planet is loaded and first drawn (NFR-03). The page
- * owns the 3D scene and the gardening state, so every panel on it can reach them.
+ * catalogue, settings and a creature's chat around it, and what changed for a returning
+ * player. Loads the stored planet when it is not known yet (startup, or after opening by
+ * code) and keeps it in sync while it is shown. Pip shows until the planet is loaded and first
+ * drawn (NFR-03). The page owns the 3D scene and the gardening state, so every panel on it can
+ * reach them.
  */
 @Component({
   selector: 'app-planet-page',
   imports: [
     CatalogueComponent,
     CelebrationComponent,
+    ChatPanelComponent,
     InfoCardComponent,
     InventoryPanelComponent,
     LoadingComponent,
@@ -70,12 +74,22 @@ import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
 export class PlanetPageComponent {
   private readonly planets = inject(PlanetService);
   private readonly sync = inject(SyncService);
+  private readonly chat = inject(ChatService);
 
   protected readonly planet = inject(PlanetStore).snapshot;
   protected readonly sceneReady = inject(SceneService).ready;
   protected readonly loadFailed = signal(false);
   /** The settings or the catalogue, whichever is open; they share the space over the planet. */
   protected readonly panel = signal<'settings' | 'catalogue' | null>(null);
+  /**
+   * The creature whose chat is open, as a list of one so another creature's chat starts
+   * afresh; empty when none is, or when it is not on this planet.
+   */
+  protected readonly chatWith = computed(() => {
+    const id = this.chat.creatureId();
+    const creature = this.planet()?.creatures.find((each) => each.id === id);
+    return creature ? [creature] : [];
+  });
   private readonly loaded = computed(() => this.planet() !== null);
 
   constructor() {

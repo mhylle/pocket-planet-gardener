@@ -52,17 +52,27 @@ function envKey(name: string): string {
   return 'GAME_' + name.replace(/[A-Z]/g, (c) => '_' + c).toUpperCase();
 }
 
-type Tunable = Exclude<keyof GameConfigService, 'publicConfig'>;
+type Tunable = Exclude<keyof GameConfigService, 'publicConfig' | 'supportUrl'>;
 
 function valueOf(service: GameConfigService, name: string): number {
   return service[name as Tunable];
 }
 
 describe('GameConfigService', () => {
-  it('has exactly the tunables of the SD table', () => {
+  it('has exactly the tunables of the SD table, beside the support link', () => {
     expect(Object.keys(buildService()).sort()).toEqual(
-      Object.keys(sdDefaults).sort(),
+      [...Object.keys(sdDefaults), 'supportUrl'].sort(),
     );
+  });
+
+  it('reads the support link from SUPPORT_URL, defaulting to findahelpline.com', () => {
+    expect(buildService().supportUrl).toBe('https://findahelpline.com');
+    expect(buildService({ SUPPORT_URL: '  ' }).supportUrl).toBe(
+      'https://findahelpline.com',
+    );
+    expect(
+      buildService({ SUPPORT_URL: 'https://example.org/help' }).supportUrl,
+    ).toBe('https://example.org/help');
   });
 
   it.each(Object.entries(sdDefaults))('defaults %s to %p', (name, value) => {
@@ -117,6 +127,7 @@ describe('GameConfigService', () => {
       'journalAfterHours',
     ]);
     expect(config).not.toHaveProperty('aiTimeoutMs');
+    expect(config).not.toHaveProperty('supportUrl');
     for (const [name, value] of Object.entries(config)) {
       expect(value).toBe(sdDefaults[name]);
     }

@@ -1,0 +1,132 @@
+/* The planet page sets the panel's spot and size over the planet. */
+:host {
+  display: block;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+}
+
+.head,
+.send {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0;
+}
+
+/* The messages scroll; the box to write in stays at the bottom. */
+.log {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.messages {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  max-width: 85%;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+.creature {
+  justify-self: start;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.user {
+  justify-self: end;
+  background: var(--accent);
+  color: var(--surface);
+}
+
+/* Out of character, plainly from the game itself (AIB-03 AC2). */
+.notice {
+  display: grid;
+  gap: 0.25rem;
+  max-width: none;
+  border: 1px dashed var(--fg-muted);
+}
+
+.speaker,
+.hint,
+.waiting {
+  color: var(--fg-muted);
+  font-size: 0.875rem;
+}
+
+.speaker {
+  font-weight: 600;
+}
+
+.waiting {
+  font-style: italic;
+}
+
+.small {
+  justify-self: center;
+  padding: 0.25rem 0.75rem;
+}
+
+.compose,
+.forget {
+  display: grid;
+  gap: 0.35rem;
+}
+
+textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--fg-muted);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  resize: none;
+}
+
+.forget-open {
+  align-self: flex-start;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -3,6 +3,7 @@ import { parseEnv } from 'node:util';
 import { DataSource } from 'typeorm';
 import { AdminSetting } from '../admin/admin-setting.entity';
 import { AiUsage } from '../admin/ai-usage.entity';
+import { ChatMessage } from '../chat/chat-message.entity';
 import { CreatureMemory } from '../creatures/creature-memory.entity';
 import { Creature } from '../creatures/creature.entity';
 import { PlanetEvent } from '../events/event.entity';
@@ -20,6 +21,7 @@ import { EventsSchema1790939416415 } from './migrations/1790939416415-EventsSche
 import { AdminSchema1790944327657 } from './migrations/1790944327657-AdminSchema';
 import { CreaturesSchema1790949734700 } from './migrations/1790949734700-CreaturesSchema';
 import { WantsSchema1790956158609 } from './migrations/1790956158609-WantsSchema';
+import { CreatureChatSchema1790964578421 } from './migrations/1790964578421-CreatureChatSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -45,6 +47,7 @@ export const MIGRATIONS = [
   AdminSchema1790944327657,
   CreaturesSchema1790949734700,
   WantsSchema1790956158609,
+  CreatureChatSchema1790964578421,
 ];
 
 export default new DataSource({
@@ -66,6 +69,7 @@ export default new DataSource({
     Creature,
     Want,
     CreatureMemory,
+    ChatMessage,
   ],
   migrations: MIGRATIONS,
   synchronize: false,

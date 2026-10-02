@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
+import { ChatModule } from './chat/chat.module';
 import { CommonModule } from './common/common.module';
 import { CreaturesModule } from './creatures/creatures.module';
 import { EventsModule } from './events/events.module';
@@ -43,6 +44,7 @@ import { WantsModule } from './wants/wants.module';
     AiModule,
     CreaturesModule,
     WantsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

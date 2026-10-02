@@ -27,6 +27,7 @@
   @if (note(); as note) {
     <p class="note" role="status">{{ note }}</p>
   }
+  <button type="button" (click)="chat.open(creature().id)">Chat</button>
   <div class="actions">
     <button
       type="button"

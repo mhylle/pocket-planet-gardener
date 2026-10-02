@@ -54,6 +54,10 @@ export class GameConfigService {
   readonly planetNameMin: number;
   readonly planetNameMax: number;
 
+  // Not a tunable: where a wellbeing notice points to (AIB-03 AC2), from
+  // SUPPORT_URL. Server-only; the client gets it on the notice itself.
+  readonly supportUrl: string;
+
   constructor(config: ConfigService) {
     const read = (key: string, fallback: number): number => {
       const raw = config.get<string>(key)?.trim();
@@ -100,6 +104,9 @@ export class GameConfigService {
     this.syncIntervalSeconds = read('GAME_SYNC_INTERVAL_SECONDS', 10);
     this.planetNameMin = read('GAME_PLANET_NAME_MIN', 2);
     this.planetNameMax = read('GAME_PLANET_NAME_MAX', 24);
+
+    this.supportUrl =
+      config.get<string>('SUPPORT_URL')?.trim() || 'https://findahelpline.com';
   }
 
   /**

@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–12 implemented and validated (see section 9). Next: Phase 13. |
+| **Progress** | Phases 1–13 implemented and validated (see section 9). Next: Phase 14. |
 
 ---
 
@@ -607,6 +607,17 @@ Notes:
 - Rewards: every `unlockEveryNRewards`-th want reward unlocks something new; overjoyed gifts don't advance the counter and only hold unlocked items. Sync responses carry `newlyUnlocked`.
 - Minor gap: the inventory panel count updates before the reward reveal is dismissed (the receipt toast waits).
 - The dig-up warning names the creatures whose wishes need the plant; plant Move (GRD-07 AC2, Should) does not exist, so no warning there.
+
+### Phase 13 — done (2 Oct 2026)
+
+All tasks 13.1–13.5 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 919/919, e2e 199/199; `CreatureChatSchema` reverts and re-applies cleanly; frontend `tsc` 0, tests 752/752, build 0 (870 kB). Live with the real model: greeting, in-character answers in ~1.5–2 s, the homework question steered back to the planet ("numbers are far too pointy for me… Why don't we talk about our lovely, blooming clover instead?"), a memory highlight ("The gardener loves the colour yellow and wants to plant sunflowers."), the danger notice with a helpline link, and Forget clearing history and chat memories without restoring the daily limit. **Not run:** backend `npm run build`.
+
+Decisions and notes:
+- Chat runs outside `mutate()` (no version, no row lock during AI calls). Migration is `CreatureChatSchema`.
+- Two defects found in live checks and fixed: answers were rejected for having more than 5 sentences (the cap was removed; up to 75 words are accepted while the prompt asks for 60, since the SD says "about 60"); "Forget our chats" reset the daily limit (the count now comes from `ai_usage`, `feature = 'chat'`, per planet since UTC midnight).
+- The model rejects non-alternating turns, so the prompt builder merges same-role runs and ends on the player's message. Notices are not chat turns.
+- `SUPPORT_URL` (default https://findahelpline.com) feeds the danger notice. Wellbeing phrase lists are short and non-graphic.
+- Every 5th message waits for the memory highlight call (slower POST).
 
 ---
 

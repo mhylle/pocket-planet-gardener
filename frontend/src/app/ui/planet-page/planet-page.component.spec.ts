@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PlanetSnapshotDto, WelcomeBack } from '../../core/models/planet-snapshot';
+import { ChatService } from '../../core/services/chat.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SyncService } from '../../core/services/sync.service';
@@ -196,6 +197,40 @@ describe('PlanetPageComponent', () => {
     await fixture.whenStable();
     expect(page.querySelector('app-catalogue')).toBeNull();
     expect(document.activeElement).toBe(button);
+  });
+
+  it("shows a creature's chat beside the planet, which stays in play (CHT-01 AC1, AIB-04 AC1)", async () => {
+    TestBed.inject(PlanetStore).setSnapshot({ ...mossy, creatures: [creatureAt('mira', 5, 5)] });
+    render();
+    await fixture.whenStable();
+    const chat = TestBed.inject(ChatService);
+
+    chat.open('mira');
+    await fixture.whenStable();
+    http
+      .expectOne({ method: 'GET', url: '/api/creatures/mira/chat' })
+      .flush({ messages: [], hasMore: false, remaining: 30, greeting: 'Hello!' });
+    await settle();
+
+    expect(page.querySelector('app-chat-panel #chat-title')?.textContent?.trim()).toBe(
+      'Chat with Mira',
+    );
+    expect(canvas()).not.toBeNull();
+    expect(page.querySelector('app-inventory-panel')).not.toBeNull();
+
+    chat.close();
+    await fixture.whenStable();
+    expect(page.querySelector('app-chat-panel')).toBeNull();
+  });
+
+  it('shows no chat for a creature that is not on this planet', async () => {
+    TestBed.inject(PlanetStore).setSnapshot(mossy);
+    TestBed.inject(ChatService).open('elsewhere');
+
+    render();
+    await fixture.whenStable();
+
+    expect(page.querySelector('app-chat-panel')).toBeNull();
   });
 
   describe('saving and sync', () => {

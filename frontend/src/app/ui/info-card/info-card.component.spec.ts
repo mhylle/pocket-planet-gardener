@@ -5,6 +5,7 @@ import type { MockInstance } from 'vitest';
 import { CreatureDto } from '../../core/models/creature';
 import { PlantDto } from '../../core/models/planet-snapshot';
 import { CatalogueService } from '../../core/services/catalogue.service';
+import { ChatService } from '../../core/services/chat.service';
 import { CardTarget, PlacementService } from '../../core/services/placement.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
@@ -383,8 +384,8 @@ describe('InfoCardComponent', () => {
       meet();
       await pin(creature('mira'));
 
-      expect(labels()).toEqual(['More']);
-      expect(document.activeElement).toBe(button('More'));
+      expect(labels()).toEqual(['Chat', 'More']);
+      expect(document.activeElement).toBe(button('Chat'));
       expect(button('More').getAttribute('aria-expanded')).toBe('false');
       expect(quirk()).toBe('Quirk: Counts the stars out loud.');
       expect(text()).not.toContain(mira.backstory);
@@ -422,8 +423,8 @@ describe('InfoCardComponent', () => {
     it('sets the want aside on "Maybe later" with a friendly line, the mood unchanged (WNT-05 AC1, AC2)', async () => {
       meet({ want: CLOVER_WANT, mood: 'cheerful' });
       await pin(creature('mira'));
-      expect(labels()).toEqual(['More', 'Maybe later']);
-      expect(document.activeElement).toBe(button('More'));
+      expect(labels()).toEqual(['Chat', 'More', 'Maybe later']);
+      expect(document.activeElement).toBe(button('Chat'));
 
       button('Maybe later').click();
       const request = http.expectOne({ method: 'POST', url: '/api/wants/want-1/maybe-later' });
@@ -446,8 +447,8 @@ describe('InfoCardComponent', () => {
         { icon: 'cheerful', text: 'Cheerful' },
         { icon: 'wish', text: 'No wish right now' },
       ]);
-      expect(labels()).toEqual(['More']);
-      expect(document.activeElement).toBe(button('More'));
+      expect(labels()).toEqual(['Chat', 'More']);
+      expect(document.activeElement).toBe(button('Chat'));
     });
 
     it('says why when "Maybe later" does not go through', async () => {
@@ -467,7 +468,7 @@ describe('InfoCardComponent', () => {
       expect(card()!.querySelector('.note')?.textContent?.trim()).toBe(
         'That wish has already changed.',
       );
-      expect(labels()).toEqual(['More', 'Maybe later']);
+      expect(labels()).toEqual(['Chat', 'More', 'Maybe later']);
     });
 
     it('keeps the story open when a heartbeat brings the same creature again', async () => {
@@ -479,7 +480,7 @@ describe('InfoCardComponent', () => {
       meet({ mood: 'cheerful' });
       await fixture.whenStable();
 
-      expect(labels()).toEqual(['Less']);
+      expect(labels()).toEqual(['Chat', 'Less']);
       expect(text()).toContain(mira.backstory);
     });
 
@@ -492,8 +493,17 @@ describe('InfoCardComponent', () => {
       await pin(creature('sam'));
 
       expect(title()).toBe('Sam');
-      expect(labels()).toEqual(['More']);
+      expect(labels()).toEqual(['Chat', 'More']);
       expect(text()).not.toContain(sam.backstory);
+    });
+
+    it("opens the creature's chat from the pinned card (CHT-01 AC1)", async () => {
+      meet();
+      await pin(creature('mira'));
+
+      button('Chat').click();
+
+      expect(TestBed.inject(ChatService).creatureId()).toBe('mira');
     });
   });
 });

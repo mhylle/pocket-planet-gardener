@@ -30,7 +30,7 @@ import { StatusIconComponent } from '../status-icon/status-icon.component';
 const CARD_HALF_WIDTH = 140;
 const CARD_HEIGHT = 200;
 /** A creature's card is taller, the more so with its want and its story open. */
-const CREATURE_CARD_HEIGHT = 440;
+const CREATURE_CARD_HEIGHT = 480;
 
 /** What the card shows. */
 interface CardView extends CardTarget {
@@ -52,10 +52,10 @@ interface CardView extends CardTarget {
  * Enter at the middle of the view) pins it with its actions: "Collect seeds" for a ready bloom
  * (GRD-08 AC2), "Dig up" for a plant (GRD-07 AC1), which first names the creatures whose want
  * needs it and waits for Confirm or Keep it (AC3), "Move" and "Put away" for a decoration
- * (ITM-02), "More" for a creature (CRT-03 AC1). The pinned card takes the focus; Escape or a
- * press anywhere else closes it, and Escape and the actions give the focus back to the
- * planet. The light is worked out here from where the sun is now, so the card follows the sun
- * as it moves.
+ * (ITM-02), "Chat" and "More" for a creature (CHT-01 AC1, CRT-03 AC1). The pinned card takes
+ * the focus; Escape or a press anywhere else closes it, and Escape and the actions give the
+ * focus back to the planet. The light is worked out here from where the sun is now, so the
+ * card follows the sun as it moves.
  */
 @Component({
   selector: 'app-info-card',

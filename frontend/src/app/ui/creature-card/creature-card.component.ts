@@ -12,6 +12,7 @@ import { errorMessage, hasStatus } from '../../core/helpers/error-message';
 import { NO_WISH_TEXT, StatusText, moodText } from '../../core/helpers/status-text';
 import { CreatureDto } from '../../core/models/creature';
 import { CatalogueService } from '../../core/services/catalogue.service';
+import { ChatService } from '../../core/services/chat.service';
 import { SyncService } from '../../core/services/sync.service';
 import { StatusIconComponent } from '../status-icon/status-icon.component';
 
@@ -20,9 +21,9 @@ import { StatusIconComponent } from '../status-icon/status-icon.component';
  * species, the one-line summary of its personality, its quirk, and its mood and want as icon
  * and words (SET-04). The want is in the creature's own voice with what it needs in plain
  * words beneath (WNT-01 AC3, WNT-02 AC2); without one, the slot says there is no wish. A
- * pinned card also has "More", which shows its traits and backstory and starts closed for
- * each creature, and "Maybe later" for a want, which sets it aside with a friendly word and no
- * change of mood (WNT-05).
+ * pinned card also has "Chat", which opens the chat beside the planet (CHT-01 AC1), "More",
+ * which shows its traits and backstory and starts closed for each creature, and "Maybe later"
+ * for a want, which sets it aside with a friendly word and no change of mood (WNT-05).
  */
 @Component({
   selector: 'app-creature-card',
@@ -36,6 +37,7 @@ export class CreatureCardComponent {
   readonly pinned = input(false);
 
   private readonly catalogue = inject(CatalogueService);
+  protected readonly chat = inject(ChatService);
   private readonly sync = inject(SyncService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -69,7 +71,7 @@ export class CreatureCardComponent {
         body: {},
       });
       this.note.set(`No rush — ${name} will think of something else.`);
-      // The button has gone with the want; "More" keeps the focus in the card.
+      // The button has gone with the want; "Chat" keeps the focus in the card.
       this.host.nativeElement.querySelector('button')?.focus();
     } catch (error) {
       // A conflict has its own banner, and a closed planet needs no word.

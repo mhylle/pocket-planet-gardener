@@ -41,6 +41,10 @@
       @if (!sceneReady()) {
         <app-loading />
       }
+      <!-- Before the settings and the catalogue, so they open over it. -->
+      @for (creature of chatWith(); track creature.id) {
+        <app-chat-panel [creature]="creature" />
+      }
       @switch (panel()) {
         @case ('settings') {
           <app-settings-panel id="settings-panel" [planet]="planet" />

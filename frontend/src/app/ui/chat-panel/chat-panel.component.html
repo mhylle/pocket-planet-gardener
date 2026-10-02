@@ -1,0 +1,108 @@
+<section #panel class="chat" role="dialog" aria-labelledby="chat-title" tabindex="-1">
+  <div class="head">
+    <h3 id="chat-title">Chat with {{ creature().name }}</h3>
+    <button type="button" class="secondary" (click)="close()">Close</button>
+  </div>
+
+  <div #log class="log" role="region" aria-label="Messages" tabindex="0">
+    @if (hasMore()) {
+      <button type="button" class="secondary small" (click)="loadEarlier()">
+        Earlier messages
+      </button>
+    }
+    <ol class="messages">
+      @for (message of earlier(); track message) {
+        <ng-container *ngTemplateOutlet="line; context: { $implicit: message }" />
+      }
+    </ol>
+    <!-- New lines here are read out as they come; older pages above are not. -->
+    <ol class="messages" role="log">
+      @if (greeting(); as greeting) {
+        <li class="message creature">
+          <span class="visually-hidden">{{ creature().name }}: </span>
+          <span class="text">{{ greeting }}</span>
+        </li>
+      }
+      @for (message of recent(); track message) {
+        <ng-container *ngTemplateOutlet="line; context: { $implicit: message }" />
+      }
+    </ol>
+    @if (retry(); as text) {
+      <button type="button" class="secondary small" (click)="send(text)">Try again</button>
+    }
+    @if (pending(); as text) {
+      <p class="message user">
+        <span class="visually-hidden">You: </span>
+        <span class="text">{{ text }}</span>
+      </p>
+    }
+    <p class="waiting" aria-live="polite">{{ pending() !== null ? waitingLine() : '' }}</p>
+  </div>
+
+  <form class="compose" (submit)="submit($event)">
+    <label for="chat-text">Say something to {{ creature().name }}</label>
+    <textarea
+      #field
+      id="chat-text"
+      rows="2"
+      aria-describedby="chat-count chat-keys"
+      [value]="draft()"
+      [readOnly]="pending() !== null"
+      [disabled]="limitReached()"
+      (input)="typed(field)"
+      (keydown)="keydown($event)"
+    ></textarea>
+    <div class="send">
+      <span id="chat-count" class="hint">{{ count() }} / {{ max() }}</span>
+      <span id="chat-keys" class="visually-hidden">
+        Enter sends, Shift and Enter start a new line.
+      </span>
+      <button type="submit" [disabled]="!canSend()">Send</button>
+    </div>
+    @if (left(); as left) {
+      <p class="hint">{{ left }}</p>
+    }
+    @if (limitReached()) {
+      <p class="hint">That's all the chatting for today. See you tomorrow!</p>
+    }
+  </form>
+
+  @if (confirming()) {
+    <div class="forget">
+      <p #prompt tabindex="-1">
+        Forget everything you and {{ creature().name }} have chatted about? What
+        {{ creature().name }} remembers of wishes and planet news stays.
+      </p>
+      <div class="row">
+        <button type="button" class="danger" [disabled]="forgetting()" (click)="forget()">
+          Yes, forget
+        </button>
+        <button type="button" class="secondary" (click)="ask(false)">Keep our chats</button>
+      </div>
+    </div>
+  } @else {
+    <button #forgetButton type="button" class="secondary small forget-open" (click)="ask(true)">
+      Forget our chats
+    </button>
+  }
+  <p class="error" aria-live="polite">{{ error() }}</p>
+</section>
+
+<ng-template #line let-message>
+  @if (message.role === 'notice') {
+    <li class="message notice">
+      <span class="speaker">From the game</span>
+      <span class="text">{{ message.text }}</span>
+      @if (message.link; as link) {
+        <a [href]="link.url" target="_blank" rel="noopener noreferrer">
+          {{ link.label }}<span class="visually-hidden"> (opens in a new tab)</span>
+        </a>
+      }
+    </li>
+  } @else {
+    <li class="message" [class]="message.role">
+      <span class="visually-hidden">{{ message.role === 'user' ? 'You' : creature().name }}: </span>
+      <span class="text">{{ message.text }}</span>
+    </li>
+  }
+</ng-template>

@@ -98,6 +98,9 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | POST   | `/api/garden/clouds/:id/position`      | yes    | Put a cloud down at `{ lat, lon }`; 200                          |
 | POST   | `/api/garden/sun`                      | yes    | Hold the sun over `{ angle }`, 0 up to 360; 200                  |
 | POST   | `/api/wants/:id/maybe-later`           | yes    | Put a creature's active want off; 200, mood unchanged            |
+| GET    | `/api/creatures/:id/chat`              | yes    | A page of the chat, `?before=<ISO>&limit=1..50` (30); `{ messages, hasMore, remaining, greeting }` |
+| POST   | `/api/creatures/:id/chat`              | yes    | Say `{ text }` to the creature; 201 `{ messages, remaining, limitReached }` |
+| DELETE | `/api/creatures/:id/chat`              | yes    | Forget the chat and its highlights; 204                          |
 | GET    | `/api/admin/settings`                  |        | `{ aiEnabled, aiDailyBudget, aiRequestsToday }`                  |
 | PATCH  | `/api/admin/settings`                  |        | Change `{ aiEnabled?, aiDailyBudget? }` (an integer ≥ 0); 200 with the same shape |
 
@@ -229,6 +232,43 @@ item, a `gift-received` event (`{ creatureId, name, species, lat, lon, item }`)
 dated when it was due, and is `cheerful` again. A reward or gift that brings
 a type the planet has never had unlocks it and lists it in `newlyUnlocked`,
 in a sync's answer as in a command's.
+
+The player can chat with each creature (`chat/`). A chat is not a command:
+it carries no `expectedVersion`, never changes the planet or its version,
+and the model is never asked while the planet is locked. A creature that is
+not on the planet is a 404 `That creature isn't on your planet.` Messages
+are `{ id, role, text, createdAt, source?, link? }`, `role` being `user`,
+`creature` or `notice` and `source` (not on the player's own) `ai`,
+`fallback` or `scripted`. `GET` answers a page of history, oldest first:
+the latest `limit` messages, or those before `before` (pass the oldest
+`createdAt` you have); `hasMore` says older ones exist. Its `greeting` is a
+scripted line from `content/chat-lines.ts` in the creature's voice, not
+stored. `POST` takes 1 to `GAME_CHAT_MESSAGE_MAX_CHARS` (200) characters
+after trimming, counted as code points; outside that it is a 400 with
+`reason` `empty` or `too-long` and a friendly `message`. It stores the
+player's message and answers the new messages in order: the player's, a
+`notice` if the message suggests the player may be in danger, and the
+creature's answer. The answer comes from the model, written with the
+creature's identity, mood, its latest memories, the planet's recent notable
+events (not growth steps), the planet as it is and the last 10 turns of this
+chat. The prompt asks for at most `GAME_CHAT_ANSWER_MAX_WORDS` (60) words;
+an answer of up to a quarter more (75) is still accepted, with no limit on
+sentences. A sad message asks the model to answer gently; one that suggests danger adds
+the notice, with `link: { label: 'Find a helpline', url }` (`SUPPORT_URL`,
+default `https://findahelpline.com`), and asks for a kind answer with no game
+banter. When the gateway falls back, the creature has dozed off mid-thought
+(or, after a danger message, answers with a kind line). Every 5th player
+message to a creature, the model is asked for one short highlight of the
+recent chat, kept as a `chat` memory (`creature_memories`); nothing is kept
+when it finds nothing worth remembering or the answer was a fallback.
+`remaining` is what is left of `GAME_CHAT_DAILY_LIMIT` (30) player messages
+a day, from midnight UTC, across all the planet's creatures. They are
+counted from the planet's `chat` rows in `ai_usage` (one per answered
+message, fallbacks included), so forgetting chats gives none back. Over the
+limit, `POST` stores and logs nothing, asks no model and answers the
+creature's sleepy line with `limitReached: true` and `remaining: 0`.
+`DELETE` removes the creature's chat and its `chat` memories; memories of
+wants, events and stories stay.
 
 Every AI feature goes through `AiGatewayService.generate()` in `ai/`, never
 straight to `AiService`. It uses the feature's pre-written fallback instead
