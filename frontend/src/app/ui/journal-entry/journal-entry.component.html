@@ -1,0 +1,8 @@
+@if (entry().milestones.length) {
+  <ul class="milestones" aria-label="Milestones">
+    @for (milestone of entry().milestones; track $index) {
+      <li><span class="star" aria-hidden="true">★</span> {{ milestone.label }}</li>
+    }
+  </ul>
+}
+<p class="text">{{ entry().text }}</p>

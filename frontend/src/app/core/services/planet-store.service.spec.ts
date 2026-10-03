@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { PlanetSnapshotDto, WelcomeBack } from '../models/planet-snapshot';
+import { FRIDAY_ENTRY } from '../../testing/journal-fixtures';
 import { PlanetStore } from './planet-store.service';
 
 const mossy: PlanetSnapshotDto = {
@@ -54,6 +55,22 @@ describe('PlanetStore', () => {
     store.setWelcomeBack(welcomeBack);
     expect(store.welcomeBack()).toEqual(welcomeBack);
 
+    store.dismissWelcomeBack();
+    expect(store.welcomeBack()).toBeNull();
+  });
+
+  it('keeps the journal page open when the summary is dismissed, and the summary when the page is closed (JRN-01)', () => {
+    const withPage: WelcomeBack = { ...welcomeBack, journalEntry: FRIDAY_ENTRY };
+
+    store.setWelcomeBack(withPage);
+    store.dismissWelcomeBack();
+    expect(store.welcomeBack()).toEqual({ summary: [], journalEntry: FRIDAY_ENTRY });
+    store.dismissJournalEntry();
+    expect(store.welcomeBack()).toBeNull();
+
+    store.setWelcomeBack(withPage);
+    store.dismissJournalEntry();
+    expect(store.welcomeBack()).toEqual(welcomeBack);
     store.dismissWelcomeBack();
     expect(store.welcomeBack()).toBeNull();
   });

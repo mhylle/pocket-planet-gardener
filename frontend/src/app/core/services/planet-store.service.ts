@@ -23,7 +23,10 @@ export class PlanetStore {
   readonly offline = this.isOffline.asReadonly();
   /** The planet changed on another device, so this copy must be reloaded (ACC-04 AC2). */
   readonly reloadRequired = this.mustReload.asReadonly();
-  /** The latest welcome-back summary from a sync, until the player dismisses it (TIM-03). */
+  /**
+   * The latest welcome-back summary from a sync (TIM-03) and its journal page (JRN-01); each
+   * stays until the player dismisses it.
+   */
   readonly welcomeBack = this.returned.asReadonly();
 
   setSnapshot(snapshot: PlanetSnapshotDto): void {
@@ -46,8 +49,18 @@ export class PlanetStore {
     this.returned.set(welcomeBack);
   }
 
+  /** Hides the summary lines; a journal page that came with them stays open. */
   dismissWelcomeBack(): void {
-    this.returned.set(null);
+    this.returned.update((welcome) =>
+      welcome?.journalEntry ? { summary: [], journalEntry: welcome.journalEntry } : null,
+    );
+  }
+
+  /** Closes the journal page; the summary lines that came with it stay. */
+  dismissJournalEntry(): void {
+    this.returned.update((welcome) =>
+      welcome?.summary.length ? { summary: welcome.summary } : null,
+    );
   }
 
   /** Forgets the planet and its save state, such as when the player leaves it. */

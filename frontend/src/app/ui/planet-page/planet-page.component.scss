@@ -60,6 +60,15 @@ app-catalogue {
   overflow: auto;
 }
 
+app-journal-book {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: min(34rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+  overflow: auto;
+}
+
 /*
  * Beside the planet at the right, leaving the middle and the inventory free to play, and
  * below the sky list where the view is tall enough for both.
@@ -73,14 +82,24 @@ app-chat-panel {
   max-height: calc(100% - 1.5rem);
 }
 
-/* Bottom right, clear of the middle, where the camera turns what the player picks. */
+/*
+ * Bottom right, clear of the middle, where the camera turns what the player picks. A long
+ * journal page scrolls rather than pushing the summary out of view.
+ */
 .return {
   position: absolute;
   right: 0.75rem;
   bottom: 0.75rem;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   width: min(24rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+}
+
+/* Nothing to show takes no room, so no gap is left over the planet. */
+.return > :empty {
+  display: none;
 }
 
 .opening {

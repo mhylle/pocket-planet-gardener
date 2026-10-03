@@ -17,6 +17,15 @@
         <button
           type="button"
           class="secondary"
+          aria-controls="journal-panel"
+          [attr.aria-expanded]="panel() === 'journal'"
+          (click)="toggle('journal')"
+        >
+          Journal
+        </button>
+        <button
+          type="button"
+          class="secondary"
           aria-controls="settings-panel"
           [attr.aria-expanded]="panel() === 'settings'"
           (click)="toggle('settings')"
@@ -34,14 +43,15 @@
       <app-receipt-toast />
       <app-celebration />
       <app-info-card />
-      <!-- The journal page (JRN-01) goes above the welcome-back summary in this column. -->
+      <!-- The journal page (JRN-01) above the welcome-back summary. -->
       <div class="return">
+        <app-journal-page />
         <app-welcome-back />
       </div>
       @if (!sceneReady()) {
         <app-loading />
       }
-      <!-- Before the settings and the catalogue, so they open over it. -->
+      <!-- Before the settings, the catalogue and the journal, so they open over it. -->
       @for (creature of chatWith(); track creature.id) {
         <app-chat-panel [creature]="creature" />
       }
@@ -51,6 +61,9 @@
         }
         @case ('catalogue') {
           <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
+        }
+        @case ('journal') {
+          <app-journal-book id="journal-panel" (closed)="panel.set(null)" />
         }
       }
       <!-- Last, so a reward shows over everything else on the planet. -->

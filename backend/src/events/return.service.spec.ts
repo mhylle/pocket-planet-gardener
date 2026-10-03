@@ -94,6 +94,53 @@ describe('ReturnService', () => {
     expect(await service.buildReturn(ctxAfter(180), LAST_SEEN)).toEqual({});
   });
 
+  describe('with a journal writer (JRN-01)', () => {
+    const ENTRY = {
+      id: 'entry-1',
+      text: 'A quiet day.',
+      source: 'template' as const,
+      createdAt: '2030-01-01T05:00:00.000Z',
+      coversFrom: '2029-12-25T05:00:00.000Z',
+      coversTo: '2030-01-01T05:00:00.000Z',
+      milestones: [],
+    };
+
+    it('adds the journal entry beside the summary, and asks the writer with the last visit', async () => {
+      const { em, service, ctxAfter } = setup([BLOOM]);
+      const asked: unknown[][] = [];
+      service.registerJournalWriter((ctx, previousLastSeenAt) => {
+        asked.push([ctx.em, previousLastSeenAt]);
+        return Promise.resolve(ENTRY);
+      });
+
+      const result = await service.buildReturn(ctxAfter(300), LAST_SEEN);
+
+      expect(result.welcomeBack?.summary).toHaveLength(1);
+      expect(result.welcomeBack?.journalEntry).toEqual(ENTRY);
+      expect(asked).toEqual([[em, LAST_SEEN]]);
+    });
+
+    it('sends a quiet day entry with an empty summary (JRN-02 AC3)', async () => {
+      const { service, ctxAfter } = setup([STAGE]);
+      service.registerJournalWriter(() => Promise.resolve(ENTRY));
+
+      expect(await service.buildReturn(ctxAfter(300), LAST_SEEN)).toEqual({
+        welcomeBack: { summary: [], journalEntry: ENTRY },
+      });
+    });
+
+    it('leaves journalEntry out when the writer has nothing', async () => {
+      const { service, ctxAfter } = setup([BLOOM]);
+      service.registerJournalWriter(() => Promise.resolve(undefined));
+
+      const result = await service.buildReturn(ctxAfter(180), LAST_SEEN);
+
+      expect(result.welcomeBack).not.toHaveProperty('journalEntry');
+      expect(result.welcomeBack?.summary).toHaveLength(1);
+      expect(await service.buildReturn(ctxAfter(30), LAST_SEEN)).toEqual({});
+    });
+  });
+
   it('registers buildReturn as a sync contributor', async () => {
     const { contributors, service, ctxAfter } = setup([BLOOM]);
     service.onModuleInit();

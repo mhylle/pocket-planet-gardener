@@ -1,6 +1,7 @@
 import { CloudState } from '../helpers/cloud-rules';
 import { SurfacePoint } from '../helpers/surface-coords';
 import { CreatureDto } from './creature';
+import { JournalEntryDto } from './journal';
 import { PlanetDto } from './planet';
 
 export type PlantStage = 'seed' | 'sprout' | 'young' | 'bloom';
@@ -81,8 +82,8 @@ export interface SummaryLine {
 /** What changed while the player was away (TIM-03). */
 export interface WelcomeBack {
   summary: SummaryLine[];
-  /** The diary page for the absence (JRN-01); the server sends it from Phase 14 on. */
-  journalEntry?: unknown;
+  /** The diary page written for the absence (JRN-01); the summary may then be empty. */
+  journalEntry?: JournalEntryDto;
 }
 
 /** The 200 response of POST /api/planet/sync. */
@@ -91,7 +92,10 @@ export interface SyncResponse {
   events: EventDto[];
   /** Item types the player got for the first time, such as from a reward (ITM-04 AC3). */
   newlyUnlocked?: string[];
-  /** Only on a sync after the player was away long enough and something happened. */
+  /**
+   * Only on a sync after the player was away long enough and something happened, or a journal
+   * entry was written.
+   */
   welcomeBack?: WelcomeBack;
 }
 

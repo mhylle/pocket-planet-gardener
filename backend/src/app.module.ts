@@ -11,6 +11,7 @@ import { EventsModule } from './events/events.module';
 import { GameConfigModule } from './game-config/game-config.module';
 import { GardenModule } from './garden/garden.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { JournalModule } from './journal/journal.module';
 import { PlanetsModule } from './planets/planets.module';
 import { SimulationModule } from './simulation/simulation.module';
 import { WantsModule } from './wants/wants.module';
@@ -45,6 +46,7 @@ import { WantsModule } from './wants/wants.module';
     CreaturesModule,
     WantsModule,
     ChatModule,
+    JournalModule,
   ],
 })
 export class AppModule {}

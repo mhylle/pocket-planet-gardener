@@ -1,8 +1,8 @@
-@if (welcomeBack(); as welcome) {
+@if (lines().length) {
   <section #dialog class="welcome" role="dialog" aria-labelledby="welcome-back-title" tabindex="-1">
     <h3 id="welcome-back-title">Welcome back!</h3>
     <ul class="lines">
-      @for (line of welcome.summary; track $index) {
+      @for (line of lines(); track $index) {
         <li>
           @if (!$first) {
             <span class="dot" aria-hidden="true"> · </span>

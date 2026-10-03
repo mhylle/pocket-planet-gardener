@@ -6,9 +6,12 @@ import { EventLogService } from './event-log.service';
 import { ReturnService } from './return.service';
 
 // Imports PlanetsModule to register its fact sink and sync contributor with
-// PlanetStateService; PlanetsModule never imports this one.
+// PlanetStateService; PlanetsModule never imports this one. JournalModule
+// imports this one, for the log and to register its writer with
+// ReturnService.
 @Module({
   imports: [TypeOrmModule.forFeature([PlanetEvent]), PlanetsModule],
   providers: [EventLogService, ReturnService],
+  exports: [EventLogService, ReturnService],
 })
 export class EventsModule {}

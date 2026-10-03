@@ -24,6 +24,8 @@ import { CelebrationComponent } from '../celebration/celebration.component';
 import { ChatPanelComponent } from '../chat-panel/chat-panel.component';
 import { InfoCardComponent } from '../info-card/info-card.component';
 import { InventoryPanelComponent } from '../inventory-panel/inventory-panel.component';
+import { JournalBookComponent } from '../journal-book/journal-book.component';
+import { JournalPageComponent } from '../journal-page/journal-page.component';
 import { LoadingComponent } from '../loading/loading.component';
 import { PlacementHudComponent } from '../placement-hud/placement-hud.component';
 import { ReceiptToastComponent } from '../receipt-toast/receipt-toast.component';
@@ -34,13 +36,16 @@ import { SettingsPanelComponent } from '../settings-panel/settings-panel.compone
 import { SkyListComponent } from '../sky-list/sky-list.component';
 import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
 
+/** A panel that opens over the planet from its button in the bar. */
+type Panel = 'settings' | 'catalogue' | 'journal';
+
 /**
  * The planet screen: the 3D planet with its sky, the planet's name, save state, inventory,
- * catalogue, settings and a creature's chat around it, and what changed for a returning
- * player. Loads the stored planet when it is not known yet (startup, or after opening by
- * code) and keeps it in sync while it is shown. Pip shows until the planet is loaded and first
- * drawn (NFR-03). The page owns the 3D scene and the gardening state, so every panel on it can
- * reach them.
+ * catalogue, journal, settings and a creature's chat around it, and the journal page and what
+ * changed for a returning player. Loads the stored planet when it is not known yet (startup,
+ * or after opening by code) and keeps it in sync while it is shown. Pip shows until the planet
+ * is loaded and first drawn (NFR-03). The page owns the 3D scene and the gardening state, so
+ * every panel on it can reach them.
  */
 @Component({
   selector: 'app-planet-page',
@@ -50,6 +55,8 @@ import { WelcomeBackComponent } from '../welcome-back/welcome-back.component';
     ChatPanelComponent,
     InfoCardComponent,
     InventoryPanelComponent,
+    JournalBookComponent,
+    JournalPageComponent,
     LoadingComponent,
     PlacementHudComponent,
     PlanetViewComponent,
@@ -79,8 +86,11 @@ export class PlanetPageComponent {
   protected readonly planet = inject(PlanetStore).snapshot;
   protected readonly sceneReady = inject(SceneService).ready;
   protected readonly loadFailed = signal(false);
-  /** The settings or the catalogue, whichever is open; they share the space over the planet. */
-  protected readonly panel = signal<'settings' | 'catalogue' | null>(null);
+  /**
+   * The settings, the catalogue or the journal, whichever is open; they share the space over
+   * the planet.
+   */
+  protected readonly panel = signal<Panel | null>(null);
   /**
    * The creature whose chat is open, as a list of one so another creature's chat starts
    * afresh; empty when none is, or when it is not on this planet.
@@ -122,7 +132,7 @@ export class PlanetPageComponent {
   }
 
   /** Opens the panel, or closes it when it is already open. */
-  protected toggle(panel: 'settings' | 'catalogue'): void {
+  protected toggle(panel: Panel): void {
     this.panel.update((open) => (open === panel ? null : panel));
   }
 

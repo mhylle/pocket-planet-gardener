@@ -17,6 +17,7 @@ import {
   creatureAt,
   wantFulfilled,
 } from '../../testing/garden-fixtures';
+import { FRIDAY_ENTRY, journalEntry } from '../../testing/journal-fixtures';
 import { PlanetPageComponent } from './planet-page.component';
 
 const mossy: PlanetSnapshotDto = {
@@ -337,6 +338,103 @@ describe('PlanetPageComponent', () => {
       expect(summary.textContent).toContain('Welcome back!');
       expect(summary.textContent).toContain('1 plant bloomed');
       expect(document.activeElement).toBe(summary);
+    });
+
+    describe('the journal', () => {
+      const SUMMARY = [{ kind: 'blooms' as const, count: 1, text: '1 plant bloomed' }];
+      const text = (element: Element) => element.textContent!.replace(/\s+/g, ' ').trim();
+      const returnDialogs = () => [
+        ...page.querySelectorAll<HTMLElement>('.return [role="dialog"]'),
+      ];
+      const journalPage = () => page.querySelector<HTMLElement>('app-journal-page [role="dialog"]');
+      const journalButton = () =>
+        page.querySelector<HTMLButtonElement>('button[aria-controls="journal-panel"]')!;
+      const bookDates = () =>
+        [...page.querySelectorAll('#journal-panel .page h4')].map((each) => text(each));
+
+      it('opens the diary page above the welcome-back summary on return (JRN-01 AC1)', async () => {
+        render();
+        firstSync({ summary: SUMMARY, journalEntry: FRIDAY_ENTRY });
+        await fixture.whenStable();
+
+        const [diary, summary] = returnDialogs();
+        expect(diary).toBe(journalPage());
+        expect(text(diary.querySelector('h3')!)).toBe('Friday, 2 October');
+        expect(diary.querySelector('.text')!.textContent).toBe(FRIDAY_ENTRY.text);
+        expect(summary.closest('app-welcome-back')).not.toBeNull();
+        expect(text(summary)).toContain('1 plant bloomed');
+        expect(document.activeElement).toBe(diary);
+      });
+
+      it('shows just the diary page when nothing else changed', async () => {
+        render();
+        firstSync({ summary: [], journalEntry: FRIDAY_ENTRY });
+        await fixture.whenStable();
+
+        expect(returnDialogs()).toEqual([journalPage()]);
+      });
+
+      it('finds a closed diary page again first in the book (JRN-01 AC3, JRN-03 AC1)', async () => {
+        render();
+        firstSync({ summary: [], journalEntry: FRIDAY_ENTRY });
+        await fixture.whenStable();
+
+        journalPage()!.querySelector<HTMLButtonElement>('button.close')!.click();
+        await fixture.whenStable();
+        expect(journalPage()).toBeNull();
+
+        journalButton().click();
+        await fixture.whenStable();
+        expect(journalButton().getAttribute('aria-expanded')).toBe('true');
+        http
+          .expectOne({ method: 'GET', url: '/api/journal' })
+          .flush({
+            entries: [FRIDAY_ENTRY, journalEntry('thursday', '2026-10-01')],
+            hasMore: false,
+          });
+        await settle();
+
+        expect(bookDates()).toEqual(['Friday, 2 October', 'Thursday, 1 October']);
+        expect(page.querySelector('#journal-panel .page .text')!.textContent).toBe(
+          FRIDAY_ENTRY.text,
+        );
+      });
+
+      it('opens the book from its button, and Escape closes it with the focus back (JRN-03)', async () => {
+        render();
+        firstSync();
+        await fixture.whenStable();
+
+        journalButton().focus();
+        journalButton().click();
+        await fixture.whenStable();
+        http.expectOne('/api/journal').flush({ entries: [], hasMore: false });
+        await settle();
+        const dialog = page.querySelector<HTMLElement>('#journal-panel [role="dialog"]')!;
+        expect(document.activeElement).toBe(dialog);
+        expect(text(dialog)).toContain('Your journal is waiting for its first story.');
+
+        dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await fixture.whenStable();
+        expect(page.querySelector('app-journal-book')).toBeNull();
+        expect(journalButton().getAttribute('aria-expanded')).toBe('false');
+        expect(document.activeElement).toBe(journalButton());
+      });
+
+      it('shares the space over the planet with the catalogue and the settings', async () => {
+        render();
+        firstSync();
+        await fixture.whenStable();
+
+        journalButton().click();
+        await fixture.whenStable();
+        http.expectOne('/api/journal').flush({ entries: [], hasMore: false });
+        page.querySelector<HTMLButtonElement>('button[aria-controls="catalogue-panel"]')!.click();
+        await fixture.whenStable();
+
+        expect(page.querySelector('app-journal-book')).toBeNull();
+        expect(page.querySelector('app-catalogue')).not.toBeNull();
+      });
     });
 
     it('cheers a fulfilled want: a hop, the thank-you and the reward, then its receipt (WNT-03 AC1, WNT-04 AC1)', async () => {

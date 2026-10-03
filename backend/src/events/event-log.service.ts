@@ -1,5 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { DataSource, EntityManager, MoreThan } from 'typeorm';
+import {
+  And,
+  DataSource,
+  EntityManager,
+  LessThanOrEqual,
+  MoreThan,
+} from 'typeorm';
 import type { Fact } from '../planets/planet-state/mutation.types';
 import { PlanetStateService } from '../planets/planet-state/planet-state.service';
 import { PlanetEvent } from './event.entity';
@@ -9,8 +15,7 @@ const BLOOMED = 'plant-bloomed';
 /**
  * The planet's event log. As the fact sink it appends every fact of every
  * mutation in that mutation's transaction, so the log holds exactly what
- * happened; the welcome-back summary reads it, and later the journal
- * (JRN-02).
+ * happened; the welcome-back summary and the journal read it (JRN-02).
  */
 @Injectable()
 export class EventLogService implements OnModuleInit {
@@ -60,6 +65,23 @@ export class EventLogService implements OnModuleInit {
   ): Promise<PlanetEvent[]> {
     return em.find(PlanetEvent, {
       where: { planetId, occurredAt: MoreThan(from) },
+      order: { occurredAt: 'ASC', id: 'ASC' },
+    });
+  }
+
+  /** The milestones after from, up to and including to, oldest first (JRN-03 AC2). */
+  milestones(
+    planetId: string,
+    from: Date,
+    to: Date,
+    em: EntityManager = this.dataSource.manager,
+  ): Promise<PlanetEvent[]> {
+    return em.find(PlanetEvent, {
+      where: {
+        planetId,
+        isMilestone: true,
+        occurredAt: And(MoreThan(from), LessThanOrEqual(to)),
+      },
       order: { occurredAt: 'ASC', id: 'ASC' },
     });
   }

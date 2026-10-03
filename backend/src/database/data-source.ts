@@ -11,6 +11,7 @@ import { Decoration } from '../garden/decoration.entity';
 import { Plant } from '../garden/plant.entity';
 import { InventoryItem } from '../inventory/inventory-item.entity';
 import { Unlock } from '../inventory/unlock.entity';
+import { JournalEntry } from '../journal/journal-entry.entity';
 import { Planet } from '../planets/planet.entity';
 import { Want } from '../wants/want.entity';
 import { ChatSchema1790850718762 } from './migrations/1790850718762-ChatSchema';
@@ -22,6 +23,7 @@ import { AdminSchema1790944327657 } from './migrations/1790944327657-AdminSchema
 import { CreaturesSchema1790949734700 } from './migrations/1790949734700-CreaturesSchema';
 import { WantsSchema1790956158609 } from './migrations/1790956158609-WantsSchema';
 import { CreatureChatSchema1790964578421 } from './migrations/1790964578421-CreatureChatSchema';
+import { JournalSchema1790967397714 } from './migrations/1790967397714-JournalSchema';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -48,6 +50,7 @@ export const MIGRATIONS = [
   CreaturesSchema1790949734700,
   WantsSchema1790956158609,
   CreatureChatSchema1790964578421,
+  JournalSchema1790967397714,
 ];
 
 export default new DataSource({
@@ -70,6 +73,7 @@ export default new DataSource({
     Want,
     CreatureMemory,
     ChatMessage,
+    JournalEntry,
   ],
   migrations: MIGRATIONS,
   synchronize: false,

@@ -12,6 +12,7 @@ import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
 import { MOSSY } from '../../testing/garden-fixtures';
+import { FRIDAY_ENTRY } from '../../testing/journal-fixtures';
 import { WelcomeBackComponent } from './welcome-back.component';
 
 const WELCOME_BACK: WelcomeBack = {
@@ -129,6 +130,41 @@ describe('WelcomeBackComponent', () => {
     expect(dialog()).toBeNull();
     expect(TestBed.inject(PlanetStore).welcomeBack()).toBeNull();
     expect(focusCanvas).toHaveBeenCalledOnce();
+  });
+
+  it('stays hidden when a quiet day brings only a journal page (JRN-01)', async () => {
+    await syncWith({ summary: [], journalEntry: FRIDAY_ENTRY });
+
+    expect(dialog()).toBeNull();
+    expect(text(page)).toBe('');
+  });
+
+  it('leaves the focus to the journal page above it, and takes it when the page closes (JRN-01 AC1)', async () => {
+    const outside = document.body.appendChild(document.createElement('button'));
+    outside.focus();
+
+    await syncWith({ ...WELCOME_BACK, journalEntry: FRIDAY_ENTRY });
+    expect(dialog()).not.toBeNull();
+    expect(document.activeElement).toBe(outside);
+
+    TestBed.inject(PlanetStore).dismissJournalEntry();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(dialog());
+    outside.remove();
+  });
+
+  it('keeps the journal page open on Dismiss, without sending the focus to the planet', async () => {
+    await syncWith({ ...WELCOME_BACK, journalEntry: FRIDAY_ENTRY });
+
+    dismissButton().click();
+    await fixture.whenStable();
+
+    expect(dialog()).toBeNull();
+    expect(TestBed.inject(PlanetStore).welcomeBack()).toEqual({
+      summary: [],
+      journalEntry: FRIDAY_ENTRY,
+    });
+    expect(focusCanvas).not.toHaveBeenCalled();
   });
 
   it('hides on Escape and gives the focus back to the planet', async () => {

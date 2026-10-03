@@ -1,0 +1,37 @@
+<section #dialog class="book" role="dialog" aria-labelledby="journal-title" tabindex="-1">
+  <div class="head">
+    <h3 id="journal-title">Journal</h3>
+    <button type="button" class="secondary" (click)="closed.emit()">Close</button>
+  </div>
+
+  @if (pages().length) {
+    <ol class="pages">
+      @for (page of pages(); track page.entry.id) {
+        <li>
+          <article
+            #sheet
+            class="page"
+            tabindex="-1"
+            [attr.aria-labelledby]="'journal-date-' + page.entry.id"
+          >
+            <h4 [id]="'journal-date-' + page.entry.id">{{ page.date }}</h4>
+            <app-journal-entry [entry]="page.entry" />
+          </article>
+        </li>
+      }
+    </ol>
+  } @else if (loading()) {
+    <p class="hint">Opening your journal…</p>
+  } @else if (!failed()) {
+    <p class="empty">Your journal is waiting for its first story.</p>
+  }
+
+  @if (failed()) {
+    <div class="failed" role="alert">
+      <p>We couldn't reach your journal just now.</p>
+      <button type="button" class="secondary" (click)="load()">Try again</button>
+    </div>
+  } @else if (hasMore()) {
+    <button type="button" class="secondary older" (click)="load()">Older entries</button>
+  }
+</section>

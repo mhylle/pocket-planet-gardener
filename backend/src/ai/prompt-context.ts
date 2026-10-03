@@ -100,6 +100,17 @@ export function toPlanetPublicState(
   };
 }
 
+function speciesOf(payload: Record<string, unknown>): string {
+  return known(SPECIES_IDS, payload.species) ?? 'creature';
+}
+
+/** "Mira the moth" from an event payload, or '' when the name or species is missing. */
+function creatureOf(payload: Record<string, unknown>): string {
+  const species = known(SPECIES_IDS, payload.species);
+  const name = typeof payload.name === 'string' ? publicText(payload.name) : '';
+  return name && species ? `${name} the ${species}` : '';
+}
+
 /** A short human phrase for an event, read from named payload fields only. */
 function eventDetail(type: string, payload: Record<string, unknown>): string {
   const plant = known(PLANT_IDS, payload.type) ?? 'a plant';
@@ -111,16 +122,17 @@ function eventDetail(type: string, payload: Record<string, unknown>): string {
       return `${plant} ${stage ? STAGE_WORDING[stage] : 'grew'}`;
     }
     case 'creature-arrived': {
-      const species = known(SPECIES_IDS, payload.species);
-      const name =
-        typeof payload.name === 'string' ? publicText(payload.name) : '';
-      if (name && species) return `${name} the ${species} moved in`;
-      return `a new ${species ?? 'creature'} moved in`;
+      const who = creatureOf(payload);
+      return who ? `${who} moved in` : `a new ${speciesOf(payload)} moved in`;
     }
-    case 'want-fulfilled':
-      return 'a wish came true';
-    case 'gift-received':
-      return 'a gift arrived';
+    case 'want-fulfilled': {
+      const who = creatureOf(payload);
+      return who ? `${who}'s wish came true` : 'a wish came true';
+    }
+    case 'gift-received': {
+      const who = creatureOf(payload);
+      return who ? `${who} gave the gardener a present` : 'a gift arrived';
+    }
     default:
       return type.replace(/-/g, ' ');
   }

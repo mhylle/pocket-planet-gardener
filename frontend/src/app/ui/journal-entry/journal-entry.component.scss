@@ -1,0 +1,32 @@
+:host {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.milestones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.milestones li {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Handwriting-like serif, with the paragraphs the entry was written in. */
+.text {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}

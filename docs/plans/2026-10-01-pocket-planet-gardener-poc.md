@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–13 implemented and validated (see section 9). Next: Phase 14. |
+| **Progress** | Phases 1–14 implemented and validated (see section 9). Next: Phase 15. |
 
 ---
 
@@ -618,6 +618,17 @@ Decisions and notes:
 - The model rejects non-alternating turns, so the prompt builder merges same-role runs and ends on the player's message. Notices are not chat turns.
 - `SUPPORT_URL` (default https://findahelpline.com) feeds the danger notice. Wellbeing phrase lists are short and non-graphic.
 - Every 5th message waits for the memory highlight call (slower POST).
+
+### Phase 14 — done (2 Oct 2026)
+
+All tasks 14.1–14.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 959/959, e2e 212/212; `JournalSchema` reverts and re-applies cleanly; frontend `tsc` 0, tests 784/784, build 0 (879 kB). Live with the real model: after 5 hours away the journal page opened above the welcome-back summary with a dated, warm entry that named the worm and only real events ("A clover has bloomed… Wigglesworth the worm has moved in, and he is absolutely delighted…"), with milestone badges; entries passed the fact check on the first try (74–82 words); the journal book pages newest first. **Not run:** backend `npm run build`.
+
+Notes:
+- Every entry is fact-checked against the event log (`verify`): unknown creature names, invented gifts/arrivals/blooms/wishes, inflated counts and length → retry → template from the event log. The name check is heuristic (pool names and "X the <species>").
+- `welcomeBack` is sent when the summary is non-empty OR a journal entry was written; a quiet day still gets a cosy entry.
+- The journal AI call runs inside the sync transaction (like creature identities).
+- `toPublicEvents` now names the creature behind a fulfilled wish or a gift, so prompts can mention them.
+- The diary page date uses the player's local time zone; the AI prompt's date heading is UTC.
 
 ---
 

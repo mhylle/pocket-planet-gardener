@@ -101,6 +101,7 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | GET    | `/api/creatures/:id/chat`              | yes    | A page of the chat, `?before=<ISO>&limit=1..50` (30); `{ messages, hasMore, remaining, greeting }` |
 | POST   | `/api/creatures/:id/chat`              | yes    | Say `{ text }` to the creature; 201 `{ messages, remaining, limitReached }` |
 | DELETE | `/api/creatures/:id/chat`              | yes    | Forget the chat and its highlights; 204                          |
+| GET    | `/api/journal`                         | yes    | A page of the journal, newest first, `?before=<ISO>&limit=1..20` (10); `{ entries, hasMore }` |
 | GET    | `/api/admin/settings`                  |        | `{ aiEnabled, aiDailyBudget, aiRequestsToday }`                  |
 | PATCH  | `/api/admin/settings`                  |        | Change `{ aiEnabled?, aiDailyBudget? }` (an integer ≥ 0); 200 with the same shape |
 
@@ -141,8 +142,29 @@ kind, in the order `blooms` (`plant-bloomed`), `creatures`
 (`creature-arrived`), `wants` (`want-fulfilled`), `gifts` (`gift-received`),
 with `text` such as `3 plants bloomed` and `focus` the `{ lat, lon }` of the
 latest one, left out when its events have no position. Stage changes are not
-news. After a shorter gap, or with no news, the sync has no `welcomeBack`;
+news. After a shorter gap, or with no news, the summary is empty, and unless
+a journal entry was written (below) the sync has no `welcomeBack`;
 `GET /api/planet` never has one.
+
+A sync at least `GAME_JOURNAL_AFTER_HOURS` (4) after the previous sync also
+writes the planet's journal (`journal/`), unless its latest entry is less
+than that old, and answers it as `welcomeBack.journalEntry`, even after a
+quiet day with an empty summary. An entry is
+`{ id, text, source, createdAt, coversFrom, coversTo, milestones }`: the
+story of the events logged after `coversFrom` (where the previous entry
+stopped, at most `GAME_MAX_AWAY_DAYS` back) up to `coversTo` (now), with
+`source` `ai` or `template` and `milestones` the milestone events in that
+span as `{ type, label, occurredAt }`, labelled like `First bloom: clover` or
+`Wigglenut the worm moved in`. The model is asked for at most
+`GAME_JOURNAL_MAX_WORDS` (150) words, warm and funny, naming the creatures,
+and an entry of up to a quarter more is accepted. `journal-fact-check.ts`
+refuses one that names a creature the planet does not have (a name from the
+fallback pool, or a name before "the snail" and the like), mentions a gift,
+parcel, arrival, bloom or granted wish the log does not hold, or counts more
+blooms than were logged. After the retry, or with the AI off, the entry is a
+template written from the log, at most 150 words. `GET /api/journal` pages
+the entries newest first: the latest `limit`, or those before `before` (pass
+the oldest `createdAt` you have).
 
 The snapshot is the whole planet. It keeps the fields served before it,
 `id`, `code`, `name`, `version` and `createdAt`, so older clients still work,
@@ -354,6 +376,8 @@ backend/src
 ├── wants/                   WantsService (fulfilment, mood, gifts, new wants after every
 │                            sync and command; maybe-later), WantGenerationService,
 │                            RewardService, and pure rules: want evaluator, mood, rewards
+├── journal/                 JournalService (an entry on return, GET /api/journal) and
+│                            pure helpers: the journal prompt, fact check and template
 ├── admin/                   GET/PATCH /api/admin/settings: AdminSettingsService
 │                            (AI switch, daily budget) and AiUsageService (ai_usage log)
 └── ai/

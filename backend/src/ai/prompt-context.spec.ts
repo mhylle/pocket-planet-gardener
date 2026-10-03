@@ -192,6 +192,25 @@ describe('toPublicEvents', () => {
     },
   ];
 
+  it('names the creature behind a wish or a gift when the payload carries it', () => {
+    const named = toPublicEvents([
+      {
+        type: 'want-fulfilled',
+        occurredAt: '2026-10-02T09:00:00.000Z',
+        payload: { creatureId: plantId, name: 'Mira', species: 'moth' },
+      },
+      {
+        type: 'gift-received',
+        occurredAt: '2026-10-02T09:05:00.000Z',
+        payload: { creatureId: plantId, name: 'Mira', species: 'moth' },
+      },
+    ]).map((event) => event.detail);
+    expect(named).toEqual([
+      "Mira the moth's wish came true",
+      'Mira the moth gave the gardener a present',
+    ]);
+  });
+
   it('keeps the type, the time and a short human detail, in order', () => {
     expect(toPublicEvents(events)).toEqual([
       {

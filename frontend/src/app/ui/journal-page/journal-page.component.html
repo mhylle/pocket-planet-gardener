@@ -1,0 +1,15 @@
+@if (entry(); as entry) {
+  <section
+    #dialog
+    class="page"
+    [class.turn]="!still"
+    role="dialog"
+    aria-labelledby="journal-page-kicker journal-page-date"
+    tabindex="-1"
+  >
+    <p id="journal-page-kicker" class="kicker">From your planet journal</p>
+    <h3 id="journal-page-date">{{ date() }}</h3>
+    <app-journal-entry [entry]="entry" />
+    <button type="button" class="close" (click)="close()">Close</button>
+  </section>
+}
