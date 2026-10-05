@@ -114,9 +114,13 @@ describe('content', () => {
       expect(types.size).toBeGreaterThanOrEqual(3);
     });
 
-    it('has a seed that blooms within 10 minutes (ONB-02)', () => {
+    it('has a seed that blooms within 10 minutes, even with one need unmet (ONB-02 AC1)', () => {
+      // An unmet need halves the speed (the SD default of 50%).
+      const unmetNeedGrowthFactor = 0.5;
       expect(
-        starterPlants.some((plant) => plant && plant.bloomMinutes <= 10),
+        starterPlants.some(
+          (plant) => plant && plant.bloomMinutes / unmetNeedGrowthFactor <= 10,
+        ),
       ).toBe(true);
     });
 

@@ -7,8 +7,9 @@ export const PLANTS: readonly PlantType[] = [
     name: 'Clover',
     waterPref: 'medium',
     lightPref: 'partial',
-    // Tutorial plant: must bloom within 10 minutes of play (ONB-02 AC1).
-    bloomMinutes: 8,
+    // Tutorial plant: must bloom within 10 minutes of play (ONB-02 AC1),
+    // even at half speed for one unmet need, such as the night side.
+    bloomMinutes: 5,
     description:
       'Pops up and blooms almost before you have finished planting it. Snails think it is the finest salad on the planet.',
     unlockHint: 'One of the seeds every new planet starts with.',

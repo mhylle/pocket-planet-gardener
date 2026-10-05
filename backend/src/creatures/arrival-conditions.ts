@@ -137,7 +137,8 @@ export function attractions<
 /**
  * Which species moves in now, if any, and the tracking to store. A species
  * is due once its condition has held for arrivalDelaySeconds, or at once
- * after away time (CRT-01 AC1), while it has fewer than maxPerSpecies
+ * after away time (CRT-01 AC1) or for the planet's first creature ever
+ * (ONB-02 AC2), while it has fewer than maxPerSpecies
  * creatures (CRT-02 AC2), or none yet for a first-bloom condition such as
  * the worm's. At most one arrives, the first due in species
  * order, none while the planet has maxCreatures (CRT-02 AC1) or within
@@ -149,6 +150,9 @@ export function evaluateArrivals(input: ArrivalInput): {
 } {
   const { garden, creatures, now, away, cfg } = input;
   const previous = input.tracking.species ?? {};
+  const lastArrivalAt = input.tracking.lastArrivalAt ?? null;
+  // Creatures never leave, so none living and none on record means none yet.
+  const first = creatures.length === 0 && lastArrivalAt === null;
   const species: ArrivalTracking['species'] = {};
   const due: SpeciesId[] = [];
   for (const { id, arrivalCondition } of SPECIES) {
@@ -163,12 +167,11 @@ export function evaluateArrivals(input: ArrivalInput): {
     const living = creatures.filter((creature) => creature.species === id);
     // The first bloom happens once, so it brings one creature, not two.
     const cap = arrivalCondition.kind === 'first-bloom' ? 1 : cfg.maxPerSpecies;
-    if ((away || waited) && living.length < cap) {
+    if ((away || first || waited) && living.length < cap) {
       due.push(id);
     }
   }
 
-  const lastArrivalAt = input.tracking.lastArrivalAt ?? null;
   const spaced =
     lastArrivalAt === null ||
     Date.parse(lastArrivalAt) + cfg.arrivalSpacingMinutes * MINUTE_MS <=

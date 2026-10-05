@@ -35,14 +35,25 @@
       </div>
     </div>
     <div class="stage">
-      <app-planet-view [name]="planet.name" [radiusLevel]="planet.radiusLevel" />
+      <app-planet-view
+        [name]="planet.name"
+        [radiusLevel]="planet.radiusLevel"
+        [class.pip-target]="tutorial.highlight() === 'canvas'"
+      />
       <!-- Straight after the canvas, so Tab goes from the planet to the clouds and the sun. -->
-      <app-sky-list />
-      <app-placement-hud />
-      <app-inventory-panel />
+      <app-sky-list [class.pip-target]="tutorial.highlight() === 'sky'" />
+      <!-- Pip's speech bubble, with the placement help below it. -->
+      <div class="corner">
+        <app-pip />
+        <app-placement-hud />
+      </div>
+      <app-inventory-panel
+        [class.pip-target]="tutorial.highlight() === 'inventory'"
+        (focusin)="tutorial.complete('open-inventory')"
+      />
       <app-receipt-toast />
       <app-celebration />
-      <app-info-card />
+      <app-info-card [class.pip-target]="tutorial.highlight() === 'card'" />
       <!-- The journal page (JRN-01) above the welcome-back summary. -->
       <div class="return">
         <app-journal-page />

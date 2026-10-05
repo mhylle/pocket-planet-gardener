@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–14 implemented and validated (see section 9). Next: Phase 15. |
+| **Progress** | Phases 1–15 implemented and validated (see section 9). Next: Phase 16. |
 
 ---
 
@@ -629,6 +629,16 @@ Notes:
 - The journal AI call runs inside the sync transaction (like creature identities).
 - `toPublicEvents` now names the creature behind a fulfilled wish or a gift, so prompts can mention them.
 - The diary page date uses the player's local time zone; the AI prompt's date heading is UTC.
+
+### Phase 15 — done (5 Oct 2026)
+
+All tasks 15.1–15.4 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 989/989, e2e 224/224; frontend `tsc` 0, tests 825/825, build 0 (886 kB). Live: the whole Pip tutorial on a fresh planet by mouse (all 8 steps; planting early during "rotate" did not skip ahead; a reload resumed at step 5; "Ask Pip" restarts it) plus a keyboard spot-check. **Not live:** the first bloom and the worm's arrival — the verification backend was stopped by Claude Code under system memory pressure about 7 minutes into the run and may only be restarted when the user asks; both are covered by e2e with the test clock. **Not run:** backend `npm run build`.
+
+Decisions and notes:
+- Clover now blooms in 5 minutes (was 8), and a planet's first creature arrives with no delay, in the same sync that finds the first bloom (its tutorial want one sync later).
+- Pacing fix found in the live run: Pip's rain step made the clover soggy and the sun step made it too sunny (quarter speed, ~20 minutes). The shared growth rules now treat partial-light plants as never too sunny (ok at any light ≥ 0.1) and only call water soggy above 0.95. Worst case (soaked + sun on it) the clover blooms exactly at 10 minutes, because held rain still fills water to 1.0.
+- The tutorial step PATCH is not a command: it never bumps the version. Restart is only from -1 to 0.
+- Both Phase 15 agents were interrupted once by the account's weekly usage limit and resumed after it reset; an e2e run once wiped a live-test planet, so parallel e2e now runs in a scratch database.
 
 ---
 

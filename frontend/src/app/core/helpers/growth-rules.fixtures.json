@@ -8,7 +8,8 @@
     { "water": 0.3, "expect": "happy" },
     { "water": 0.5, "expect": "happy" },
     { "water": 0.85, "expect": "happy" },
-    { "water": 0.86, "expect": "soggy" },
+    { "water": 0.95, "expect": "happy" },
+    { "water": 0.96, "expect": "soggy" },
     { "water": 1, "expect": "soggy" }
   ],
   "lightStatus": [
@@ -19,7 +20,7 @@
     { "pref": "partial", "exposure": 0.05, "expect": "too-dark" },
     { "pref": "partial", "exposure": 0.1, "expect": "ok" },
     { "pref": "partial", "exposure": 0.8, "expect": "ok" },
-    { "pref": "partial", "exposure": 0.85, "expect": "too-sunny" },
+    { "pref": "partial", "exposure": 1, "expect": "ok" },
     { "pref": "full-sun", "exposure": 0, "expect": "too-dark" },
     { "pref": "full-sun", "exposure": 0.49, "expect": "too-dark" },
     { "pref": "full-sun", "exposure": 0.5, "expect": "ok" },
@@ -130,17 +131,28 @@
       }
     },
     {
-      "name": "a soggy plant grows slowly until it dries into happy (GRD-04 AC4)",
+      "name": "a soggy plant after long rain grows slowly until it dries into happy (GRD-04 AC4)",
       "plant": "sun-240",
-      "state": { "stage": "seed", "growth": 0, "water": 0.97, "harvestReady": false },
+      "state": { "stage": "seed", "growth": 0, "water": 1, "harvestReady": false },
       "minutes": 240,
       "exposure": "away",
       "expect": {
-        "state": { "stage": "young", "growth": 0.75, "water": 0.73, "harvestReady": false },
+        "state": { "stage": "young", "growth": 0.8958333333333334, "water": 0.76, "harvestReady": false },
         "reachedStages": [
-          { "stage": "sprout", "atMinute": 140 },
-          { "stage": "young", "atMinute": 220 }
+          { "stage": "sprout", "atMinute": 105 },
+          { "stage": "young", "atMinute": 185 }
         ]
+      }
+    },
+    {
+      "name": "a partial plant in full light after a shower grows at full speed (ONB-02 AC1)",
+      "plant": "partial-60",
+      "state": { "stage": "seed", "growth": 0, "water": 0.9, "harvestReady": false },
+      "minutes": 30,
+      "exposure": 1,
+      "expect": {
+        "state": { "stage": "sprout", "growth": 0.5, "water": 0.87, "harvestReady": false },
+        "reachedStages": [{ "stage": "sprout", "atMinute": 20 }]
       }
     },
     {

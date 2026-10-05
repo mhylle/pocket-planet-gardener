@@ -141,7 +141,7 @@ describe('growth rules', () => {
     for (let slice = 0; slice < 30 * 96; slice++) {
       // A quarter-hour slice; rain tops the water up to soggy.
       if (rainEvery > 0 && slice % rainEvery === 0) {
-        state = { ...state, water: 0.95 };
+        state = { ...state, water: 1 };
       }
       const exposure = exposures[Math.floor(slice / 4) % exposures.length];
       const next = advancePlant(state, needs, 15, exposure, tunables).state;

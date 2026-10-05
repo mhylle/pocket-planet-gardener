@@ -52,6 +52,7 @@ export class SyncService {
   private heartbeatTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly unlocks = new Subject<string[]>();
   private readonly happenings = new Subject<EventDto[]>();
+  private readonly done = new Subject<Command>();
 
   /**
    * The item types a command or sync response named as the player's for the first time
@@ -63,6 +64,8 @@ export class SyncService {
    * fulfilled. Sent straight after the response's snapshot is stored.
    */
   readonly events = this.happenings.asObservable();
+  /** Each command the server applied, such as a rain, sent after its response is stored. */
+  readonly applied = this.done.asObservable();
 
   /**
    * Queues a command. Resolves once the server applied it. Rejects with the HttpErrorResponse
@@ -126,6 +129,7 @@ export class SyncService {
         this.queue.shift();
         this.countPending();
         head.resolve(response);
+        this.done.next(head.command);
       },
       (error) => {
         if (isOffline(error)) {

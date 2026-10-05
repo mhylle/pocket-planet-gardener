@@ -322,6 +322,41 @@ describe('evaluateArrivals', () => {
     expect(result.tracking.lastArrivalAt).toBe(T0.toISOString());
   });
 
+  it("lets the planet's first creature arrive as soon as its condition holds, without the delay (ONB-02 AC2)", () => {
+    const result = evaluate({ now: T0, garden: garden(blooms('clover', 1)) });
+
+    expect(result.arrival).toBe('worm');
+    expect(result.tracking.lastArrivalAt).toBe(T0.toISOString());
+    expect(result.tracking.species.worm).toEqual({
+      metSince: T0.toISOString(),
+    });
+  });
+
+  it('keeps the delay for every arrival after the first', () => {
+    const first = evaluate({ now: T0, garden: garden(blooms('clover', 1)) });
+    expect(first.arrival).toBe('worm');
+
+    // The snail's condition holds from 40 minutes on, past the spacing.
+    const met = evaluate({
+      now: at(40 * 60),
+      creatures: WORM,
+      tracking: first.tracking,
+    });
+    expect(met.arrival).toBeNull();
+    const oneMinute = evaluate({
+      now: at(41 * 60),
+      creatures: WORM,
+      tracking: met.tracking,
+    });
+    expect(oneMinute.arrival).toBeNull();
+    const twoMinutes = evaluate({
+      now: at(42 * 60),
+      creatures: WORM,
+      tracking: oneMinute.tracking,
+    });
+    expect(twoMinutes.arrival).toBe('snail');
+  });
+
   it('keeps the spacing after away time too', () => {
     const result = evaluate({
       now: at(10 * 60),

@@ -87,6 +87,8 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | PATCH  | `/api/planet/name`                     | yes    | Rename it from `{ name }`; 200 with the snapshot                 |
 | POST   | `/api/planet/sync`                     | yes    | Heartbeat from `{ expectedVersion }`; 200 `{ snapshot, events, newlyUnlocked }`, on return also `welcomeBack` |
 | GET    | `/api/planet/by-code/:code`            |        | `{ id }` of the planet with that code (any case); 404 if none    |
+| GET    | `/api/tutorial`                        |        | Pip's steps in order, `{ steps: [{ id, text, highlight }] }`     |
+| PATCH  | `/api/planet/tutorial`                 | yes    | Keep the tutorial step reached from `{ step }`; 200 `{ tutorialStep }` |
 | DELETE | `/api/planet`                          | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
 | POST   | `/api/garden/plants`                   | yes    | Plant a seed from `{ itemType, lat, lon }`; 201                  |
 | POST   | `/api/garden/plants/:id/harvest`       | yes    | Pick 1 or 2 seeds from a ready bloom; 200, ready again in 1 h    |
@@ -124,8 +126,8 @@ longer gap is away time: every plant counts as getting average light, which
 suits every preference, and at most `GAME_MAX_AWAY_DAYS` of it is simulated
 (the rest is let go). Water falls by 0.03, 0.06 or 0.09 an hour for a low,
 medium or high water preference; a plant is thirsty below 0.12, a bit
-thirsty below 0.3, happy up to 0.85 and soggy above. Full sun wants a light
-of at least 0.5, partial 0.1 to 0.8, shade at most 0.3. Each unmet need
+thirsty below 0.3, happy up to 0.95 and soggy above. Full sun wants a light
+of at least 0.5, partial at least 0.1 (never too sunny), shade at most 0.3. Each unmet need
 halves the speed (`GAME_UNMET_NEED_GROWTH_FACTOR`) and a thirsty plant stops.
 Plants never die and never lose a stage. The sync's `events` report each
 stage reached, dated when it happened: `plant-stage`
@@ -206,7 +208,9 @@ the arrival conditions of `content/species.ts` are checked against the
 blooming plants and the placed decorations, and `arrival_tracking` on the
 planet keeps since when each one has held. A species is due once its
 condition has held for `GAME_ARRIVAL_DELAY_SECONDS` (120), or at once when
-the sync ends away time (a gap of more than three sync intervals). At most
+the sync ends away time (a gap of more than three sync intervals) or when
+the planet has never had a creature, so the worm comes with the very sync
+that finds the first bloom (ONB-02). At most
 one creature arrives at a time, the first due species in content order, and
 none within `GAME_ARRIVAL_SPACING_MINUTES` (30) of the last arrival, while
 the planet has `GAME_MAX_CREATURES` (8), or for a species that already has
@@ -313,6 +317,16 @@ within a minute. **The admin routes are open to anyone** in the PoC, as is
 the admin view (`?admin=1`): there are no accounts to tell the game owner
 apart (decision D-0).
 
+Pip's tutorial (`tutorial/`, script in `content/tutorial.ts`) has 8 steps,
+`welcome`, `rotate`, `open-inventory`, `plant`, `water`, `move-sun`,
+`inspect` and `goodbye`; a step's number is its index, and `highlight` is
+`canvas`, `inventory`, `sky`, `card` or `none`. The snapshot's
+`tutorialStep` is the step reached, 0 on a new planet and -1 once finished
+or skipped. `PATCH /api/planet/tutorial` takes a later step up to the last,
+-1 from any step, or 0 when the step is -1 (a restart); anything else,
+including the current step, is a 400 with a friendly `message`. It is not a
+command: no `expectedVersion`, and the version stays as it is.
+
 A planet name must be 2 to 24 characters (`GAME_PLANET_NAME_MIN` and
 `GAME_PLANET_NAME_MAX`) and pass a small offensive-word filter. A refused
 name is a 400 whose `message` is a friendly sentence to show the player.
@@ -378,6 +392,8 @@ backend/src
 │                            RewardService, and pure rules: want evaluator, mood, rewards
 ├── journal/                 JournalService (an entry on return, GET /api/journal) and
 │                            pure helpers: the journal prompt, fact check and template
+├── tutorial/                GET /api/tutorial (Pip's script), PATCH /api/planet/tutorial,
+│                            and the pure step rule (tutorial-rules.ts)
 ├── admin/                   GET/PATCH /api/admin/settings: AdminSettingsService
 │                            (AI switch, daily budget) and AiUsageService (ai_usage log)
 └── ai/

@@ -71,8 +71,9 @@ const STAGE_FROM: readonly number[] = [0, 1 / 3, 2 / 3, 1];
  */
 const EPSILON = 1e-9;
 
-// thirsty < 0.12 <= a-bit-thirsty < 0.3 <= happy <= 0.85 < soggy
-const SOGGY_ABOVE = 0.85;
+// thirsty < 0.12 <= a-bit-thirsty < 0.3 <= happy <= 0.95 < soggy. Only long
+// rain makes a plant soggy, so a short shower in the tutorial does not.
+const SOGGY_ABOVE = 0.95;
 const HAPPY_FROM = 0.3;
 const THIRSTY_BELOW = 0.12;
 
@@ -102,11 +103,12 @@ const WATER_DECAY_PER_HOUR: Readonly<Record<WaterPref, number>> = {
 
 /**
  * The exposure each preference is fine with. Below min it is too dark, above
- * max too sunny, so a mushroom in full light is too sunny (GRD-03 AC3).
+ * max too sunny, so a mushroom in full light is too sunny (GRD-03 AC3). A
+ * partial plant is never too sunny, so the sun dragged onto it costs nothing.
  */
 const LIGHT_OK: Readonly<Record<LightPref, { min: number; max: number }>> = {
   shade: { min: 0, max: 0.3 },
-  partial: { min: 0.1, max: 0.8 },
+  partial: { min: 0.1, max: 1 },
   'full-sun': { min: 0.5, max: 1 },
 };
 

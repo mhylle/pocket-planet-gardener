@@ -14,6 +14,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { JournalModule } from './journal/journal.module';
 import { PlanetsModule } from './planets/planets.module';
 import { SimulationModule } from './simulation/simulation.module';
+import { TutorialModule } from './tutorial/tutorial.module';
 import { WantsModule } from './wants/wants.module';
 
 @Module({
@@ -47,6 +48,7 @@ import { WantsModule } from './wants/wants.module';
     WantsModule,
     ChatModule,
     JournalModule,
+    TutorialModule,
   ],
 })
 export class AppModule {}

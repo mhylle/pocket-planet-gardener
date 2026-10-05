@@ -12,7 +12,7 @@ describe('presentPlant', () => {
     for (const [water, status] of [
       [0.2, 'a-bit-thirsty'],
       [0.6, 'happy'],
-      [0.95, 'soggy'],
+      [0.97, 'soggy'],
     ] as const) {
       expect(presentPlant(plantAt('p', 0, 0, { water }))).toMatchObject({
         droop: false,

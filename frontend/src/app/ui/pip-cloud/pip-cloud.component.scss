@@ -1,0 +1,86 @@
+/* In em, so the host's font size sets Pip's size; the padding leaves room for the puffs. */
+:host {
+  display: block;
+  flex: none;
+  width: 7em;
+  padding-top: 1.75em;
+}
+
+/* A body with two puffs on top; eyes and smile sit on the body. */
+.cloud {
+  position: relative;
+  height: 3.5em;
+  border-radius: 999px;
+  background: var(--cloud);
+  filter: drop-shadow(0 0.4em 0.5em var(--cloud-shadow));
+}
+
+:host(.bob) .cloud {
+  animation: bob 3s ease-in-out infinite;
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.cloud::before {
+  top: -1.75em;
+  left: 1em;
+  width: 3.5em;
+  height: 3.5em;
+}
+
+.cloud::after {
+  top: -1.25em;
+  right: 1em;
+  width: 2.75em;
+  height: 2.75em;
+}
+
+.eye,
+.smile {
+  position: absolute;
+  z-index: 1;
+}
+
+.eye {
+  top: 1.1em;
+  width: 0.45em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--fg);
+}
+
+.left {
+  left: 2.5em;
+}
+
+.right {
+  right: 2.5em;
+}
+
+.smile {
+  top: 1.65em;
+  left: calc(50% - 0.5em);
+  width: 1em;
+  height: 0.5em;
+  border: 0.15em solid var(--fg);
+  border-top: 0;
+  border-radius: 0 0 1em 1em;
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-0.4em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host(.bob) .cloud {
+    animation: none;
+  }
+}

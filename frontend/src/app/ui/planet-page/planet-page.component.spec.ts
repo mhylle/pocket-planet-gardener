@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PlanetSnapshotDto, WelcomeBack } from '../../core/models/planet-snapshot';
 import { ChatService } from '../../core/services/chat.service';
+import { PlacementService } from '../../core/services/placement.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SyncService } from '../../core/services/sync.service';
@@ -18,6 +19,7 @@ import {
   wantFulfilled,
 } from '../../testing/garden-fixtures';
 import { FRIDAY_ENTRY, journalEntry } from '../../testing/journal-fixtures';
+import { TUTORIAL } from '../../testing/tutorial-fixtures';
 import { PlanetPageComponent } from './planet-page.component';
 
 const mossy: PlanetSnapshotDto = {
@@ -60,9 +62,10 @@ describe('PlanetPageComponent', () => {
   });
 
   afterEach(() => {
-    // The page asks for the catalogue for the inventory names and syncs once the planet is
-    // shown; the specs that do not need these leave them unanswered.
+    // The page asks for the catalogue for the inventory names, for Pip's script, and syncs
+    // once the planet is shown; the specs that do not need these leave them unanswered.
     http.match('/api/catalogue');
+    http.match('/api/tutorial');
     http.match('/api/planet/sync');
     http.verify();
     vi.useRealTimers();
@@ -471,6 +474,65 @@ describe('PlanetPageComponent', () => {
 
       expect(page.querySelector('app-reward-reveal [role="dialog"]')).toBeNull();
       expect(receipts()).toEqual(['+2 Tulip seeds']);
+    });
+  });
+
+  describe("Pip's tutorial (ONB-01)", () => {
+    /** Shows the planet at the tutorial step, with Pip's script served. */
+    async function renderAt(tutorialStep: number) {
+      TestBed.inject(PlanetStore).setSnapshot({ ...mossy, tutorialStep });
+      render();
+      http.expectOne('/api/tutorial').flush(TUTORIAL);
+      await fixture.whenStable();
+    }
+
+    const marked = () =>
+      [...page.querySelectorAll('.pip-target')].map((each) => each.tagName.toLowerCase());
+
+    it('greets a new planet beside the planet, which stays in play (AC1)', async () => {
+      await renderAt(0);
+
+      expect(page.querySelector('app-pip .text')?.textContent?.trim()).toBe(
+        TUTORIAL.steps[0].text,
+      );
+      expect(page.querySelector('[aria-modal="true"]')).toBeNull();
+      expect(canvas()).not.toBeNull();
+      expect(marked()).toEqual([]);
+    });
+
+    it.each([
+      [1, 'app-planet-view'],
+      [2, 'app-inventory-panel'],
+      [4, 'app-sky-list'],
+      [6, 'app-planet-view'],
+    ])('at step %i marks %s, and nothing else', async (step, target) => {
+      await renderAt(step);
+
+      expect(marked()).toEqual([target]);
+    });
+
+    it('marks the open card on the inspect step', async () => {
+      await renderAt(6);
+
+      fixture.debugElement.injector
+        .get(PlacementService)
+        .openCard({ kind: 'decoration', id: 'd1', x: 10, y: 10 });
+      await fixture.whenStable();
+
+      expect(marked()).toEqual(['app-info-card']);
+    });
+
+    it('completes the inventory step when the inventory gets the focus', async () => {
+      await renderAt(2);
+
+      page
+        .querySelector('app-inventory-panel')!
+        .dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      await fixture.whenStable();
+
+      expect(page.querySelector('app-pip .count')?.textContent?.trim()).toBe('Step 4 of 8');
+      await new Promise((resolve) => setTimeout(resolve));
+      expect(http.expectOne('/api/planet/tutorial').request.body).toEqual({ step: 3 });
     });
   });
 });

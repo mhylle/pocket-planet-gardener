@@ -191,6 +191,20 @@ describe('CameraControlsService', () => {
 
       expect(before.angleTo(group.quaternion)).toBeGreaterThan(0);
     });
+
+    it('reports how far each drag and held key turns the planet', () => {
+      const angles: number[] = [];
+      controls.turned.subscribe((angle) => angles.push(angle));
+
+      const before = group.quaternion.clone();
+      controls.drag({ dx: 40, dy: 0 });
+      expect(angles).toHaveLength(1);
+      expect(angles[0]).toBeCloseTo(before.angleTo(group.quaternion), 9);
+
+      turnKey('ArrowUp', true);
+      frames(3);
+      expect(angles).toHaveLength(4);
+    });
   });
 
   describe('zoom', () => {

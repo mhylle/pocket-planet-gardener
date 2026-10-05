@@ -10,6 +10,6 @@ describe('LoadingComponent', () => {
     expect(page.querySelector('[role="status"]')?.textContent?.trim()).toBe(
       'Pip is fetching your planet…',
     );
-    expect(page.querySelector('.pip')?.getAttribute('aria-hidden')).toBe('true');
+    expect(page.querySelector('app-pip-cloud')?.getAttribute('aria-hidden')).toBe('true');
   });
 });

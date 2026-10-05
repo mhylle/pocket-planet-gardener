@@ -476,7 +476,7 @@ describe('Wants, rewards and mood (e2e)', () => {
 
   it('says "1 wish came true" on return after a want was met while away (TIM-03, WNT-03 AC1)', async () => {
     const { creatures } = (await wormWithWant()).snapshot;
-    // The second clover blooms in 8 minutes, during the away time.
+    // The second clover blooms in 5 minutes, during the away time.
     await plantClover(CLOVER_SPOTS[1], at(3 * HOUR + 20));
 
     const result = await sync(at(6 * HOUR));

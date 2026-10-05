@@ -8,6 +8,7 @@ import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
 import { RewardRevealService } from '../../core/services/reward-reveal.service';
 import { SyncService } from '../../core/services/sync.service';
+import { TutorialService } from '../../core/services/tutorial.service';
 import { CloudDragController } from '../../scene/cloud-drag.controller';
 import { CreatureMeshService } from '../../scene/creature-mesh.service';
 import { DecorationMeshService } from '../../scene/decoration-mesh.service';
@@ -27,6 +28,7 @@ import { InventoryPanelComponent } from '../inventory-panel/inventory-panel.comp
 import { JournalBookComponent } from '../journal-book/journal-book.component';
 import { JournalPageComponent } from '../journal-page/journal-page.component';
 import { LoadingComponent } from '../loading/loading.component';
+import { PipComponent } from '../pip/pip.component';
 import { PlacementHudComponent } from '../placement-hud/placement-hud.component';
 import { ReceiptToastComponent } from '../receipt-toast/receipt-toast.component';
 import { ReloadBannerComponent } from '../reload-banner/reload-banner.component';
@@ -44,8 +46,9 @@ type Panel = 'settings' | 'catalogue' | 'journal';
  * catalogue, journal, settings and a creature's chat around it, and the journal page and what
  * changed for a returning player. Loads the stored planet when it is not known yet (startup,
  * or after opening by code) and keeps it in sync while it is shown. Pip shows until the planet
- * is loaded and first drawn (NFR-03). The page owns the 3D scene and the gardening state, so
- * every panel on it can reach them.
+ * is loaded and first drawn (NFR-03), then guides a new player, pointing at the part of the
+ * screen each step is about (ONB-01). The page owns the 3D scene, the gardening state and the
+ * tutorial, so every panel on it can reach them.
  */
 @Component({
   selector: 'app-planet-page',
@@ -58,6 +61,7 @@ type Panel = 'settings' | 'catalogue' | 'journal';
     JournalBookComponent,
     JournalPageComponent,
     LoadingComponent,
+    PipComponent,
     PlacementHudComponent,
     PlanetViewComponent,
     ReceiptToastComponent,
@@ -74,6 +78,7 @@ type Panel = 'settings' | 'catalogue' | 'journal';
     ReceiptService,
     CelebrationService,
     RewardRevealService,
+    TutorialService,
   ],
   templateUrl: './planet-page.component.html',
   styleUrl: './planet-page.component.scss',
@@ -82,6 +87,8 @@ export class PlanetPageComponent {
   private readonly planets = inject(PlanetService);
   private readonly sync = inject(SyncService);
   private readonly chat = inject(ChatService);
+  // Created with the page, so it watches the player from the start.
+  protected readonly tutorial = inject(TutorialService);
 
   protected readonly planet = inject(PlanetStore).snapshot;
   protected readonly sceneReady = inject(SceneService).ready;

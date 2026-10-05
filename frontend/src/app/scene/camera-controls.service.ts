@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
 import * as THREE from 'three';
 import { STEP_ARC, SurfacePoint, toVector } from '../core/helpers/surface-coords';
 import { DragInput, InputService, KeyInput, PinchInput, WheelInput } from './input.service';
@@ -62,6 +63,10 @@ export class CameraControlsService {
 
   /** Read once at start; the settings take this over later (SET-03). */
   reducedMotion = prefersReducedMotion();
+
+  private readonly turns = new Subject<number>();
+  /** Each turn of the planet by a drag, a key or a spin, as its angle in radians. */
+  readonly turned = this.turns.asObservable();
 
   private zoom = START_ZOOM;
   private zoomTarget = START_ZOOM;
@@ -239,6 +244,7 @@ export class CameraControlsService {
     this.rotation.setFromAxisAngle(this.axis.copy(angles).divideScalar(angle), angle);
     this.group.quaternion.premultiply(this.rotation).normalize();
     this.sceneService.requestRender();
+    this.turns.next(angle);
   }
 
   private zoomTo(zoom: number, instant: boolean): void {

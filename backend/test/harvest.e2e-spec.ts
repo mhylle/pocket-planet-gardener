@@ -24,7 +24,7 @@ function after(minutes: number): string {
   return new Date(Date.parse(CREATED) + minutes * 60_000).toISOString();
 }
 
-// A clover blooms in 8 minutes, so an hour on it is a bloom with seeds ready.
+// A clover blooms in 5 minutes, so an hour on it is a bloom with seeds ready.
 const BLOOMED = after(60);
 
 /** What the database holds, to show what a harvest changed. */

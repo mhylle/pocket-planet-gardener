@@ -137,6 +137,20 @@ describe('SyncService', () => {
       expect(seen).toEqual([{ events: [fulfilled], version: 2 }]);
     });
 
+    it('passes on each applied command once its snapshot is stored, never a refused one', async () => {
+      const seen: { path: string; version: number | null }[] = [];
+      sync.applied.subscribe(({ path }) => seen.push({ path, version: store.version() }));
+
+      const first = sync.send(plant('/first'));
+      http.expectOne('/api/first').flush(answer(atVersion(2)));
+      await first;
+      const second = sync.send(plant('/second'));
+      refuse(http.expectOne('/api/second'), 400);
+      await expect(second).rejects.toBeDefined();
+
+      expect(seen).toEqual([{ path: '/first', version: 2 }]);
+    });
+
     it('sends one at a time in order, each with the version current when it goes', async () => {
       const first = sync.send(plant('/first'));
       const second = sync.send(plant('/second'));

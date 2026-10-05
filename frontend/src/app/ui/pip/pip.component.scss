@@ -1,0 +1,85 @@
+/* The planet page puts Pip in a corner of the planet view. */
+:host {
+  display: block;
+}
+
+.pip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.pip app-pip-cloud {
+  font-size: 0.5rem;
+}
+
+/* A speech bubble whose tail points back at Pip. */
+.bubble {
+  position: relative;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 0.4rem 1rem var(--cloud-shadow);
+}
+
+.bubble::before {
+  content: '';
+  position: absolute;
+  top: 1.2rem;
+  left: -0.45rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+
+.name {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+}
+
+.text {
+  margin: 0;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.count {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+.ask {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  box-shadow: 0 0.2rem 0.5rem var(--cloud-shadow);
+}
+
+.ask app-pip-cloud {
+  font-size: 0.3rem;
+}
+
+/* Read out, not shown. */
+.announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

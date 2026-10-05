@@ -106,3 +106,60 @@ label {
   margin: 0;
   color: var(--danger-fg);
 }
+
+/*
+ * What Pip's current tutorial step is about (ONB-01): a dashed outline with a soft glow and a
+ * "Here!" label with an arrow, so it never relies on colour alone. Global, because it marks
+ * the hosts of several components, and the info card's box is inside its host.
+ */
+.pip-target,
+app-info-card.pip-target .card {
+  outline: 3px dashed var(--accent);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 0.5rem rgb(11 92 173 / 18%);
+}
+
+.pip-target::after,
+app-info-card.pip-target .card::after {
+  position: absolute;
+  z-index: 1;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The planet fills the view, so its outline and label sit inside it. */
+app-planet-view.pip-target {
+  outline-offset: -6px;
+}
+
+app-planet-view.pip-target::after {
+  content: '\2193  Here!';
+  top: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+app-inventory-panel.pip-target::after {
+  content: '\2193  Here!';
+  bottom: calc(100% + 0.75rem);
+  left: 0.5rem;
+}
+
+app-sky-list.pip-target::after {
+  content: 'Here!  \2192';
+  top: 0.5rem;
+  right: calc(100% + 0.75rem);
+}
+
+app-info-card.pip-target .card::after {
+  content: '\2191  Here!';
+  top: calc(100% + 0.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+}

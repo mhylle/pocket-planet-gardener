@@ -1,0 +1,25 @@
+@if (tutorial.current(); as step) {
+  <aside class="pip" aria-labelledby="pip-name">
+    <app-pip-cloud [class.bob]="bob" />
+    <div class="bubble">
+      <h3 id="pip-name" class="name">Pip</h3>
+      <p class="text">{{ step.text }}</p>
+      <div class="foot">
+        <span class="count">Step {{ number() }} of {{ tutorial.steps().length }}</span>
+        @if (step.id === 'welcome') {
+          <button #action type="button" (click)="done('welcome')">Let's go</button>
+        } @else if (step.id === 'goodbye') {
+          <button #action type="button" (click)="done('goodbye')">Thanks, Pip!</button>
+        }
+      </div>
+    </div>
+  </aside>
+} @else if (tutorial.finished()) {
+  <!-- On the accent colour, so the white cloud shows. -->
+  <button type="button" class="ask" (click)="restart()">
+    <app-pip-cloud />
+    Ask Pip
+  </button>
+}
+<!-- Stays in the page, so screen readers hear each new step. -->
+<p class="announcer" aria-live="polite">{{ announcement() }}</p>
