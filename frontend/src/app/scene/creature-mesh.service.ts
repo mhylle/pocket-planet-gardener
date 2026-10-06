@@ -56,6 +56,14 @@ const GLOW = new THREE.Color('#ffd76a');
 
 const UP = new THREE.Vector3(0, 1, 0);
 const AWAKE = new THREE.Vector3(1, 1, 1);
+/** Reused by headingOf(), so a creature setting off allocates no three.js objects. */
+const HEADING = {
+  at: new THREE.Vector3(),
+  way: new THREE.Vector3(),
+  upright: new THREE.Quaternion(),
+  right: new THREE.Vector3(),
+  ahead: new THREE.Vector3(),
+};
 
 /** A creature as it is drawn now. */
 export interface DrawnCreature {
@@ -138,6 +146,9 @@ export class CreatureMeshService {
   private readonly sparkleGeometry = sparkleModel();
   private readonly sparkleMaterial = new THREE.MeshBasicMaterial({ color: SPARKLE_COLOUR });
   private readonly drawn = new Map<string, Creature>();
+  /** Reused by pose(), which runs every frame while anyone arrives or cheers. */
+  private readonly stance = new THREE.Matrix4();
+  private readonly lift = new THREE.Matrix4();
   private planetId: string | null = null;
   private radius = planetRadius(1);
   /** Time the creatures have moved on for, in seconds; it sets the bob of the flyers. */
@@ -404,17 +415,20 @@ export class CreatureMeshService {
       const hop = (t * 2) % 1;
       lift += cheer.kind === 'hop' ? HOP_STEPS * 4 * hop * (1 - hop) : 0;
       creature.sparkles.position.y = cheer.kind === 'hop' ? SPARKLE_RISE_STEPS * t : 0;
-      creature.group.add(creature.sparkles);
+      // Added once, not on every frame: adding again takes it out and puts it back.
+      if (creature.sparkles.parent !== creature.group) {
+        creature.group.add(creature.sparkles);
+      }
     } else {
       creature.sparkles.removeFromParent();
     }
-    standOn(creature.point, this.radius, creature.heading)
-      .multiply(new THREE.Matrix4().makeTranslation(0, lift, 0))
+    standOn(creature.point, this.radius, creature.heading, this.stance)
+      .multiply(this.lift.makeTranslation(0, lift, 0))
       .decompose(creature.group.position, creature.group.quaternion, creature.group.scale);
     creature.body.scale.copy(asleep ? NAP_SQUASH : AWAKE);
-    if (asleep) {
+    if (asleep && creature.nap.parent !== creature.group) {
       creature.group.add(creature.nap);
-    } else {
+    } else if (!asleep) {
       creature.nap.removeFromParent();
     }
   }
@@ -439,18 +453,18 @@ export class CreatureMeshService {
  * takes it; null when the two are too close to tell.
  */
 function headingOf(from: SurfacePoint, to: SurfacePoint): number | null {
-  const at = vector(from);
-  const way = vector(to).sub(at);
+  const at = vector(HEADING.at, from);
+  const way = vector(HEADING.way, to).sub(at);
   if (way.lengthSq() < 1e-18) {
     return null;
   }
-  const upright = new THREE.Quaternion().setFromUnitVectors(UP, at);
-  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(upright);
-  const ahead = new THREE.Vector3(0, 0, 1).applyQuaternion(upright);
+  const upright = HEADING.upright.setFromUnitVectors(UP, at);
+  const right = HEADING.right.set(1, 0, 0).applyQuaternion(upright);
+  const ahead = HEADING.ahead.set(0, 0, 1).applyQuaternion(upright);
   return Math.atan2(way.dot(right), way.dot(ahead));
 }
 
-function vector(point: SurfacePoint): THREE.Vector3 {
+function vector(target: THREE.Vector3, point: SurfacePoint): THREE.Vector3 {
   const { x, y, z } = toVector(point, 1);
-  return new THREE.Vector3(x, y, z);
+  return target.set(x, y, z);
 }

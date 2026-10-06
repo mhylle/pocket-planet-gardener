@@ -290,8 +290,21 @@ describe('sentenceCount', () => {
     expect(sentenceCount('One. And then some')).toBe(2);
   });
 
-  it('treats a run of marks or an ellipsis as one end', () => {
-    expect(sentenceCount('Wait... what?! Oh… fine.')).toBe(4);
+  it('treats a run of marks as one end', () => {
+    expect(sentenceCount('What?! Fine.')).toBe(2);
+  });
+
+  it('does not end a sentence at an ellipsis, only at . ! or ?', () => {
+    expect(
+      sentenceCount('Hmm... I wonder if you could plant a moonflower?'),
+    ).toBe(1);
+    expect(sentenceCount('Hmm. I wonder. Could you?')).toBe(3);
+    expect(sentenceCount('Wait... what?! Oh… fine.')).toBe(2);
+    expect(sentenceCount('Well…')).toBe(1);
+  });
+
+  it('ends a sentence at the ? or ! after a trailing ellipsis', () => {
+    expect(sentenceCount('Could you…? Please...!')).toBe(2);
   });
 
   it('does not split a decimal number', () => {

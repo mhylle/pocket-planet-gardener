@@ -1,4 +1,14 @@
-import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
+import {
+  Component,
+  DOCUMENT,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { markPlanetVisible, perfMode } from '../../core/helpers/perf';
 import { InventoryItemDto } from '../../core/models/planet-snapshot';
 import { AudioService } from '../../core/services/audio.service';
 import { CatalogueService } from '../../core/services/catalogue.service';
@@ -12,6 +22,7 @@ import { RewardRevealService } from '../../core/services/reward-reveal.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { SyncService } from '../../core/services/sync.service';
 import { TutorialService } from '../../core/services/tutorial.service';
+import { ViewStateService } from '../../core/services/view-state.service';
 import { CloudDragController } from '../../scene/cloud-drag.controller';
 import { CreatureMeshService } from '../../scene/creature-mesh.service';
 import { DecorationMeshService } from '../../scene/decoration-mesh.service';
@@ -51,11 +62,13 @@ type Panel = 'settings' | 'catalogue' | 'journal' | 'shortcuts';
  * catalogue, journal, settings and a creature's chat around it, and the journal page and what
  * changed for a returning player. Loads the stored planet when it is not known yet (startup,
  * or after opening by code) and keeps it in sync while it is shown. Pip shows until the planet
- * is loaded and first drawn (NFR-03), then guides a new player, pointing at the part of the
- * screen each step is about (ONB-01). The page owns the 3D scene, the gardening state and the
- * tutorial, so every panel on it can reach them. The planet's sound and motion settings apply
- * while it is shown. Everything on it can be played by keyboard (SET-05): Tab goes from the
- * planet to the garden list, the sky, the inventory and the menus, and "?" shows the keys.
+ * is loaded and first drawn (NFR-03), which for a returning player is timed with a performance
+ * mark. The catalogue, journal and settings fetch their code only when they first open. Pip
+ * then guides a new player, pointing at the part of the screen each step is about (ONB-01).
+ * The page owns the 3D scene, the gardening state and the tutorial, so every panel on it can
+ * reach them. The planet's sound and motion settings apply while it is shown. Everything on it
+ * can be played by keyboard (SET-05): Tab goes from the planet to the garden list, the sky, the
+ * inventory and the menus, and "?" shows the keys.
  */
 @Component({
   selector: 'app-planet-page',
@@ -101,9 +114,12 @@ export class PlanetPageComponent {
   protected readonly tutorial = inject(TutorialService);
 
   private readonly scene = inject(SceneService);
+  private readonly store = inject(PlanetStore);
 
-  protected readonly planet = inject(PlanetStore).snapshot;
+  protected readonly planet = this.store.snapshot;
   protected readonly sceneReady = this.scene.ready;
+  /** A diary page waits for the player; its code loads only then (NFR-03). */
+  protected readonly diaryWaiting = computed(() => !!this.store.welcomeBack()?.journalEntry);
   protected readonly loadFailed = signal(false);
   /** Read out, not shown: what to do next after choosing an item. */
   protected readonly announcement = signal('');
@@ -156,6 +172,17 @@ export class PlanetPageComponent {
         });
       }
     });
+    // Times a returning player's start (NFR-03): from opening the page to the planet drawn.
+    if (inject(ViewStateService).returning) {
+      const log = perfMode(inject(DOCUMENT).location.search)
+        ? (line: string) => console.info(line)
+        : undefined;
+      effect(() => {
+        if (this.sceneReady()) {
+          untracked(() => markPlanetVisible(performance, log));
+        }
+      });
+    }
     // Listened to directly, so the many other keys pressed on the page cost nothing.
     const shortcut = (event: KeyboardEvent) => this.shortcut(event);
     document.addEventListener('keydown', shortcut);

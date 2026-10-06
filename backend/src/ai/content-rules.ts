@@ -40,8 +40,11 @@ const ANY_LENGTH = { min: 0, max: Number.POSITIVE_INFINITY };
 const URL_OR_EMAIL =
   /https?:\/\/|\bwww\.|@[\w-]|\b[\w-]+\.(?:com|net|org|io|dk|uk|de|info|app|gg|tv)\b/i;
 
-/** End marks, an ellipsis among them, then any closing quote or bracket, then a space or the end. */
-const SENTENCE_END = /[.!?…]+["'’”)\]]*(?=\s|$)/u;
+/** An ellipsis, three or more dots or the one character: a pause, not the end of a sentence. */
+const ELLIPSIS = /\.{3,}|…/gu;
+
+/** End marks, then any closing quote or bracket, then a space or the end. */
+const SENTENCE_END = /[.!?]+["'’”)\]]*(?=\s|$)/u;
 
 /** A word holds at least one letter or digit, so a lone dash or emoji is not one. */
 const WORDLIKE = /[\p{L}\p{N}]/u;
@@ -102,9 +105,16 @@ export function wordCount(text: string): number {
   return text.split(/\s+/).filter((token) => WORDLIKE.test(token)).length;
 }
 
-/** Sentences ended by . ! ? or an ellipsis; text after the last end mark counts as one more. */
+/**
+ * Sentences ended by . ! or ?; text after the last end mark counts as one
+ * more. An ellipsis is a pause, so "Hmm... could you?" is one sentence, and
+ * a trailing "…?" ends one through its "?".
+ */
 export function sentenceCount(text: string): number {
-  return text.split(SENTENCE_END).filter((part) => WORDLIKE.test(part)).length;
+  return text
+    .replace(ELLIPSIS, ' ')
+    .split(SENTENCE_END)
+    .filter((part) => WORDLIKE.test(part)).length;
 }
 
 /**

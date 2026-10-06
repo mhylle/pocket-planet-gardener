@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { PLANET_VISIBLE_MARK, TIME_TO_PLANET_MEASURE } from '../../core/helpers/perf';
 import { PlanetSnapshotDto, WelcomeBack } from '../../core/models/planet-snapshot';
 import { DEFAULT_PLAYER_SETTINGS } from '../../core/models/player-settings';
 import { ChatService } from '../../core/services/chat.service';
@@ -50,16 +51,17 @@ describe('PlanetPageComponent', () => {
   let fixture: ComponentFixture<PlanetPageComponent>;
   let page: HTMLElement;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     localStorage.clear();
-    TestBed.configureTestingModule({
+    // The page's deferred panels make its metadata load asynchronously.
+    await TestBed.configureTestingModule({
       imports: [PlanetPageComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
-    });
+    }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PlanetIdentityService).set(mossy.id);
     TestBed.inject(ViewStateService).show('planet');
@@ -299,6 +301,66 @@ describe('PlanetPageComponent', () => {
     expect(canvas()).not.toBeNull();
   });
 
+  describe("timing a returning player's start (NFR-03)", () => {
+    const startUrl = location.href;
+    const marks = () => performance.getEntriesByName(PLANET_VISIBLE_MARK, 'mark');
+    const measures = () => performance.getEntriesByName(TIME_TO_PLANET_MEASURE, 'measure');
+
+    beforeEach(() => {
+      performance.clearMarks();
+      performance.clearMeasures();
+      TestBed.inject(PlanetStore).setSnapshot(mossy);
+    });
+
+    afterEach(() => {
+      history.replaceState(null, '', startUrl);
+      performance.clearMarks();
+      performance.clearMeasures();
+      vi.restoreAllMocks();
+    });
+
+    it('marks the planet first drawn, and with ?perf=1 says how long it took', async () => {
+      history.replaceState(null, '', '?perf=1');
+      const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+      render();
+      expect(marks()).toEqual([]);
+
+      // The first frame takes the loading screen away.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await fixture.whenStable();
+
+      expect(pip()).toBeNull();
+      expect(marks()).toHaveLength(1);
+      expect(measures()).toHaveLength(1);
+      expect(measures()[0].startTime).toBe(0);
+      expect(info).toHaveBeenCalledWith(
+        `[ppg perf] planet visible after ${Math.round(marks()[0].startTime)} ms`,
+      );
+    });
+
+    it('logs nothing without ?perf=1', async () => {
+      const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+      render();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await fixture.whenStable();
+
+      expect(marks()).toHaveLength(1);
+      expect(info).not.toHaveBeenCalled();
+    });
+
+    it('does not time a planet opened from create-planet', async () => {
+      const views = TestBed.inject(ViewStateService);
+      views.show('create-planet');
+      views.show('planet');
+      render();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await fixture.whenStable();
+
+      expect(pip()).toBeNull();
+      expect(marks()).toEqual([]);
+    });
+  });
+
   it('returns to create-planet when the planet has drifted away', async () => {
     render();
     failWith(404);
@@ -531,6 +593,17 @@ describe('PlanetPageComponent', () => {
         expect(summary.closest('app-welcome-back')).not.toBeNull();
         expect(text(summary)).toContain('1 plant bloomed');
         expect(document.activeElement).toBe(diary);
+      });
+
+      it('loads the diary page only once one waits (NFR-03)', async () => {
+        render();
+        firstSync({ summary: SUMMARY });
+        await fixture.whenStable();
+
+        expect(page.querySelector('app-journal-page')).toBeNull();
+        expect(returnDialogs().map((dialog) => dialog.closest('app-welcome-back'))).not.toContain(
+          null,
+        );
       });
 
       it('shows just the diary page when nothing else changed', async () => {

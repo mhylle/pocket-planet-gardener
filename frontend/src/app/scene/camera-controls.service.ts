@@ -77,6 +77,8 @@ export class CameraControlsService {
   private readonly spin = new THREE.Vector3();
   /** The codes of the turn keys held down. */
   private readonly heldTurnKeys = new Set<string>();
+  /** Their directions, worked out on each key rather than on each frame. */
+  private heldDirections = new Set<Direction>();
   private focus: { from: THREE.Quaternion; to: THREE.Quaternion; elapsed: number } | null = null;
   private readonly angles = new THREE.Vector3();
   private readonly axis = new THREE.Vector3();
@@ -98,23 +100,17 @@ export class CameraControlsService {
     return this.motion.reduced();
   }
 
-  /** The camera's distance from the planet centre. */
+  /** The camera's distance from the planet centre. Read every frame, so it allocates nothing. */
   get distance(): number {
-    const { near, far } = this.zoomLimits();
+    const near = this.nearLimit();
+    const far = this.farLimit();
     const r = this.planet.radius;
     return r + (near - r) * ((far - r) / (near - r)) ** this.zoom;
   }
 
   /** The nearest and farthest the camera may be from the planet centre. */
   zoomLimits(): { near: number; far: number } {
-    const r = this.planet.radius;
-    const tanHalfFov = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-    const plantWidth = r * STEP_ARC;
-    const near = r + plantWidth / (NEAR_PLANT_SHARE * 2 * tanHalfFov);
-    // The sky must fit across the narrower side of the screen.
-    const narrowHalfFov = Math.atan(tanHalfFov * Math.min(1, this.camera.aspect));
-    const far = (FAR_MARGIN * SKY_SHELL_RADIUS * r) / Math.sin(narrowHalfFov);
-    return { near, far };
+    return { near: this.nearLimit(), far: this.farLimit() };
   }
 
   /** Turns the planet so the point faces the camera, gliding there unless instant. */
@@ -181,6 +177,7 @@ export class CameraControlsService {
       } else {
         this.heldTurnKeys.delete(code);
       }
+      this.heldDirections = new Set([...this.heldTurnKeys].map((each) => TURN_KEYS.get(each)!));
       this.sceneService.requestFrame();
       return;
     }
@@ -261,6 +258,22 @@ export class CameraControlsService {
     this.sceneService.requestRender();
   }
 
+  private nearLimit(): number {
+    const r = this.planet.radius;
+    const plantWidth = r * STEP_ARC;
+    return r + plantWidth / (NEAR_PLANT_SHARE * 2 * this.tanHalfFov());
+  }
+
+  private farLimit(): number {
+    // The sky must fit across the narrower side of the screen.
+    const narrowHalfFov = Math.atan(this.tanHalfFov() * Math.min(1, this.camera.aspect));
+    return (FAR_MARGIN * SKY_SHELL_RADIUS * this.planet.radius) / Math.sin(narrowHalfFov);
+  }
+
+  private tanHalfFov(): number {
+    return Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+  }
+
   /**
    * The camera looks down -z with y up and never turns, so its right and up axes are world x
    * and y; only its distance changes. The limits move with the window shape and the planet
@@ -285,6 +298,6 @@ export class CameraControlsService {
 
   /** 1 while any key for the direction is held (an arrow and its letter may both be). */
   private heldTurn(direction: Direction): number {
-    return [...this.heldTurnKeys].some((code) => TURN_KEYS.get(code) === direction) ? 1 : 0;
+    return this.heldDirections.has(direction) ? 1 : 0;
   }
 }

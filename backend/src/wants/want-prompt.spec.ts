@@ -128,7 +128,8 @@ describe('buildWantPrompt', () => {
 
     for (const rule of [
       "the creature's own voice, with its speaking style, traits and quirk",
-      'at most 2 sentences and at most 35 words',
+      'at most 2 short sentences, each ending with . ! or ?, no ellipses, and at most 35 words',
+      '"One requires moonflowers. Near the lamp-post, obviously."',
       'Warm, kind, playful and a little absurd',
       'all ages',
       'a snail does not fly, a moth likes lamps',

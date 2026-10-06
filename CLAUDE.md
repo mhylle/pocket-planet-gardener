@@ -123,8 +123,19 @@ If something fails or you skipped a step, say so plainly with the output. Never 
 - `npm run build` in `backend/` deletes `dist/` and crashes a running `start:dev` (MODULE_NOT_FOUND). Restart the dev server after every backend build.
 - ts-jest does not type-check here (`isolatedModules`), so a shape change can pass every spec and still break `nest build`. Run `npx tsc --noEmit -p tsconfig.json` in `backend/` before trusting a green test run.
 - The chat calls the real model (gemma-4-31B-it). e2e tests override `AiService` with `test/support/fake-ai.ts`, so they never call it.
-- `npm run test:e2e` uses the dev database and empties the `messages` table, i.e. the stored conversation.
+- `npm run test:e2e` uses the dev database and empties its game tables (see the re-seed note below).
 - Run a single e2e spec with `npm run test:e2e -- test/<name>`. Plain `npx jest --config ./test/jest-e2e.json` skips `--experimental-vm-modules` and fails with TS5098.
+- The PoC has no auth (D-0): the `X-Planet-Id` header (the frontend keeps the id in localStorage `ppg.planetId`) is the player's whole identity. The `X-Test-Now` header (ISO with `Z` or an offset) sets a request's clock and is honoured only when `NODE_ENV=test`, which Jest sets. Never put `NODE_ENV` in `.env`.
+- Any e2e run empties `planets` (some specs also `ai_usage` and `admin_settings`), so the seeded performance planet is gone. Re-seed with `npm run seed:full-planet` in `backend/`; it prints the new id and code.
+- `backend/scripts/` is excluded in `tsconfig.build.json` so the `nest build` output stays at `dist/main.js`. `npx tsc --noEmit -p tsconfig.json` still type-checks the scripts.
+- `npm run tone:sample` calls the real model about 300 times (50 per feature for 5 features, plus retries). Narrow it with `--features=` and `--samples=`.
+- Frontend: a component that uses `@defer` resolves its metadata asynchronously, so its specs need `await TestBed.compileComponents()`.
+- Frontend: vitest fake timers fake `performance` too. `mark` and `measure` return fake entries and `getEntriesByName` returns `[]`, so test User Timing with real timers.
+- Frontend: a `vi.spyOn(console, ...)` stays in place for the rest of the spec file unless an `afterEach` calls `vi.restoreAllMocks()`.
+- Frontend: specs that render something animated provide `FAKE_MOTION_PROVIDERS` (`src/app/testing/fake-motion.ts`). The real `MotionPreferenceService` pulls in settings and HTTP, and the fake's `reduced` signal lets the spec choose.
+- Frontend: the axe helper `src/app/testing/axe.ts` turns off `color-contrast`, because jsdom computes no colours. `src/styles.spec.ts` checks contrast on the `styles.scss` tokens instead.
+- The frontend has no lint script. Its checks are `npx tsc --noEmit -p tsconfig.app.json` (and `tsconfig.spec.json`), `npx ng test --watch=false` and `npm run build`.
+- Under memory pressure, Claude Code may stop background dev servers. Restart them only when the user asks, and record the browser checks you could not run as "pending (live)".
 
 ---
 

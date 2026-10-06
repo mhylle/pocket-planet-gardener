@@ -91,7 +91,7 @@ const SHAPES: Record<Exclude<WantType, 'bring-back'>, string> = {
 const RULES = `You write the next wish of a small creature that lives on a player's tiny planet in a cosy gardening game. The wish is something the player can make come true by planting or placing things on the planet.
 
 Rules:
-- Write the text in the creature's own voice, with its speaking style, traits and quirk: at most ${WANT_TEXT_LIMITS.maxSentences} sentences and at most ${WANT_TEXT_LIMITS.maxWords} words.
+- Write the text in the creature's own voice, with its speaking style, traits and quirk: at most ${WANT_TEXT_LIMITS.maxSentences} short sentences, each ending with . ! or ?, no ellipses, and at most ${WANT_TEXT_LIMITS.maxWords} words. For example, a moth: "One requires moonflowers. Near the lamp-post, obviously."
 - Warm, kind, playful and a little absurd. Suitable for all ages.
 - The creature fits its species and only does what such an animal can do: a snail does not fly, a moth likes lamps.
 - The creature asks kindly. It never demands, begs or sulks, and never guilt-trips or pressures the player.

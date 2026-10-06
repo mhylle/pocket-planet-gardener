@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import type { MockInstance } from 'vitest';
 import { InputService } from '../input.service';
 import { NullSceneRenderer } from '../null-scene-renderer';
 import { PlanetMeshService } from '../planet-mesh.service';
@@ -69,6 +70,52 @@ describe('PlanetViewComponent', () => {
 
     expect(dispose).toHaveBeenCalledOnce();
     expect(rendererDispose).toHaveBeenCalledOnce();
+  });
+
+  describe('the frame-rate meter (NFR-02)', () => {
+    const startUrl = location.href;
+    let info: MockInstance<typeof console.info>;
+    let render: MockInstance<NullSceneRenderer['render']>;
+
+    beforeEach(() => {
+      info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+      render = vi.spyOn(renderer, 'render');
+    });
+
+    afterEach(() => {
+      history.replaceState(null, '', startUrl);
+      vi.restoreAllMocks();
+    });
+
+    const perfLines = () =>
+      info.mock.calls.map(([line]) => String(line)).filter((line) => line.startsWith('[ppg'));
+
+    it('is absent without ?perf=1: the planet at rest is drawn once', async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+
+      expect(render).toHaveBeenCalledOnce();
+      expect(perfLines()).toEqual([]);
+    });
+
+    it('with ?perf=1 draws every frame and logs the frame rate every 5 s', async () => {
+      fixture.destroy();
+      history.replaceState(null, '', '?perf=1');
+      fixture = TestBed.createComponent(PlanetViewComponent);
+      fixture.componentRef.setInput('name', 'Mossy');
+      fixture.componentRef.setInput('radiusLevel', 1);
+      fixture.detectChanges();
+      // The view loads the meter on its own; this waits for the same chunk.
+      await import('../fps-meter');
+      await vi.advanceTimersByTimeAsync(0);
+      render.mockClear();
+
+      await vi.advanceTimersByTimeAsync(5100);
+
+      // About one frame per 16 ms, each drawn.
+      expect(render.mock.calls.length).toBeGreaterThan(300);
+      expect(perfLines()).toHaveLength(1);
+      expect(perfLines()[0]).toMatch(/^\[ppg perf\] fps avg \d+\.\d min \d+\.\d over 5 s$/);
+    });
   });
 
   it('listens to the canvas until it closes', async () => {

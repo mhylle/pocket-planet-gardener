@@ -119,10 +119,11 @@ describe('WCAG 2.1 AA (NFR-05)', () => {
   });
 
   it('the planet page HUD, with Pip, the sky, the inventory and the placement help', async () => {
-    TestBed.configureTestingModule({
+    // The page's deferred panels make its metadata load asynchronously.
+    await TestBed.configureTestingModule({
       imports: [PlanetPageComponent],
       providers: [...HTTP, { provide: SCENE_RENDERER, useClass: NullSceneRenderer }],
-    });
+    }).compileComponents();
     const http = TestBed.inject(HttpTestingController);
     TestBed.inject(PlanetIdentityService).set(MOSSY.id);
     TestBed.inject(ViewStateService).show('planet');

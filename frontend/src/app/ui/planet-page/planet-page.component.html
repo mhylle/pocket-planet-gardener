@@ -41,9 +41,15 @@
         <app-receipt-toast />
         <app-celebration />
         <app-info-card [class.pip-target]="tutorial.highlight() === 'card'" />
-        <!-- The journal page (JRN-01) above the welcome-back summary. -->
+        <!--
+          The journal page (JRN-01) above the welcome-back summary. Its code loads with the first
+          diary page, and the deferred panels below load when they open, so the planet shows
+          sooner (NFR-03).
+        -->
         <div class="return">
-          <app-journal-page />
+          @defer (when diaryWaiting()) {
+            <app-journal-page />
+          }
           <app-welcome-back />
         </div>
         @if (!sceneReady()) {
@@ -97,13 +103,19 @@
       <div class="over">
         @switch (panel()) {
           @case ('settings') {
-            <app-settings-panel id="settings-panel" [planet]="planet" />
+            @defer (on immediate) {
+              <app-settings-panel id="settings-panel" [planet]="planet" />
+            }
           }
           @case ('catalogue') {
-            <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
+            @defer (on immediate) {
+              <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
+            }
           }
           @case ('journal') {
-            <app-journal-book id="journal-panel" (closed)="panel.set(null)" />
+            @defer (on immediate) {
+              <app-journal-book id="journal-panel" (closed)="panel.set(null)" />
+            }
           }
           @case ('shortcuts') {
             <app-shortcut-help id="shortcut-help" (closed)="panel.set(null)" />

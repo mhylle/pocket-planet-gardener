@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–16 implemented and validated (see section 9); Phase 16's browser checks are pending live servers. Next: Phase 17. |
+| **Progress** | Phases 1–17 implemented and validated (see section 9). The browser checks and measurements from Phases 16 and 17 are pending live servers (see the verification record). |
 
 ---
 
@@ -651,6 +651,32 @@ Decisions and notes:
 - Keyboard: the surface cursor is the middle of the view (the planet turns under it) rather than a separate `KeyboardSurfaceCursor`. A garden list (roving tabindex) selects plants, decorations and creatures. The scene marks the selection with a steady ring (#073b73, at least 4.3:1 on every ground colour). `?` opens the shortcut help, and picking an inventory item hands the focus to the canvas. Plants cannot be moved by anyone (GRD-07 move is in Appendix A).
 - WCAG: axe-core runs in jsdom (`testing/axe.ts`, 68 of 69 AA rules; `color-contrast` off); a token contrast spec covers contrast. No token value changed. Five template or SCSS fixes were made: the chat log role, sky-list and inventory names, and two borders moved off `--border`. The creature card now says "Napping", using a rule shared with the scene (`core/helpers/nap-rule.ts`).
 - Live-run items: whether NVDA and JAWS in browse mode pass the arrow keys to the `role="img"` canvas; the global CSS uses `:has()` (Firefox 121+).
+
+### Phase 17 — done except the live measurements (6 Oct 2026)
+
+All tasks 17.1–17.6 implemented. Gates:
+- **Backend:** lint 0 (no rewrites), `tsc` 0, unit 1021/1021, e2e 242/242.
+- **Frontend:** `tsc` app and spec 0, tests 985/985 (82 files), build 0 with no warnings. The initial bundle is 892 kB raw, 211 kB compressed.
+
+**Not live:** the verification servers stayed down (memory pressure; restart only when the user asks). These are written as procedures with "pending (live)" results in `2026-10-01-pocket-planet-gardener-poc-verification.md`:
+- the ≥30 fps run in Chrome and Firefox;
+- the ≤10 s Fast 3G start;
+- the 27-step browser smoke list in Chrome, Edge, Firefox and Safari;
+- the Phase 16 live items.
+
+**Not run:** backend `npm run build`.
+
+Decisions and notes:
+- **Delete planet:** an FK-metadata walk over 12 planet-owned tables proves a delete leaves no rows, and every table is populated first. `ai_usage` rows survive with the planet set to null, by design (budget accounting, no player data).
+- **Tone, scripted text:** a spec runs `checkText` over all scripted text and finds 0 violations.
+- **Tone, real model:** `npm run tone:sample` takes 50 samples per feature. It found wants falling back in 33 of 50 cases, because an ellipsis counted as a sentence end. `sentenceCount` now ends sentences only at . ! ?, and the want prompt asks for at most 2 short sentences with no ellipses. Fallbacks dropped to 12 of 50. "Pray, could…" stays flagged as a sensitive topic. The report is `2026-10-01-pocket-planet-gardener-poc-tone-sample.md`.
+- **Frame loop:** the animators allocate no three.js math objects per frame; the Phase 16 code made about 47 per frame. A spec counts constructor calls to prove it. Draw calls stay at 55 whether the planet has 60 or 120 plants. Decorations stay instanced per type instead of merged.
+- **Pixel ratio:** capped at 2.
+- **Lazy loading:** `@defer` puts settings, admin, catalogue and the journal in lazy chunks. It barely changes the compressed transfer, because three.js and Angular dominate it. Angular's experimental chunk-merge flag was not applied.
+- **Perf tooling:** `?perf=1` logs fps and time-to-planet (`ppg:planet-visible`, `ppg:time-to-planet`). `npm run seed:full-planet` creates a full planet for the fps run; re-seed after any e2e run.
+- **Build output:** `backend/scripts/` is excluded in `tsconfig.build.json`, so the `nest build` output stays at `dist/main.js`.
+- **Docs checks:** the README endpoint table and `.env.example` are now checked by specs (`test/readme-routes.e2e-spec.ts`, `src/game-config/env-example.spec.ts`). The README DB_PORT default is corrected to 5432, and CLAUDE.md section 10 gained the gotchas learnt.
+- **Behaviour change:** a creature walking under a resting mouse shows its hover card only after the mouse moves or the view turns.
 
 ---
 

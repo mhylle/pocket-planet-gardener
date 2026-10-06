@@ -20,7 +20,9 @@
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+    "tone:sample": "ts-node --transpile-only scripts/tone-sample.ts",
+    "seed:full-planet": "ts-node --transpile-only scripts/seed-full-planet.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

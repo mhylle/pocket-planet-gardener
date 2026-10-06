@@ -33,6 +33,8 @@ export class SceneService {
   readonly ready = this.firstFrameDrawn.asReadonly();
 
   private readonly steps: FrameStep[] = [];
+  /** Made once, so asking for a frame allocates nothing. */
+  private readonly nextFrame = (time: number) => this.frame(time);
   private canvas: HTMLCanvasElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private frameId: number | null = null;
@@ -101,7 +103,7 @@ export class SceneService {
   /** Runs the frame steps once more without drawing, unless one of them asks to draw. */
   requestFrame(): void {
     if (this.canvas && this.frameId === null) {
-      this.frameId = requestAnimationFrame((time) => this.frame(time));
+      this.frameId = requestAnimationFrame(this.nextFrame);
     }
   }
 
@@ -132,7 +134,9 @@ export class SceneService {
         ? 0
         : Math.min((time - this.lastFrameTime) / 1000, MAX_FRAME_SECONDS);
     this.lastFrameTime = time;
-    this.steps.forEach((step) => step(dt));
+    for (const step of this.steps) {
+      step(dt);
+    }
     if (this.dirty) {
       this.dirty = false;
       this.renderer.render(this.scene, this.camera);

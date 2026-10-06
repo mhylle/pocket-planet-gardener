@@ -8,7 +8,10 @@
       <app-planet-page />
     }
     @case ('admin') {
-      <app-admin />
+      <!-- Only the game owner opens it, so players never download it (NFR-03). -->
+      @defer (on immediate) {
+        <app-admin />
+      }
     }
   }
 </main>

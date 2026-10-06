@@ -144,16 +144,7 @@ export class SkyService {
     const timer = setInterval(() => this.update(), SKY_UPDATE_MS);
     inject(DestroyRef).onDestroy(() => clearInterval(timer));
 
-    this.scene.onFrame((dt) => {
-      const falling = [...this.cloudMeshes.values()].filter(({ rain }) => rain);
-      if (falling.length === 0) {
-        return;
-      }
-      this.rainTime += dt;
-      falling.forEach(({ rain }) => rain!.fall(this.rainTime));
-      // Keeps drawing while it rains; the loop rests once it stops.
-      this.scene.requestRender();
-    });
+    this.scene.onFrame((dt) => this.fall(dt));
   }
 
   /** The server's time now, as near as this device can tell. */
@@ -246,6 +237,23 @@ export class SkyService {
     this.scene.requestRender();
   }
 
+  /** Moves the falling rain on by dt seconds; runs every frame, so it allocates nothing. */
+  private fall(dt: number): void {
+    const time = this.rainTime + dt;
+    let falling = false;
+    for (const { rain } of this.cloudMeshes.values()) {
+      if (rain) {
+        rain.fall(time);
+        falling = true;
+      }
+    }
+    if (falling) {
+      this.rainTime = time;
+      // Keeps drawing while it rains; the loop rests once it stops.
+      this.scene.requestRender();
+    }
+  }
+
   private drawClouds(clouds: SkyCloud[], radius: number, rainRadiusSteps: number): void {
     for (const id of this.cloudMeshes.keys()) {
       if (!clouds.some((cloud) => cloud.id === id)) {
@@ -326,10 +334,13 @@ export class SkyService {
   }
 }
 
+/** Reused by place(), which runs for each cloud on every update and every drag step. */
+const DIRECTION = new THREE.Vector3();
+
 /** Stands an object at distance from the planet centre over the point, upright, at a size. */
 function place(object: THREE.Object3D, point: SurfacePoint, distance: number, size: number): void {
   const { x, y, z } = toVector(point, 1);
-  const direction = new THREE.Vector3(x, y, z);
+  const direction = DIRECTION.set(x, y, z);
   object.quaternion.setFromUnitVectors(UP, direction);
   object.position.copy(direction.multiplyScalar(distance));
   object.scale.setScalar(size);

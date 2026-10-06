@@ -1,8 +1,13 @@
 import * as THREE from 'three';
 import { SceneRenderer } from './scene-renderer';
 
-/** Sharper screens than this get no more pixels, which keeps the work down. */
+/** Sharper screens than this get no more pixels, which keeps the work down (NFR-02). */
 const MAX_PIXEL_RATIO = 2;
+
+/** The drawing buffer's pixels per CSS pixel on a screen with the device pixel ratio. */
+export function pixelRatioFor(devicePixelRatio: number): number {
+  return Math.min(devicePixelRatio, MAX_PIXEL_RATIO);
+}
 
 /** Draws the scene with WebGL. Each attach() opens a fresh WebGL context, dispose() closes it. */
 export class WebGlSceneRenderer implements SceneRenderer {
@@ -17,7 +22,7 @@ export class WebGlSceneRenderer implements SceneRenderer {
   }
 
   resize(width: number, height: number): void {
-    this.renderer?.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
+    this.renderer?.setPixelRatio(pixelRatioFor(window.devicePixelRatio));
     // The canvas keeps the size its styles give it; only the drawing buffer changes.
     this.renderer?.setSize(width, height, false);
   }

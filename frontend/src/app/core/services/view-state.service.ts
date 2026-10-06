@@ -9,10 +9,18 @@ export class ViewStateService {
   private readonly document = inject(DOCUMENT);
   private readonly identity = inject(PlanetIdentityService);
   private readonly current = signal<View>(this.initialView());
+  /** False once the page has shown a view other than the one it opened on. */
+  private onFirstView = true;
 
   readonly view = this.current.asReadonly();
 
+  /** True while the page still shows the planet it opened on, as for a returning player. */
+  get returning(): boolean {
+    return this.onFirstView && this.current() === 'planet';
+  }
+
   show(view: View): void {
+    this.onFirstView &&= view === this.current();
     this.current.set(view);
   }
 

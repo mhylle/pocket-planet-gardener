@@ -10,6 +10,15 @@ export interface PartPlacement {
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+/** Reused by standOn(), which runs for every creature move, so it allocates nothing itself. */
+const STANCE = {
+  position: new THREE.Vector3(),
+  direction: new THREE.Vector3(),
+  upright: new THREE.Quaternion(),
+  turn: new THREE.Quaternion(),
+  scale: new THREE.Vector3(),
+};
+
 /**
  * One coloured primitive of a model, moved into place. The result is not indexed and carries
  * a colour per vertex, so parts merge into one geometry and every face shades flat.
@@ -83,6 +92,7 @@ export function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
  * The transform that stands a model upright on a surface point of a planet with the given
  * radius, turned about its own up axis. Models are built in steps (one unit is one step
  * across), so they cover the footprint the placement rules give them on any planet size.
+ * Pass a target to reuse a matrix; without one a new matrix is made.
  */
 export function standOn(
   point: SurfacePoint,
@@ -91,11 +101,11 @@ export function standOn(
   target = new THREE.Matrix4(),
 ): THREE.Matrix4 {
   const { x, y, z } = toVector(point, radius);
-  const position = new THREE.Vector3(x, y, z);
-  const upright = new THREE.Quaternion().setFromUnitVectors(UP, position.clone().normalize());
-  upright.multiply(new THREE.Quaternion().setFromAxisAngle(UP, spin));
-  const scale = radius * STEP_ARC;
-  return target.compose(position, upright, new THREE.Vector3(scale, scale, scale));
+  const { position, direction, upright, turn, scale } = STANCE;
+  position.set(x, y, z);
+  upright.setFromUnitVectors(UP, direction.copy(position).normalize());
+  upright.multiply(turn.setFromAxisAngle(UP, spin));
+  return target.compose(position, upright, scale.setScalar(radius * STEP_ARC));
 }
 
 /** A repeatable turn for an id, so neighbours of one kind do not all face the same way. */

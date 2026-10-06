@@ -4,7 +4,10 @@ A proof of concept of Pocket Planet Gardener: a small 3D planet the player
 tends in the browser, with an Angular frontend, a NestJS backend and a
 PostgreSQL database. It is being built task by task from the implementation
 plan in `docs/plans/2026-10-01-pocket-planet-gardener-poc.md`. The functional
-solution description is in `docs/pocket-planet-gardener-SD.md`.
+solution description is in `docs/pocket-planet-gardener-SD.md`. Evidence that
+takes more than a spec (manual checklists, audits, measurements, the browser
+smoke list) is recorded in
+`docs/plans/2026-10-01-pocket-planet-gardener-poc-verification.md`.
 
 ```
 backend/    NestJS 11 + TypeORM + PostgreSQL
@@ -32,7 +35,7 @@ Otherwise point the backend at your own instance by editing `backend/.env`
 | Variable         | Default       | Purpose                                       |
 | ---------------- | ------------- | --------------------------------------------- |
 | `DB_HOST`        | `localhost`   | PostgreSQL host                               |
-| `DB_PORT`        | `5443`        | PostgreSQL port                               |
+| `DB_PORT`        | `5432`        | PostgreSQL port (`.env.example` sets `5443`)  |
 | `DB_USERNAME`    | `postgres`    | User                                          |
 | `DB_PASSWORD`    | `postgres`    | Password                                      |
 | `DB_NAME`        | `app`         | Database (must exist)                         |
@@ -43,6 +46,7 @@ Otherwise point the backend at your own instance by editing `backend/.env`
 | `AI_API_KEY`     | —             | Provider key. Empty disables the AI; the app still boots |
 | `AI_MODEL`       | —             | Model id                                      |
 | `AI_TIMEOUT_MS`  | `60000`       | Per-request ceiling                           |
+| `SUPPORT_URL`    | `https://findahelpline.com` | Where the chat's wellbeing notice links to |
 
 The game's tunable parameters are `GAME_*` variables, all listed in
 `backend/.env.example` (for example `GAME_MAX_PLANTS`). Leave one unset or
@@ -53,6 +57,11 @@ round the planet; `GAME_CLOUD_COUNT` (3) clouds per planet, drifting
 `GAME_RAIN_SECONDS` (8) of rain, which waters plants within
 `GAME_RAIN_RADIUS_STEPS` (2, a step being 5 degrees) by
 `GAME_RAIN_WATER_PER_SECOND` (0.15) for each second.
+
+`backend/.env.example` lists exactly the variables the code reads, and
+`src/game-config/env-example.spec.ts` fails when the two drift apart. The one
+variable read but left out is `NODE_ENV`: Jest sets it, and it must never be
+`test` in `.env`, because that turns on the test clock (below).
 
 The schema is created by TypeORM migrations, never by `synchronize`. Run them
 before starting the backend:
@@ -77,6 +86,8 @@ npm run start:dev        # http://localhost:3101
 
 All routes live under `/api`. The "Planet" column marks the planet-scoped
 routes, which need an `X-Planet-Id` header with the planet's id.
+`test/readme-routes.e2e-spec.ts` checks that this table lists exactly the
+routes the app registers.
 
 | Method | Endpoint                               | Planet | Description                                                      |
 | ------ | -------------------------------------- | ------ | ---------------------------------------------------------------- |
@@ -111,8 +122,11 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 
 On a planet-scoped route a missing or malformed `X-Planet-Id` is a 400 and an
 unknown one is a 404 `This planet has drifted away`. The PoC has no accounts
-and no authentication (decision D-0 in the plan): anyone who has a planet's
-id or code can open, change or delete that planet.
+and no authentication (decision D-0 in the plan): a player *is* a planet. The
+browser keeps the planet's id in `localStorage` under `ppg.planetId` and sends
+it as the `X-Planet-Id` header on every request, and that id is the player's
+whole identity. Anyone who has a planet's id or code can open, change or
+delete that planet. This must be replaced before anything beyond a PoC.
 
 The client syncs every `GAME_SYNC_INTERVAL_SECONDS`. A sync advances the
 planet to now and answers with the snapshot and the events that happened, but
@@ -336,8 +350,9 @@ name is a 400 whose `message` is a friendly sentence to show the player.
 Services read the time from `ClockService`, never from `new Date()`. An e2e
 test can run a request at a fixed instant by sending an `X-Test-Now` header
 with an ISO timestamp, e.g. `X-Test-Now: 2030-01-01T00:00:00.000Z`. The
-header is honoured only when `NODE_ENV=test` (Jest sets it) and ignored
-everywhere else.
+header is test-only: it is honoured only when `NODE_ENV=test` (Jest sets it)
+and ignored everywhere else. Under test, a timestamp without `Z` or an offset
+is a 400.
 
 ```bash
 cd backend
@@ -346,8 +361,36 @@ npm run test:e2e         # e2e specs, against the dev database
 ```
 
 `npm run test:e2e` uses the database in `backend/.env` and empties its
-`planets` table, and with it every table that cascades from it. Planets you
-created while playing are gone afterwards.
+`planets` table, and with it every table that cascades from it; some specs
+also empty `ai_usage` and `admin_settings`. Planets you created while playing,
+and the seeded full planet below, are gone afterwards.
+
+Two dev-only scripts run from `backend/` against the same `.env`:
+
+```bash
+npm run seed:full-planet   # one new planet filled to the limits, for the performance run
+npm run tone:sample        # samples the real model's answers for the tone review
+```
+
+- `seed:full-planet` (`scripts/seed-full-planet.ts`) creates "Full Bloom" with
+  `GAME_MAX_PLANTS` plants in mixed stages, one of each decoration,
+  `GAME_MAX_CREATURES` creatures with pre-written identities and the clouds.
+  It never asks the model and refuses to run with `NODE_ENV=production`. It
+  prints the planet's id and code; open the planet in the browser with
+  `localStorage.setItem('ppg.planetId', '<id>')` and a reload.
+- `tone:sample` (`scripts/tone-sample.ts`) sends requests for each AI
+  feature through the real feature services and the real gateway, then runs
+  the content rules over every answer. It writes nothing to the database.
+  **It makes real model calls**: about 300 with the defaults (50 per feature
+  for 5 features, plus retries). The options are `--samples=` (default 50),
+  `--features=` (a comma list of `identity`, `want`, `chat`, `memory` and
+  `journal`; default all) and `--out=` (default
+  `docs/plans/2026-10-01-pocket-planet-gardener-poc-tone-sample.md`), passed
+  after `--`, e.g. `npm run tone:sample -- --features=want --samples=10`.
+
+`scripts/` is left out of `tsconfig.build.json`, so `nest build` still puts
+the app at `dist/main.js`; `npx tsc --noEmit -p tsconfig.json` type-checks the
+scripts too.
 
 ## 3. Frontend
 
@@ -360,6 +403,42 @@ npm start                # http://localhost:4301
 `proxy.conf.json` forwards `/api` to `http://localhost:3101`, so the frontend
 never hardcodes the backend host.
 
+```bash
+npx ng test --watch=false   # vitest specs in jsdom (no WebGL); there is no lint script
+```
+
+Opening the page goes straight to the planet whose id is in `ppg.planetId`,
+or to create-planet when there is none. Besides the planet, the page has the
+garden list, the sky list, the inventory and the menu buttons Catalogue,
+Journal, Settings and Shortcuts.
+
+- **Settings** are kept with the planet (`/api/planet/settings`), so they
+  follow it to another device. Music and sound effects each have a volume and
+  a mute, heard at once. The sounds are made in code with Web Audio (no sound
+  files) and start only after the first click or key press. Reduced motion is
+  `Auto (follow my device)`, `On` or `Off`; when reduced, idle animation,
+  camera swoops and spin, and celebrations stand still or only fade, and the
+  rain streaks stop.
+- **Keyboard-only play.** With the planet focused, the arrow keys or W A S D
+  turn it, `+` and `-` zoom, and Enter plants, places or opens a card at the
+  ring in the middle of the view. Tab goes on to the garden list (arrows pick
+  a plant, decoration or creature, Enter opens its card), the sky list (arrows
+  move a cloud or the sun, Space rains), the inventory and the menus. `?`
+  anywhere except while typing lists every key; Esc closes a card or panel.
+- **Admin page.** `http://localhost:4301/?admin=1` opens the game owner's
+  page with the AI switch and the daily budget. Like the admin routes, it is
+  open to anyone (D-0).
+- **Performance lines.** With `?perf=1` the page logs developer lines that
+  start `[ppg perf]` through `console.info`: the frame rate every 5 s, such as
+  `[ppg perf] fps avg 58.2 min 41.0 over 5 s`, and once for a returning
+  player `[ppg perf] planet visible after 1234 ms`. The frame-rate meter
+  makes the scene draw every frame, which it otherwise does only on demand,
+  so leave `?perf=1` off for normal play and the browser smoke list. Without
+  the flag, a returning player's start is still timed: the User Timing mark
+  `ppg:planet-visible` and the measure `ppg:time-to-planet`, which runs from
+  the start of the navigation to that mark. Measure with the production build
+  (`npx ng serve --configuration production`), not the development one.
+
 ## Layout
 
 ```
@@ -370,7 +449,9 @@ backend/src
 ├── common/                  ClockService, RandomService, X-Test-Now middleware (global)
 ├── game-config/             GameConfigService (GAME_* tunables), GET /api/config
 ├── content/                 game data as code: plants, decorations, species,
-│                            starter seeds, blocked words and names
+│                            starter seeds, Pip's script, fallback identities and
+│                            wants, chat and thank-you lines, blocked words and
+│                            names; tone-review.spec.ts checks all its text
 ├── catalogue/               GET /api/catalogue, the public view of content/
 ├── planets/
 │   ├── planet.entity.ts     the planets table; a planet is also the player (D-0)
@@ -385,6 +466,11 @@ backend/src
 │   └── planet-context/      PlanetGuard (X-Planet-Id), @CurrentPlanet(), @NoPlanet()
 ├── simulation/              SimulationService (growth before every sync and command)
 │                            and pure rules: growth, sun, clouds, surface coords, placement
+├── garden/                  GardenService, the /api/garden routes: plant, dig up, harvest,
+│                            decorations, rain, clouds, sun
+├── inventory/               InventoryService: items and unlocks
+├── events/                  EventLogService (the events table), ReturnService
+│                            (welcomeBack) and the pure summary helper
 ├── database/
 │   ├── data-source.ts       DataSource for the TypeORM CLI, MIGRATIONS list
 │   └── migrations/
@@ -394,6 +480,8 @@ backend/src
 ├── wants/                   WantsService (fulfilment, mood, gifts, new wants after every
 │                            sync and command; maybe-later), WantGenerationService,
 │                            RewardService, and pure rules: want evaluator, mood, rewards
+├── chat/                    ChatService (/api/creatures/:id/chat), MemoryService
+│                            (highlights), and pure helpers: the prompt, limits, wellbeing
 ├── journal/                 JournalService (an entry on return, GET /api/journal) and
 │                            pure helpers: the journal prompt, fact check and template
 ├── tutorial/                GET /api/tutorial (Pip's script), PATCH /api/planet/tutorial,
@@ -409,23 +497,43 @@ backend/src
     ├── content-rules.ts     content and tone checks for AI text (pure helper)
     └── prompt-context.ts    prompt builders that take only public game state
 
+backend/scripts/             dev-only: seed-full-planet.ts, tone-sample.ts (section 2)
+backend/test/                e2e specs; support/ boots the app with the fake model,
+                             readme-routes.e2e-spec.ts checks the endpoint table
+
 frontend/src/app
-├── app.ts / app.html        root App: shows one view at a time (no router)
+├── app.ts / app.html        root App: shows one view at a time (no router); the
+│                            admin page loads as a lazy chunk
 ├── app.config.ts            HttpClient, loads the game config at startup
 ├── core/
-│   ├── models/              game-config, planet: mirrors of the backend DTOs
+│   ├── models/              mirrors of the backend DTOs: snapshot, creature, want,
+│   │                        chat, journal, catalogue, player settings, game config
 │   ├── services/
 │   │   ├── api.service.ts               /api prefix, adds X-Planet-Id
-│   │   ├── planet-identity.service.ts   the planet id in localStorage
-│   │   ├── view-state.service.ts        current view, ?admin=1
+│   │   ├── planet-identity.service.ts   the planet id in localStorage (ppg.planetId)
+│   │   ├── view-state.service.ts        current view, ?admin=1, returning player
 │   │   ├── game-config.service.ts       the tunables from /api/config
-│   │   └── planet.service.ts            create, open, rename, leave, delete
-│   └── helpers/
-│       └── error-message.ts friendly text for a failed request
-├── scene/                   SCENE_RENDERER token, NullSceneRenderer for specs
-└── ui/
-    ├── create-planet/       name a new planet or open one by its code
-    ├── planet-page/         the planet screen (the 3D view comes later)
-    ├── settings-panel/      planet code, rename, leave, delete
-    └── planet-name-form/    name field with a length counter, for create and rename
+│   │   ├── planet.service.ts            create, open, rename, leave, delete
+│   │   ├── planet-store.service.ts      the loaded planet and its save state
+│   │   ├── sync.service.ts              heartbeat and gameplay commands
+│   │   ├── placement.service.ts         what the next tap puts down; the info card
+│   │   ├── settings.service.ts          audio and reduced motion, /api/planet/settings
+│   │   ├── audio.service.ts             music and sound effects (Web Audio)
+│   │   ├── motion-preference.service.ts reduced motion: the setting, else the device
+│   │   ├── tutorial.service.ts          Pip's steps
+│   │   └── …                            catalogue, chat, journal, admin, receipts,
+│   │                                    reward reveals, celebrations
+│   └── helpers/             client copies of the shared pure rules (byte-identical to
+│                            the backend's; a backend spec fails on drift), status text,
+│                            the nap rule, perf.ts (?perf=1, time-to-planet marks)
+├── scene/                   three.js: SceneService, camera controls, input and picking,
+│                            meshes for the planet, plants, decorations, creatures and
+│                            sky, the selection ring and placement ghost; SCENE_RENDERER
+│                            token and NullSceneRenderer for specs; fps-meter.ts (?perf=1)
+├── testing/                 spec helpers: axe.ts, fake motion and audio, the full-planet
+│                            fixture, a three.js allocation counter
+└── ui/                      one folder per screen or panel: create-planet, planet-page,
+                             inventory, garden and sky lists, info and creature cards,
+                             chat, catalogue, journal book and page, welcome-back, Pip,
+                             settings, shortcut help, admin, and smaller pieces
 ```

@@ -24,6 +24,8 @@ export class PlacementGhostService {
   private readonly modelMaterial = ghostMaterial(0.55);
   private readonly model = new THREE.Mesh(new THREE.BufferGeometry(), this.modelMaterial);
   private modelName = '';
+  /** Reused on every move of the preview, which follows the pointer or a turning planet. */
+  private readonly stance = new THREE.Matrix4();
 
   constructor() {
     const scene = inject(SceneService);
@@ -48,7 +50,7 @@ export class PlacementGhostService {
         this.ghost.visible = selected !== null && point !== null;
         if (selected && point) {
           this.useModel(selected);
-          standOn(point, radius, 0).decompose(
+          standOn(point, radius, 0, this.stance).decompose(
             this.ghost.position,
             this.ghost.quaternion,
             this.ghost.scale,

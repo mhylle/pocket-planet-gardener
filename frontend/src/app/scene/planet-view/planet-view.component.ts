@@ -1,5 +1,6 @@
 import {
   Component,
+  DOCUMENT,
   DestroyRef,
   ElementRef,
   afterNextRender,
@@ -9,6 +10,7 @@ import {
   input,
   viewChild,
 } from '@angular/core';
+import { perfMode } from '../../core/helpers/perf';
 import { CameraControlsService } from '../camera-controls.service';
 import { InputService } from '../input.service';
 import { PlanetMeshService } from '../planet-mesh.service';
@@ -17,7 +19,7 @@ import { SceneService } from '../scene.service';
 /**
  * The canvas the 3D planet is drawn on. Starts the scene once the canvas is in the page and
  * frees it when the view closes. The scene services come from the page around it
- * (SCENE_PROVIDERS).
+ * (SCENE_PROVIDERS). With ?perf=1 it also logs the frame rate (NFR-02).
  */
 @Component({
   selector: 'app-planet-view',
@@ -45,11 +47,19 @@ export class PlanetViewComponent {
     // Created now so it listens to the input from the first gesture.
     inject(CameraControlsService);
 
+    const measure = perfMode(inject(DOCUMENT).location.search);
+
     effect(() => planetMesh.setRadiusLevel(this.radiusLevel()));
     afterNextRender(() => {
       const canvas = this.canvas().nativeElement;
       input.connect(canvas);
       scene.attach(canvas);
+      if (measure) {
+        // A chunk of its own, so without ?perf=1 the meter is never even downloaded.
+        void import('../fps-meter').then(
+          ({ FpsMeter }) => new FpsMeter(scene, (line) => console.info(line)),
+        );
+      }
     });
     inject(DestroyRef).onDestroy(() => {
       input.disconnect();

@@ -28,6 +28,9 @@ export class Sparkles {
   private current: THREE.InstancedMesh | null = null;
   private places: { at: THREE.Matrix4; size: number }[] = [];
   private drawn: string | null = null;
+  /** Reused by twinkle(), which runs every frame while anything sparkles. */
+  private readonly matrix = new THREE.Matrix4();
+  private readonly scale = new THREE.Vector3();
 
   constructor(
     private readonly group: THREE.Group,
@@ -76,13 +79,13 @@ export class Sparkles {
     if (!mesh) {
       return;
     }
-    const matrix = new THREE.Matrix4();
-    this.places.forEach(({ at, size }, i) => {
+    for (let i = 0; i < this.places.length; i++) {
+      const { at, size } = this.places[i];
       const phase = seconds === null ? null : seconds * 2.4 + i * 1.9;
       const scale = phase === null ? size : size * (0.45 + 0.55 * Math.abs(Math.sin(phase)));
-      matrix.makeRotationY(phase ?? 0).scale(new THREE.Vector3(scale, scale, scale));
-      mesh.setMatrixAt(i, matrix.premultiply(at));
-    });
+      this.matrix.makeRotationY(phase ?? 0).scale(this.scale.setScalar(scale));
+      mesh.setMatrixAt(i, this.matrix.premultiply(at));
+    }
     mesh.instanceMatrix.needsUpdate = true;
   }
 

@@ -44,6 +44,9 @@ export class SelectionRingService {
   private target: RingTarget | null = null;
   /** Where and how big the ring was last drawn; null while hidden. */
   private drawn: string | null = null;
+  /** The ringed creature's point at the last update; a wandering creature gets a new one. */
+  private followed: SurfacePoint | undefined;
+  private readonly stance = new THREE.Matrix4();
 
   constructor() {
     const accent = new THREE.MeshBasicMaterial({ color: RING_COLOUR, side: THREE.DoubleSide });
@@ -68,9 +71,9 @@ export class SelectionRingService {
       this.catalogue.catalogue();
       untracked(() => this.update());
     });
-    // A creature wanders between snapshots.
+    // A creature wanders between snapshots. Checked every frame, so only a move costs anything.
     this.scene.onFrame(() => {
-      if (this.target?.kind === 'creature') {
+      if (this.followed !== this.creaturePoint()) {
         this.update();
       }
     });
@@ -89,6 +92,7 @@ export class SelectionRingService {
 
   /** Stands the ring where its target is now, sized to it; hidden without one. */
   update(): void {
+    this.followed = this.creaturePoint();
     const snapshot = this.store.snapshot();
     const spot = this.target && snapshot ? this.spotOf(this.target) : null;
     const radius = planetRadius(snapshot?.radiusLevel ?? 1);
@@ -100,7 +104,7 @@ export class SelectionRingService {
     this.drawn = drawn;
     this.ring.visible = spot !== null;
     if (spot) {
-      standOn(spot.point, radius, 0).decompose(
+      standOn(spot.point, radius, 0, this.stance).decompose(
         this.ring.position,
         this.ring.quaternion,
         this.ring.scale,
@@ -108,6 +112,12 @@ export class SelectionRingService {
       this.band.scale.set(spot.steps, 1, spot.steps);
     }
     this.scene.requestRender();
+  }
+
+  /** Where the ringed creature is drawn now; undefined when no creature is ringed. */
+  private creaturePoint(): SurfacePoint | undefined {
+    const target = this.target;
+    return target?.kind === 'creature' ? this.creatures.creature(target.id)?.point : undefined;
   }
 
   /** Where the target stands and how many steps across it is; null once it is gone. */

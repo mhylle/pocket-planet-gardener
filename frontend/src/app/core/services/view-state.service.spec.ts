@@ -41,4 +41,25 @@ describe('ViewStateService', () => {
 
     expect(views.view()).toBe('planet');
   });
+
+  it('counts as returning while it shows the stored planet it opened on (NFR-03)', () => {
+    localStorage.setItem('ppg.planetId', 'planet-1');
+    const views = TestBed.inject(ViewStateService);
+    expect(views.returning).toBe(true);
+
+    views.show('planet');
+    expect(views.returning).toBe(true);
+
+    views.show('create-planet');
+    views.show('planet');
+    expect(views.returning).toBe(false);
+  });
+
+  it('never counts as returning when it opened on another view', () => {
+    const views = TestBed.inject(ViewStateService);
+    expect(views.returning).toBe(false);
+
+    views.show('planet');
+    expect(views.returning).toBe(false);
+  });
 });

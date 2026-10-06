@@ -28,29 +28,40 @@ export class PickingService {
   private readonly targets = new Map<THREE.Object3D, PickTarget | readonly PickTarget[]>();
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
+  /**
+   * The registered objects, and the hits of the last ray, kept between picks: the garden input
+   * picks on every frame while the planet turns under the pointer.
+   */
+  private objects: THREE.Object3D[] | null = null;
+  private readonly hits: THREE.Intersection[] = [];
+  private readonly local = new THREE.Vector3();
 
   register(object: THREE.Object3D, target: PickTarget): void {
     this.targets.set(object, target);
+    this.objects = null;
   }
 
   /** Registers each instance of the mesh as its own target, in instance order. */
   registerInstances(mesh: THREE.InstancedMesh, targets: readonly PickTarget[]): void {
     this.targets.set(mesh, targets);
+    this.objects = null;
   }
 
   unregister(object: THREE.Object3D): void {
     this.targets.delete(object);
+    this.objects = null;
   }
 
   /** The object under a canvas point given in CSS pixels from its top left; null for open sky. */
   pick(at: { x: number; y: number }): PickResult | null {
     this.aim(at);
-    const [hit] = this.raycaster.intersectObjects([...this.targets.keys()], true);
+    this.objects ??= [...this.targets.keys()];
+    this.raycaster.intersectObjects(this.objects, true, this.hits);
+    const hit = this.hits[0];
     const target = hit && this.targetOf(hit.object, hit.instanceId);
-    if (!target) {
-      return null;
-    }
-    return { ...target, surface: this.surfaceOf(hit.point) };
+    const result = target ? { ...target, surface: this.surfaceOf(hit.point) } : null;
+    this.hits.length = 0;
+    return result;
   }
 
   /**
@@ -87,7 +98,7 @@ export class PickingService {
 
   /** A point in the world, as the surface point of the planet in its direction. */
   private surfaceOf(point: THREE.Vector3): SurfacePoint {
-    return fromVector(this.sceneService.planetGroup.worldToLocal(point.clone()));
+    return fromVector(this.sceneService.planetGroup.worldToLocal(this.local.copy(point)));
   }
 
   /** The target of the object (or of the instance hit), or of its nearest registered ancestor. */

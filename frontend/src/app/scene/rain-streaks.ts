@@ -42,15 +42,16 @@ export class RainStreaks {
     this.fall(0);
   }
 
-  /** Puts every streak where it is after falling for a time in seconds. */
+  /** Puts every streak where it is after falling for a time in seconds; runs every frame. */
   fall(seconds: number): void {
     const span = this.top - 1 - LENGTH;
     const position = this.lines.geometry.getAttribute('position') as THREE.BufferAttribute;
-    this.drops.forEach(({ x, z, phase }, i) => {
+    for (let i = 0; i < this.drops.length; i++) {
+      const { x, z, phase } = this.drops[i];
       const y = this.top - ((phase * span + seconds * SPEED) % span);
       position.setXYZ(i * 2, x, y, z);
       position.setXYZ(i * 2 + 1, x, y - LENGTH, z);
-    });
+    }
     position.needsUpdate = true;
     this.lines.geometry.computeBoundingSphere();
   }

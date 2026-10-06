@@ -1,5 +1,6 @@
 import { Injectable, effect, inject, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import * as THREE from 'three';
 import { presentPlant } from '../core/helpers/plant-presenter';
 import { SurfacePoint } from '../core/helpers/surface-coords';
 import { CardTarget, PlacementService } from '../core/services/placement.service';
@@ -35,6 +36,9 @@ export class GardenInputService {
   private enterHeld = false;
   /** The planet is being turned, so nothing under the pointer shows its card. */
   private dragging = false;
+  /** The planet's turn and the camera's distance at the last frame that followed the pointer. */
+  private readonly seenTurn = new THREE.Quaternion();
+  private seenDistance = 0;
 
   constructor() {
     const input = inject(InputService);
@@ -53,8 +57,14 @@ export class GardenInputService {
       this.followPointer();
     });
     input.key.pipe(takeUntilDestroyed()).subscribe((key) => this.key(key));
-    // The planet may turn under a still pointer.
-    this.scene.onFrame(() => this.followPointer());
+    // The planet may turn under a still pointer. A frame that only moves sparkles or rain picks
+    // nothing again: a pick casts a ray, which allocates. Creatures and clouds drift slowly, so
+    // they are caught up with at the next pointer move or turn.
+    this.scene.onFrame(() => {
+      if (this.viewMoved()) {
+        this.followPointer();
+      }
+    });
     effect(() => {
       this.placement.selected();
       untracked(() => this.followPointer());
@@ -64,6 +74,17 @@ export class GardenInputService {
   /** The middle of the view, in CSS pixels; Enter acts here. */
   centre(): { x: number; y: number } {
     return { x: this.scene.width / 2, y: this.scene.height / 2 };
+  }
+
+  /** True when the planet turned or the camera moved since the last time this was asked. */
+  private viewMoved(): boolean {
+    const { planetGroup, camera } = this.scene;
+    if (planetGroup.quaternion.equals(this.seenTurn) && camera.position.z === this.seenDistance) {
+      return false;
+    }
+    this.seenTurn.copy(planetGroup.quaternion);
+    this.seenDistance = camera.position.z;
+    return true;
   }
 
   private followPointer(): void {
