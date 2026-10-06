@@ -1,7 +1,7 @@
 <!-- The live region stays in the page so screen readers hear each celebration. -->
 <div class="celebrations" aria-live="polite">
   @for (celebration of celebrations(); track celebration.id) {
-    <p class="celebration" [class.burst]="!still">
+    <p class="celebration" [class.burst]="!still()">
       <span class="sparkles" aria-hidden="true">
         @for (angle of sparkles; track angle) {
           <span class="sparkle" [style.--angle]="angle + 'deg'">✦</span>

@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { RECEIPT_MS, ReceiptService } from '../../core/services/receipt.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import { CATALOGUE, MOSSY } from '../../testing/garden-fixtures';
 import { ReceiptToastComponent } from './receipt-toast.component';
 
@@ -16,7 +17,12 @@ describe('ReceiptToastComponent', () => {
     vi.useFakeTimers();
     TestBed.configureTestingModule({
       imports: [ReceiptToastComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), ReceiptService],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        FAKE_MOTION_PROVIDERS,
+        ReceiptService,
+      ],
     });
     TestBed.inject(CatalogueService).load();
     TestBed.inject(HttpTestingController).expectOne('/api/catalogue').flush(CATALOGUE);
@@ -24,10 +30,7 @@ describe('ReceiptToastComponent', () => {
     store.setSnapshot(MOSSY);
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.useRealTimers();
-  });
+  afterEach(() => vi.useRealTimers());
 
   /** Runs effects, then draws the toasts. */
   function settle() {
@@ -71,13 +74,13 @@ describe('ReceiptToastComponent', () => {
     expect(receipts()).toEqual([]);
   });
 
-  it('only fades when the device asks for reduced motion (SET-03)', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-    }));
+  it('only fades with reduced motion, following the setting as it changes (SET-03)', () => {
     render();
-
     gainClover();
+    expect(receipts()[0].classList.contains('still')).toBe(false);
+
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
+    settle();
 
     expect(receipts()[0].classList.contains('still')).toBe(true);
   });

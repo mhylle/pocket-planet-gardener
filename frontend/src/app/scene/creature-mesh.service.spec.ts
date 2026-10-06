@@ -15,6 +15,7 @@ import {
 import { CreatureDto } from '../core/models/creature';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { SyncService } from '../core/services/sync.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { MOSSY, creatureAt, wantFulfilled } from '../testing/garden-fixtures';
 import { seededRandom } from '../testing/seeded-random';
 import {
@@ -59,6 +60,7 @@ describe('CreatureMeshService', () => {
         PickingService,
         PlanetMeshService,
         CreatureMeshService,
+        FAKE_MOTION_PROVIDERS,
         { provide: SkyService, useValue: { sunAngle } },
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
@@ -76,8 +78,8 @@ describe('CreatureMeshService', () => {
   /** The service, made with the given settings before it sees a snapshot. */
   function start({ reducedMotion = false } = {}): CreatureMeshService {
     onFrame = vi.spyOn(scene, 'onFrame');
+    TestBed.inject(FakeMotionPreference).reduced.set(reducedMotion);
     const service = TestBed.inject(CreatureMeshService);
-    service.reducedMotion = reducedMotion;
     service.random = seededRandom(11);
     requestRender = vi.spyOn(scene, 'requestRender');
     return service;
@@ -191,6 +193,22 @@ describe('CreatureMeshService', () => {
     expect(creatures.creature('sam')!.point).toEqual({ lat: 10, lon: 20 });
     expect(creatures.creatures.map(({ group }) => group.position)).toEqual(before);
     expect(requestRender).not.toHaveBeenCalled();
+  });
+
+  it('stops wandering as soon as motion is reduced, and wanders again once it is not', () => {
+    const creatures = start();
+    show([sam]);
+    const snail = creatures.creature('sam')!;
+    vi.advanceTimersByTime(20_000);
+
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
+    const stopped = snail.point;
+    vi.advanceTimersByTime(60_000);
+    expect(snail.point).toBe(stopped);
+
+    TestBed.inject(FakeMotionPreference).reduced.set(false);
+    vi.advanceTimersByTime(60_000);
+    expect(snail.point).not.toBe(stopped);
   });
 
   describe('moving in (CRT-01 AC1)', () => {

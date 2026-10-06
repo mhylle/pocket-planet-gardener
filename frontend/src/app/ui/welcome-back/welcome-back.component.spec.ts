@@ -11,6 +11,7 @@ import { NullSceneRenderer } from '../../scene/null-scene-renderer';
 import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import { MOSSY } from '../../testing/garden-fixtures';
 import { FRIDAY_ENTRY } from '../../testing/journal-fixtures';
 import { WelcomeBackComponent } from './welcome-back.component';
@@ -39,6 +40,7 @@ describe('WelcomeBackComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -46,7 +48,6 @@ describe('WelcomeBackComponent', () => {
     TestBed.inject(PlanetIdentityService).set(MOSSY.id);
     TestBed.inject(PlanetStore).setSnapshot(MOSSY);
     camera = TestBed.inject(CameraControlsService);
-    camera.reducedMotion = false;
     focusOn = vi.spyOn(camera, 'focusOn');
     focusCanvas = vi.spyOn(TestBed.inject(SceneService), 'focusCanvas');
     fixture = TestBed.createComponent(WelcomeBackComponent);
@@ -113,7 +114,7 @@ describe('WelcomeBackComponent', () => {
   });
 
   it('turns the planet at once under reduced motion', async () => {
-    camera.reducedMotion = true;
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
     await syncWith(WELCOME_BACK);
 
     lineButton('3 plants bloomed').click();

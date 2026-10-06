@@ -7,7 +7,7 @@
         tabindex="0"
         [class.selected]="selected() === option.key"
         [attr.aria-selected]="selected() === option.key"
-        [attr.aria-label]="option.status ? option.name + ' (' + option.status + ')' : option.name"
+        [attr.aria-label]="option.status ? option.name + ', ' + option.status : option.name"
         (focus)="focus(option)"
         (blur)="blur(option)"
         (keydown)="key($event, option)"
@@ -42,7 +42,8 @@
         </svg>
         <span class="name">{{ option.name }}</span>
         @if (option.status) {
-          <span class="status">{{ option.status }}</span>
+          <!-- The space keeps the words apart, as in the label (WCAG 2.5.3). -->
+          &ngsp;<span class="status">{{ option.status }}</span>
         }
       </li>
     }

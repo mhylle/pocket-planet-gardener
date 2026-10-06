@@ -7,7 +7,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { diaryDate } from '../../core/helpers/diary-date';
-import { prefersReducedMotion } from '../../core/helpers/reduced-motion';
+import { MotionPreferenceService } from '../../core/services/motion-preference.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { SceneService } from '../../scene/scene.service';
 import { JournalEntryComponent } from '../journal-entry/journal-entry.component';
@@ -35,7 +35,7 @@ export class JournalPageComponent {
     const entry = this.entry();
     return entry ? diaryDate(entry.createdAt) : '';
   });
-  protected readonly still = prefersReducedMotion();
+  protected readonly still = inject(MotionPreferenceService).reduced;
 
   constructor() {
     // Runs when a page opens, or the summary under it goes, once it is drawn.

@@ -4,9 +4,14 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import type { Mock } from 'vitest';
 import { PlanetDto } from '../../core/models/planet';
 import { PlanetSnapshotDto } from '../../core/models/planet-snapshot';
+import { DEFAULT_PLAYER_SETTINGS } from '../../core/models/player-settings';
+import { AudioService } from '../../core/services/audio.service';
+import { MotionPreferenceService } from '../../core/services/motion-preference.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
+import { SETTINGS_NOT_SAVED } from '../../core/services/settings.service';
 import { ViewStateService } from '../../core/services/view-state.service';
+import { FakeAudioContext, provideFakeAudio } from '../../testing/fake-audio-context';
 import { SettingsPanelComponent } from './settings-panel.component';
 
 const mossy: PlanetDto = {
@@ -37,15 +42,17 @@ describe('SettingsPanelComponent', () => {
   let page: HTMLElement;
   let http: HttpTestingController;
   let writeText: Mock<(text: string) => Promise<void>>;
+  let audio: FakeAudioContext;
 
   beforeEach(async () => {
     localStorage.clear();
     writeText = vi.fn<(text: string) => Promise<void>>().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    audio = new FakeAudioContext();
 
     TestBed.configureTestingModule({
       imports: [SettingsPanelComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideFakeAudio(audio)],
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PlanetIdentityService).set(mossy.id);
@@ -87,6 +94,107 @@ describe('SettingsPanelComponent', () => {
   const text = (selector: string) => page.querySelector(selector)!.textContent!.trim();
   const storedId = () => localStorage.getItem('ppg.planetId');
   const view = () => TestBed.inject(ViewStateService).view();
+
+  describe('sound and motion', () => {
+    /** The form control the label names. */
+    function control(label: string): HTMLInputElement {
+      const found = [...page.querySelectorAll('label')].find(
+        (each) => each.textContent!.trim() === label,
+      );
+      if (!found?.control) {
+        throw new Error(`No control labelled "${label}"`);
+      }
+      return found.control as HTMLInputElement;
+    }
+
+    /** Moves the slider to a percentage; it is saved only once let go. */
+    async function slide(label: string, percent: number, letGo: boolean) {
+      const slider = control(label);
+      slider.value = String(percent);
+      slider.dispatchEvent(new Event('input'));
+      if (letGo) {
+        slider.dispatchEvent(new Event('change'));
+      }
+      await fixture.whenStable();
+    }
+
+    const saved = () => http.expectOne({ method: 'PATCH', url: '/api/planet/settings' });
+    const music = () => audio.channels[0];
+    const sfx = () => audio.channels[1];
+
+    beforeEach(() => {
+      // The player has clicked before, so the sound is on.
+      TestBed.inject(AudioService);
+      document.dispatchEvent(new Event('pointerup'));
+    });
+
+    it('labels every control and starts from the settings', () => {
+      expect(control('Music volume').type).toBe('range');
+      expect(control('Music volume').value).toBe('60');
+      expect(control('Music volume').getAttribute('aria-valuetext')).toBe('60%');
+      expect(control('Sound effects volume').value).toBe('80');
+      expect(control('Mute music').checked).toBe(false);
+      expect(control('Mute sound effects').checked).toBe(false);
+      expect(text('legend')).toBe('Reduced motion');
+      expect(control('Auto (follow my device)').checked).toBe(true);
+      expect(control('On').checked).toBe(false);
+      expect(control('Off').checked).toBe(false);
+    });
+
+    it('plays a volume while its slider moves and saves it once let go (SET-01)', async () => {
+      await slide('Music volume', 30, false);
+      expect(music().gain.value).toBe(0.3);
+      http.expectNone('/api/planet/settings');
+
+      await slide('Music volume', 30, true);
+      const req = saved();
+      expect(req.request.body).toEqual({ musicVolume: 0.3 });
+      req.flush({ ...DEFAULT_PLAYER_SETTINGS, musicVolume: 0.3 });
+      await fixture.whenStable();
+
+      expect(music().gain.value).toBe(0.3);
+      expect(sfx().gain.value).toBe(0.8);
+      expect(control('Music volume').getAttribute('aria-valuetext')).toBe('30%');
+    });
+
+    it('mutes the sound effects at once, apart from the music, and saves it', async () => {
+      control('Mute sound effects').click();
+      await fixture.whenStable();
+
+      expect(sfx().gain.value).toBe(0);
+      expect(music().gain.value).toBe(0.6);
+      const req = saved();
+      expect(req.request.body).toEqual({ sfxMuted: true });
+      req.flush({ ...DEFAULT_PLAYER_SETTINGS, sfxMuted: true });
+    });
+
+    it('reduces motion everywhere at once when On is chosen, and saves it (SET-03)', async () => {
+      const motion = TestBed.inject(MotionPreferenceService);
+
+      control('On').click();
+      await fixture.whenStable();
+
+      expect(motion.reduced()).toBe(true);
+      const req = saved();
+      expect(req.request.body).toEqual({ reducedMotion: 'on' });
+      req.flush({ ...DEFAULT_PLAYER_SETTINGS, reducedMotion: 'on' });
+      await fixture.whenStable();
+      expect(control('On').checked).toBe(true);
+    });
+
+    it('goes back with a calm message when a change cannot be saved', async () => {
+      control('Mute music').click();
+      await fixture.whenStable();
+      expect(music().gain.value).toBe(0);
+
+      saved().flush(null, { status: 503, statusText: 'Service Unavailable' });
+      await fixture.whenStable();
+
+      expect(control('Mute music').checked).toBe(false);
+      expect(music().gain.value).toBe(0.6);
+      expect(text('.sound-notice')).toBe(SETTINGS_NOT_SAVED);
+    });
+  });
 
   describe('planet code', () => {
     it('shows the code and what it is for', () => {

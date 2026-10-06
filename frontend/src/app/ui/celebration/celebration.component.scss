@@ -53,16 +53,6 @@
   animation: burst 900ms ease-out;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .celebration {
-    animation-name: fade;
-  }
-
-  .sparkle {
-    animation: none;
-  }
-}
-
 @keyframes pop {
   0% {
     opacity: 0;

@@ -6,6 +6,7 @@ import {
 } from 'typeorm';
 import type { ArrivalTracking } from '../creatures/arrival-conditions';
 import type { CloudState } from '../simulation/cloud-rules';
+import type { PlayerSettings } from './settings-rules';
 
 /**
  * A player's planet. Under D-0 the planet is also the player: its id is what
@@ -64,6 +65,10 @@ export class Planet {
 
   @Column({ name: 'reward_counter', type: 'int', default: 0 })
   rewardCounter!: number;
+
+  // Only the settings the player has changed; withDefaults fills in the rest.
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  settings!: Partial<PlayerSettings>;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

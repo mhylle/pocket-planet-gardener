@@ -163,3 +163,28 @@ app-info-card.pip-target .card::after {
   left: 50%;
   transform: translateX(-50%);
 }
+
+/*
+ * The keyboard's cursor (SET-05): a ring in the middle of the planet view, where Enter plants,
+ * places or opens a card. The keys turn the planet under it. It shows only while the canvas has
+ * the keyboard focus. Global, because the canvas it follows is inside the planet view.
+ */
+.keyboard-cursor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--surface),
+    inset 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+app-planet-view:has(canvas:focus-visible) + .keyboard-cursor {
+  display: block;
+}

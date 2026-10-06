@@ -380,6 +380,21 @@ describe('InfoCardComponent', () => {
       expect(statuses()[0]).toEqual({ icon: 'wistful', text: 'A bit wistful' });
     });
 
+    it('says it is napping once the night reaches it, as the scene shows (NAV-04 AC2, NFR-05)', async () => {
+      meet();
+      await hover(creature('mira'));
+      expect(statuses().map(({ text }) => text)).toEqual(['Content', 'No wish right now']);
+
+      TestBed.inject(SkyService).holdSun(180);
+      await fixture.whenStable();
+
+      expect(statuses()).toEqual([
+        { icon: 'content', text: 'Content' },
+        { icon: 'moon', text: 'Napping' },
+        { icon: 'wish', text: 'No wish right now' },
+      ]);
+    });
+
     it('shows the quirk on the pinned card, with traits and backstory behind "More" (CRT-03 AC1)', async () => {
       meet();
       await pin(creature('mira'));

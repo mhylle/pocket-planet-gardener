@@ -27,12 +27,6 @@
   animation-name: fade;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .receipt {
-    animation-name: fade;
-  }
-}
-
 @keyframes into-inventory {
   0% {
     opacity: 0;

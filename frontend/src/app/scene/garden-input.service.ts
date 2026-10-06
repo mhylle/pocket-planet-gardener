@@ -20,7 +20,9 @@ const ENTER_CODES = ['Enter', 'NumpadEnter'];
  * tap, or Enter, puts the item down there. Without one, the mouse over a plant, decoration or
  * creature shows its card; tapping it (or pressing Enter while it is in the middle of the view)
  * pins the card, except that tapping a bloom with seeds ready collects them (GRD-08 AC2).
- * Escape stops placing.
+ * Escape stops placing. The middle of the view is the keyboard's cursor (SET-05): the keys
+ * turn the planet under it, so a key on the canvas brings the preview back there from a
+ * still mouse, until the mouse moves again, and Enter acts where the preview shows.
  */
 @Injectable()
 export class GardenInputService {
@@ -28,7 +30,7 @@ export class GardenInputService {
   private readonly picking = inject(PickingService);
   private readonly placement = inject(PlacementService);
   private readonly store = inject(PlanetStore);
-  /** Where the mouse is over the canvas; null when it is elsewhere. */
+  /** Where the mouse is over the canvas; null when it is elsewhere or a key came since it moved. */
   private pointer: { x: number; y: number } | null = null;
   private enterHeld = false;
   /** The planet is being turned, so nothing under the pointer shows its card. */
@@ -106,6 +108,10 @@ export class GardenInputService {
   }
 
   private key({ code, key, down }: KeyInput): void {
+    if (down && this.pointer) {
+      this.pointer = null;
+      this.followPointer();
+    }
     if (ENTER_CODES.includes(code)) {
       // A held Enter repeats; only the first press counts.
       const pressed = down && !this.enterHeld;

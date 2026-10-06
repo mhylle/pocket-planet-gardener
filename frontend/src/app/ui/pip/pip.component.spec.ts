@@ -9,6 +9,7 @@ import { NullSceneRenderer } from '../../scene/null-scene-renderer';
 import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import { MOSSY } from '../../testing/garden-fixtures';
 import { TUTORIAL } from '../../testing/tutorial-fixtures';
 import { PIP_WAITING_LINE, PipComponent } from './pip.component';
@@ -26,6 +27,7 @@ describe('PipComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
         PlacementService,
         TutorialService,
@@ -35,10 +37,7 @@ describe('PipComponent', () => {
     TestBed.inject(PlanetIdentityService).set(MOSSY.id);
   });
 
-  afterEach(() => {
-    http.verify();
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => http.verify());
 
   /** Shows Pip on a planet at the step, with the script served. */
   async function render(step: number): Promise<void> {
@@ -127,17 +126,16 @@ describe('PipComponent', () => {
     await expectSaved(0);
   });
 
-  it('bobs gently, but not when the device asks for less motion (SET-03)', async () => {
+  it('bobs gently, but holds still once motion is reduced (SET-03)', async () => {
     await render(0);
-    expect(page.querySelector('aside app-pip-cloud')?.classList).toContain('bob');
-    fixture.destroy();
+    const cloud = () => page.querySelector('aside app-pip-cloud')!.classList;
+    expect(cloud()).toContain('bob');
+    expect(cloud()).not.toContain('still');
 
-    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') }));
-    fixture = TestBed.createComponent(PipComponent);
-    page = fixture.nativeElement;
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
     await fixture.whenStable();
 
-    expect(page.querySelector('aside app-pip-cloud')?.classList).not.toContain('bob');
+    expect(cloud()).toContain('still');
   });
 
   it("hides Pip's picture from screen readers", async () => {

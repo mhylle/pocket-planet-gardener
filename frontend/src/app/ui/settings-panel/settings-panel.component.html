@@ -1,6 +1,56 @@
 <section class="settings" aria-labelledby="settings-heading">
   <h3 id="settings-heading">Settings</h3>
 
+  <section aria-labelledby="sound-heading">
+    <h4 id="sound-heading">Sound and motion</h4>
+    @for (channel of channels; track channel.id) {
+      <div class="channel">
+        <label [for]="channel.id + '-volume'">{{ channel.name }} volume</label>
+        <div class="row">
+          <input
+            #slider
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            [id]="channel.id + '-volume'"
+            [value]="percent(sound()[channel.volume])"
+            [attr.aria-valuetext]="percent(sound()[channel.volume]) + '%'"
+            (input)="slide(channel, slider, false)"
+            (change)="slide(channel, slider, true)"
+          />
+          <span class="level" aria-hidden="true">{{ percent(sound()[channel.volume]) }}%</span>
+          <label class="choice">
+            <input
+              #muteBox
+              type="checkbox"
+              [checked]="sound()[channel.muted]"
+              (change)="mute(channel, muteBox.checked)"
+            />
+            {{ channel.mute }}
+          </label>
+        </div>
+      </div>
+    }
+    <fieldset aria-describedby="motion-hint">
+      <legend>Reduced motion</legend>
+      <p id="motion-hint" class="hint">Fewer moving things, and gentle fades instead of hops.</p>
+      @for (choice of motionChoices; track choice.value) {
+        <label class="choice">
+          <input
+            type="radio"
+            name="reduced-motion"
+            [value]="choice.value"
+            [checked]="sound().reducedMotion === choice.value"
+            (change)="chooseMotion(choice.value)"
+          />
+          {{ choice.label }}
+        </label>
+      }
+    </fieldset>
+    <p class="error sound-notice" aria-live="polite">{{ soundNotice() }}</p>
+  </section>
+
   <section aria-labelledby="code-heading">
     <h4 id="code-heading">Planet code</h4>
     <p>

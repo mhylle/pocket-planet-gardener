@@ -12,6 +12,7 @@ import { SyncService } from '../../core/services/sync.service';
 import { NullSceneRenderer } from '../../scene/null-scene-renderer';
 import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SceneService } from '../../scene/scene.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import {
   CATALOGUE,
   MOSSY,
@@ -45,6 +46,7 @@ describe('RewardRevealComponent', () => {
         SceneService,
         ReceiptService,
         RewardRevealService,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -58,10 +60,7 @@ describe('RewardRevealComponent', () => {
     version = 2;
   });
 
-  afterEach(() => {
-    http.verify();
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => http.verify());
 
   async function render() {
     fixture = TestBed.createComponent(RewardRevealComponent);
@@ -129,10 +128,8 @@ describe('RewardRevealComponent', () => {
     expect(reveal()!.classList.contains('hop')).toBe(true);
   });
 
-  it('only fades in, without the hop, when the device asks for reduced motion (SET-03)', async () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-    }));
+  it('only fades in, without the hop, with reduced motion (SET-03)', async () => {
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
     await render();
 
     await heartbeat([wantFulfilled(mira)], [tulips]);

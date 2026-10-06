@@ -45,7 +45,8 @@ describe('PlanetViewComponent', () => {
     expect(canvas().getAttribute('aria-label')).toBe(
       'Mossy, your planet. Drag or use the arrow keys to turn it; ' +
         'scroll or press plus and minus to zoom. ' +
-        'Drag a cloud to water, or the sun to light; Tab reaches them by keyboard.',
+        'Drag a cloud to water, or the sun to light; Tab goes on to the garden and the sky. ' +
+        'Enter acts at the middle of the view; press ? for all keys.',
     );
   });
 

@@ -13,7 +13,7 @@
   >
     <h3 id="info-card-title" class="title">{{ card.title }}</h3>
     @if (card.creature; as creature) {
-      <app-creature-card [creature]="creature" [pinned]="card.pinned" />
+      <app-creature-card [creature]="creature" [pinned]="card.pinned" [napping]="napping()" />
     }
     @if (card.statuses.length) {
       <ul id="info-card-statuses" class="statuses">

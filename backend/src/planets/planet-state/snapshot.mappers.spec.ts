@@ -38,6 +38,7 @@ function planetRow(overrides: Partial<Planet> = {}): Planet {
       lastArrivalAt: null,
     },
     rewardCounter: 7,
+    settings: { musicVolume: 0.3 },
     createdAt: T0,
     ...overrides,
   };

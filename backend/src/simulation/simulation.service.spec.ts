@@ -42,6 +42,7 @@ function planetRow(lastSimulatedAt: Date): Planet {
     clouds: [],
     arrivalTracking: {},
     rewardCounter: 0,
+    settings: {},
     createdAt: T0,
   };
 }

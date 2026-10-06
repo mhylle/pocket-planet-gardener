@@ -1,0 +1,29 @@
+<section class="garden" aria-labelledby="garden-title">
+  <h3 id="garden-title">Garden</h3>
+  @if (options().length) {
+    <ul role="listbox" aria-labelledby="garden-title" aria-describedby="garden-help">
+      @for (option of options(); track option.key) {
+        <li
+          #item
+          role="option"
+          [attr.tabindex]="tabStop() === option.key ? 0 : -1"
+          [class.selected]="shown() === option.key"
+          [attr.aria-selected]="tabStop() === option.key"
+          (focus)="show(option)"
+          (blur)="hide(option)"
+          (keydown)="key($event, option)"
+        >
+          <!-- The words shown are its whole name, so a screen reader says what is seen. -->
+          <span class="name">{{ option.name }}</span>
+          @if (option.status) {
+            <span class="status">, {{ option.status }}</span>
+          }
+        </li>
+      }
+    </ul>
+    <p id="garden-help" class="hint">Arrows pick one, Enter opens its card, Esc goes back.</p>
+  } @else {
+    <p class="hint">Nothing growing here yet.</p>
+  }
+  <p class="announcer" aria-live="polite">{{ announcement() }}</p>
+</section>

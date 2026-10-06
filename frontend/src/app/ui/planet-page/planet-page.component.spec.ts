@@ -2,10 +2,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PlanetSnapshotDto, WelcomeBack } from '../../core/models/planet-snapshot';
+import { DEFAULT_PLAYER_SETTINGS } from '../../core/models/player-settings';
 import { ChatService } from '../../core/services/chat.service';
+import { MotionPreferenceService } from '../../core/services/motion-preference.service';
 import { PlacementService } from '../../core/services/placement.service';
 import { PlanetIdentityService } from '../../core/services/planet-identity.service';
 import { PlanetStore } from '../../core/services/planet-store.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { SyncService } from '../../core/services/sync.service';
 import { ViewStateService } from '../../core/services/view-state.service';
 import { CreatureMeshService } from '../../scene/creature-mesh.service';
@@ -16,6 +19,7 @@ import {
   CLOVER_WANT,
   THANK_YOU,
   creatureAt,
+  plantAt,
   wantFulfilled,
 } from '../../testing/garden-fixtures';
 import { FRIDAY_ENTRY, journalEntry } from '../../testing/journal-fixtures';
@@ -62,11 +66,13 @@ describe('PlanetPageComponent', () => {
   });
 
   afterEach(() => {
-    // The page asks for the catalogue for the inventory names, for Pip's script, and syncs
-    // once the planet is shown; the specs that do not need these leave them unanswered.
+    // The page asks for the catalogue for the inventory names, for Pip's script, and syncs and
+    // loads the settings once the planet is shown; the specs that do not need these leave them
+    // unanswered.
     http.match('/api/catalogue');
     http.match('/api/tutorial');
     http.match('/api/planet/sync');
+    http.match('/api/planet/settings');
     http.verify();
     vi.useRealTimers();
   });
@@ -99,16 +105,174 @@ describe('PlanetPageComponent', () => {
     expect(canvas()).not.toBeNull();
   });
 
-  it('puts the clouds and the sun next after the canvas in the Tab order (GRD-02 AC4)', async () => {
+  it("applies the planet's sound and motion settings while it is shown (SET-01 AC2)", async () => {
     TestBed.inject(PlanetStore).setSnapshot(mossy);
+    const settings = TestBed.inject(SettingsService);
 
     render();
     await fixture.whenStable();
+    http
+      .expectOne({ method: 'GET', url: '/api/planet/settings' })
+      .flush({ ...DEFAULT_PLAYER_SETTINGS, musicMuted: true, reducedMotion: 'on' });
 
-    const tabStops = [...page.querySelectorAll('[tabindex="0"], button, input')];
-    const next = tabStops[tabStops.indexOf(canvas()!) + 1];
-    expect(next.getAttribute('role')).toBe('option');
-    expect(next.closest('app-sky-list')).not.toBeNull();
+    expect(settings.settings().musicMuted).toBe(true);
+    expect(TestBed.inject(MotionPreferenceService).reduced()).toBe(true);
+
+    fixture.destroy();
+    expect(settings.settings()).toEqual(DEFAULT_PLAYER_SETTINGS);
+  });
+
+  describe('keyboard-only play (SET-05)', () => {
+    const tabStops = () =>
+      [...page.querySelectorAll<HTMLElement>('[tabindex], button, input, textarea')].filter(
+        (element) => element.tabIndex === 0 && !(element as HTMLButtonElement).disabled,
+      );
+    /** The part of the page a Tab stop is in: its nearest component, or the menu buttons. */
+    const partOf = (element: Element) => {
+      if (element.closest('.menu')) {
+        return 'menu';
+      }
+      let part: Element | null = element;
+      while (part && !part.tagName.startsWith('APP-')) {
+        part = part.parentElement;
+      }
+      return part?.tagName.toLowerCase();
+    };
+    const optionsOf = (list: string) => [
+      ...page.querySelectorAll<HTMLElement>(`${list} [role="option"]`),
+    ];
+    const keydown = (target: Element, key: string) =>
+      target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    const helpDialog = () => page.querySelector<HTMLElement>('#shortcut-help [role="dialog"]');
+
+    beforeEach(() =>
+      TestBed.inject(PlanetStore).setSnapshot({
+        ...mossy,
+        creatures: [creatureAt('mira', 5, 5)],
+        plants: [plantAt('clover-1', -5, 10)],
+        clouds: [{ id: 'cloud-1', lat: 0, lon: 0, water: 1, at: mossy.serverTime }],
+        inventory: [{ itemType: 'clover', kind: 'seed', count: 2 }],
+      }),
+    );
+
+    it('goes from the canvas to the garden list, then the sky, the inventory and the menus (GRD-02 AC4)', async () => {
+      render();
+      await fixture.whenStable();
+
+      const parts = tabStops().map(partOf);
+      expect(parts.filter((part, i) => part !== parts[i - 1])).toEqual([
+        'app-planet-view',
+        'app-garden-list',
+        'app-sky-list',
+        'app-inventory-panel',
+        'menu',
+      ]);
+      // The garden list is one Tab stop, whatever is on the planet.
+      expect(parts.filter((part) => part === 'app-garden-list')).toHaveLength(1);
+      expect(
+        tabStops()
+          .filter((stop) => partOf(stop) === 'menu')
+          .map((stop) => stop.textContent!.trim()),
+      ).toEqual(['Catalogue', 'Journal', 'Settings', 'Shortcuts']);
+    });
+
+    it('goes on from a menu button into the panel it opened', async () => {
+      render();
+      await fixture.whenStable();
+      page.querySelector<HTMLButtonElement>('button[aria-controls="settings-panel"]')!.click();
+      await fixture.whenStable();
+
+      const stops = tabStops();
+      const settings = stops.findIndex((stop) => stop.textContent?.trim() === 'Shortcuts');
+      expect(stops[settings + 1].closest('app-settings-panel')).not.toBeNull();
+    });
+
+    it("opens a creature's card from the garden list with Enter, and the card leads on to chat (CHT-01 AC1)", async () => {
+      render();
+      await fixture.whenStable();
+      const [mira] = optionsOf('app-garden-list');
+      expect(mira.textContent?.trim()).toBe('Mira the moth, content');
+
+      mira.focus();
+      keydown(mira, 'Enter');
+      await fixture.whenStable();
+
+      const card = page.querySelector<HTMLElement>('app-info-card [role="dialog"]')!;
+      expect(card.querySelector('#info-card-title')?.textContent?.trim()).toBe('Mira');
+      const chat = document.activeElement as HTMLButtonElement;
+      expect(card.contains(chat)).toBe(true);
+      expect(chat.textContent?.trim()).toBe('Chat');
+
+      chat.click();
+      await fixture.whenStable();
+      http
+        .expectOne({ method: 'GET', url: '/api/creatures/mira/chat' })
+        .flush({ messages: [], hasMore: false, remaining: 30, greeting: 'Hello!' });
+      await settle();
+      expect(page.querySelector('app-chat-panel #chat-title')?.textContent?.trim()).toBe(
+        'Chat with Mira',
+      );
+    });
+
+    it('hands the keys to the planet once a seed is chosen, saying what to do next', async () => {
+      render();
+      await fixture.whenStable();
+      const seed = page.querySelector<HTMLButtonElement>('app-inventory-panel button')!;
+
+      seed.focus();
+      seed.click();
+      await fixture.whenStable();
+
+      expect(fixture.debugElement.injector.get(PlacementService).selected()?.itemType).toBe(
+        'clover',
+      );
+      expect(document.activeElement).toBe(canvas());
+      expect(page.querySelector('.stage > .announcer[aria-live="polite"]')?.textContent).toBe(
+        'Turn the planet with the arrows, then press Enter to plant at the ring',
+      );
+    });
+
+    it('opens the shortcut help on "?", but not while typing, and Escape puts the focus back', async () => {
+      render();
+      await fixture.whenStable();
+      const box = document.createElement('textarea');
+      page.append(box);
+
+      box.focus();
+      keydown(box, '?');
+      await fixture.whenStable();
+      expect(helpDialog()).toBeNull();
+
+      const planet = canvas() as HTMLElement;
+      planet.focus();
+      keydown(planet, '?');
+      await fixture.whenStable();
+      expect(document.activeElement).toBe(helpDialog());
+      expect(
+        page.querySelector('button[aria-controls="shortcut-help"]')!.getAttribute('aria-expanded'),
+      ).toBe('true');
+
+      keydown(helpDialog()!, 'Escape');
+      await fixture.whenStable();
+      expect(helpDialog()).toBeNull();
+      expect(document.activeElement).toBe(planet);
+    });
+
+    it('opens and closes the shortcut help from its button', async () => {
+      render();
+      await fixture.whenStable();
+      const button = page.querySelector<HTMLButtonElement>(
+        'button[aria-controls="shortcut-help"]',
+      )!;
+
+      button.click();
+      await fixture.whenStable();
+      expect(helpDialog()?.textContent).toContain('Keyboard shortcuts');
+
+      button.click();
+      await fixture.whenStable();
+      expect(helpDialog()).toBeNull();
+    });
   });
 
   it('shows Pip while the planet loads and until it is first drawn (NFR-03)', async () => {
@@ -389,12 +553,10 @@ describe('PlanetPageComponent', () => {
         journalButton().click();
         await fixture.whenStable();
         expect(journalButton().getAttribute('aria-expanded')).toBe('true');
-        http
-          .expectOne({ method: 'GET', url: '/api/journal' })
-          .flush({
-            entries: [FRIDAY_ENTRY, journalEntry('thursday', '2026-10-01')],
-            hasMore: false,
-          });
+        http.expectOne({ method: 'GET', url: '/api/journal' }).flush({
+          entries: [FRIDAY_ENTRY, journalEntry('thursday', '2026-10-01')],
+          hasMore: false,
+        });
         await settle();
 
         expect(bookDates()).toEqual(['Friday, 2 October', 'Thursday, 1 October']);
@@ -492,9 +654,7 @@ describe('PlanetPageComponent', () => {
     it('greets a new planet beside the planet, which stays in play (AC1)', async () => {
       await renderAt(0);
 
-      expect(page.querySelector('app-pip .text')?.textContent?.trim()).toBe(
-        TUTORIAL.steps[0].text,
-      );
+      expect(page.querySelector('app-pip .text')?.textContent?.trim()).toBe(TUTORIAL.steps[0].text);
       expect(page.querySelector('[aria-modal="true"]')).toBeNull();
       expect(canvas()).not.toBeNull();
       expect(marked()).toEqual([]);

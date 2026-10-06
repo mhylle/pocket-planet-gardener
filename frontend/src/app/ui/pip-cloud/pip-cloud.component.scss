@@ -15,7 +15,7 @@
   filter: drop-shadow(0 0.4em 0.5em var(--cloud-shadow));
 }
 
-:host(.bob) .cloud {
+:host(.bob:not(.still)) .cloud {
   animation: bob 3s ease-in-out infinite;
 }
 
@@ -76,11 +76,5 @@
 @keyframes bob {
   50% {
     transform: translateY(-0.4em);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :host(.bob) .cloud {
-    animation: none;
   }
 }

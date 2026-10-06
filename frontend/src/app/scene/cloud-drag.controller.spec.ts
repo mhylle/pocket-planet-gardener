@@ -7,6 +7,7 @@ import { CloudState } from '../core/helpers/cloud-rules';
 import { RainResponse } from '../core/models/planet-snapshot';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { Command, SyncService } from '../core/services/sync.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { MOSSY } from '../testing/garden-fixtures';
 import { CameraControlsService } from './camera-controls.service';
 import { CloudDragController } from './cloud-drag.controller';
@@ -38,6 +39,7 @@ describe('CloudDragController', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -50,7 +52,9 @@ describe('CloudDragController', () => {
     });
     scene = TestBed.inject(SceneService);
     scene.resize(800, 600);
-    TestBed.inject(CameraControlsService).reducedMotion = true;
+    // The camera jumps rather than glides; the rain shows as the wet patch where it lands.
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
+    TestBed.inject(CameraControlsService);
     sky = TestBed.inject(SkyService);
     picking = TestBed.inject(PickingService);
     clouds = TestBed.inject(CloudDragController);
@@ -103,7 +107,7 @@ describe('CloudDragController', () => {
       },
     });
     expect(clouds.held()).toBe('cloud-1');
-    expect(sky.rainOf('cloud-1')).not.toBeNull();
+    expect(sky.wetPatchOf('cloud-1')).not.toBeNull();
   });
 
   it('follows the pointer over the surface and rains where the pointer is', async () => {
@@ -133,7 +137,7 @@ describe('CloudDragController', () => {
       { method: 'POST', path: '/garden/clouds/cloud-1/position', body: below },
     ]);
     expect(clouds.held()).toBeNull();
-    expect(sky.rainOf('cloud-1')).toBeNull();
+    expect(sky.wetPatchOf('cloud-1')).toBeNull();
   });
 
   it('stops raining when the server says the cloud ran dry (AC2)', async () => {
@@ -148,7 +152,7 @@ describe('CloudDragController', () => {
 
     expect(rains()).toHaveLength(1);
     expect(dry).toEqual(['cloud-1']);
-    expect(sky.rainOf('cloud-1')).toBeNull();
+    expect(sky.wetPatchOf('cloud-1')).toBeNull();
     // Still held, so it can be moved on.
     expect(clouds.held()).toBe('cloud-1');
   });

@@ -1,12 +1,11 @@
 import {
-  LIGHT_PREF_TEXT,
   LIGHT_TEXT,
   MOOD_TEXT,
+  NAPPING_TEXT,
   NO_WISH_TEXT,
   SEEDS_READY_TEXT,
   STAGE_TEXT,
   StatusText,
-  WATER_PREF_TEXT,
   WATER_TEXT,
   WISTFUL_TEXT,
   lightText,
@@ -16,27 +15,49 @@ import {
   statusLine,
   waterText,
 } from './status-text';
+import * as statusText from './status-text';
+
+const isStatus = (value: unknown): value is StatusText =>
+  typeof value === 'object' && value !== null && 'icon' in value && 'text' in value;
 
 describe('statusText', () => {
-  const tables: [string, Record<string, StatusText>][] = [
-    ['water', WATER_TEXT],
-    ['light', LIGHT_TEXT],
-    ['stage', STAGE_TEXT],
-    ['seeds ready', { ready: SEEDS_READY_TEXT }],
-    ['water preference', WATER_PREF_TEXT],
-    ['light preference', LIGHT_PREF_TEXT],
-    ['mood', { ...MOOD_TEXT, wistful: WISTFUL_TEXT }],
-    ['want', { none: NO_WISH_TEXT }],
-  ];
-  const entries = tables.flatMap(([table, rows]) =>
-    Object.entries(rows).map(([key, status]) => ({ table, key, status })),
+  // Every table and single status the module exports, found by shape, so a new one is checked
+  // without being listed here.
+  const exported = Object.entries(statusText).filter(([, value]) => typeof value === 'object');
+  const entries = exported.flatMap(([table, value]) =>
+    isStatus(value)
+      ? [{ table, key: 'the status', status: value }]
+      : Object.entries(value as Record<string, unknown>).map(([key, status]) => ({
+          table,
+          key,
+          status,
+        })),
   );
 
+  it('finds every table and single status, and nothing that is not a status', () => {
+    expect(exported.map(([name]) => name)).toEqual(
+      expect.arrayContaining([
+        'WATER_TEXT',
+        'LIGHT_TEXT',
+        'STAGE_TEXT',
+        'SEEDS_READY_TEXT',
+        'WATER_PREF_TEXT',
+        'LIGHT_PREF_TEXT',
+        'MOOD_TEXT',
+        'WISTFUL_TEXT',
+        'NAPPING_TEXT',
+        'NO_WISH_TEXT',
+      ]),
+    );
+    expect(entries.every(({ status }) => isStatus(status))).toBe(true);
+  });
+
   it.each(entries)(
-    '$table "$key" has an icon and words, never colour alone (SET-04)',
+    '$table $key has an icon and words, never colour alone (SET-04)',
     ({ status }) => {
-      expect(status.icon.trim()).not.toBe('');
-      expect(status.text.trim()).not.toBe('');
+      const { icon, text } = status as StatusText;
+      expect(icon.trim()).not.toBe('');
+      expect(text.trim()).not.toBe('');
     },
   );
 
@@ -45,7 +66,8 @@ describe('statusText', () => {
       WATER_TEXT,
       LIGHT_TEXT,
       { ...STAGE_TEXT, ready: SEEDS_READY_TEXT },
-      { ...MOOD_TEXT, wistful: WISTFUL_TEXT },
+      // Every status a creature card can show.
+      { ...MOOD_TEXT, wistful: WISTFUL_TEXT, napping: NAPPING_TEXT, wish: NO_WISH_TEXT },
     ]) {
       const icons = Object.values(rows).map(({ icon }) => icon);
       expect(new Set(icons).size).toBe(icons.length);

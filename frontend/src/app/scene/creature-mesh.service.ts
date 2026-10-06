@@ -2,12 +2,13 @@ import { DestroyRef, Injectable, effect, inject, untracked } from '@angular/core
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as THREE from 'three';
 import { along, wanderStep } from '../core/helpers/creature-wander';
-import { prefersReducedMotion } from '../core/helpers/reduced-motion';
+import { isNapping } from '../core/helpers/nap-rule';
 import { lightAt } from '../core/helpers/sun-model';
 import { STEP_ARC, SurfacePoint, stepsBetween, toVector } from '../core/helpers/surface-coords';
 import { CreatureDto } from '../core/models/creature';
 import { PlanetSnapshotDto } from '../core/models/planet-snapshot';
 import { WantFulfilledPayload } from '../core/models/want';
+import { MotionPreferenceService } from '../core/services/motion-preference.service';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { SyncService } from '../core/services/sync.service';
 import { FLYING_SPECIES, creatureModel, napTexture } from './creature-models';
@@ -21,8 +22,6 @@ import { SPARKLE_COLOUR } from './sparkles';
 
 /** How often the creatures move on: often enough to look alive, far less than every frame. */
 export const CREATURE_TICK_MS = 125;
-/** With less light than this on its spot, a creature naps (NAV-04 AC2). */
-export const NAP_LIGHT = 0.1;
 /** How fast a creature walks, in steps per second. */
 export const WALK_STEPS_PER_SECOND = 0.3;
 /** How long an arrival takes, in seconds (CRT-01 AC1). */
@@ -125,9 +124,8 @@ export class CreatureMeshService {
   private readonly scene = inject(SceneService);
   private readonly picking = inject(PickingService);
   private readonly sky = inject(SkyService);
+  private readonly motion = inject(MotionPreferenceService);
 
-  /** Read once at start; the settings take this over later (SET-03). */
-  reducedMotion = prefersReducedMotion();
   /** Where the wandering takes its chances from. */
   random: () => number = Math.random;
 
@@ -166,6 +164,11 @@ export class CreatureMeshService {
           }
         }
       });
+  }
+
+  /** True while motion is kept to a minimum, by the player's setting or the device. */
+  get reducedMotion(): boolean {
+    return this.motion.reduced();
   }
 
   /** Every creature as drawn now, in the snapshot's order. */
@@ -296,7 +299,7 @@ export class CreatureMeshService {
     const sunAngle = this.sky.sunAngle();
     let changed = false;
     for (const creature of this.drawn.values()) {
-      const asleep = !creature.arrival && lightAt(creature.point, sunAngle) < NAP_LIGHT;
+      const asleep = !creature.arrival && isNapping(lightAt(creature.point, sunAngle));
       changed ||= asleep !== creature.asleep;
       creature.asleep = asleep;
     }

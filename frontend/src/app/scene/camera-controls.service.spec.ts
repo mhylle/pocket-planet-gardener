@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import * as THREE from 'three';
 import { STEP_ARC, SurfacePoint, toVector } from '../core/helpers/surface-coords';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { CameraControlsService, KEY_TURN_SPEED, SKY_SHELL_RADIUS } from './camera-controls.service';
 import { NullSceneRenderer } from './null-scene-renderer';
 import { PlanetMeshService } from './planet-mesh.service';
@@ -26,15 +27,20 @@ describe('CameraControlsService', () => {
   let scene: SceneService;
   let group: THREE.Group;
   let camera: THREE.PerspectiveCamera;
+  let motion: FakeMotionPreference;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [SCENE_PROVIDERS, { provide: SCENE_RENDERER, useClass: NullSceneRenderer }],
+      providers: [
+        SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
+        { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
+      ],
     });
     scene = TestBed.inject(SceneService);
     scene.resize(800, 600);
     controls = TestBed.inject(CameraControlsService);
-    controls.reducedMotion = false;
+    motion = TestBed.inject(FakeMotionPreference);
     group = scene.planetGroup;
     camera = scene.camera;
   });
@@ -132,7 +138,7 @@ describe('CameraControlsService', () => {
     });
 
     it('stops at once on release with reducedMotion', () => {
-      controls.reducedMotion = true;
+      motion.reduced.set(true);
       for (let i = 0; i < 10; i++) {
         controls.drag({ dx: 8, dy: 0 });
         controls.update(FRAME);
@@ -323,7 +329,7 @@ describe('CameraControlsService', () => {
       expect(gliding).toBeGreaterThan(start);
       expect(gliding).toBeLessThan(controls.distance);
 
-      controls.reducedMotion = true;
+      motion.reduced.set(true);
       controls.wheel({ delta: -200 });
       expect(controls.distance).toBeCloseTo(start, 9);
     });
@@ -377,7 +383,7 @@ describe('CameraControlsService', () => {
     });
 
     it('jumps to the point with reducedMotion', () => {
-      controls.reducedMotion = true;
+      motion.reduced.set(true);
 
       controls.focusOn(points[1]);
 

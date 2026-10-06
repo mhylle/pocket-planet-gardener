@@ -53,7 +53,8 @@ h4 {
 .silhouette {
   width: 2.5rem;
   height: 2.5rem;
-  fill: var(--border);
+  /* The muted text colour, which an icon needs to stand out (WCAG 1.4.11). */
+  fill: currentColor;
 }
 
 .needs {

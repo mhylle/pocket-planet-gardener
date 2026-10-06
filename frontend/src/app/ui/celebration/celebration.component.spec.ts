@@ -8,6 +8,8 @@ import { PlanetIdentityService } from '../../core/services/planet-identity.servi
 import { PlanetStore } from '../../core/services/planet-store.service';
 import { ReceiptService } from '../../core/services/receipt.service';
 import { SyncService } from '../../core/services/sync.service';
+import { FakeAudioContext, provideFakeAudio } from '../../testing/fake-audio-context';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import { CATALOGUE, MOSSY, creatureAt } from '../../testing/garden-fixtures';
 import { CelebrationComponent } from './celebration.component';
 
@@ -15,15 +17,19 @@ describe('CelebrationComponent', () => {
   let fixture: ComponentFixture<CelebrationComponent>;
   let http: HttpTestingController;
   let host: HTMLElement;
+  let audio: FakeAudioContext;
 
   beforeEach(() => {
     vi.useFakeTimers();
     localStorage.clear();
+    audio = new FakeAudioContext();
     TestBed.configureTestingModule({
       imports: [CelebrationComponent],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        FAKE_MOTION_PROVIDERS,
+        provideFakeAudio(audio),
         CelebrationService,
         ReceiptService,
       ],
@@ -37,7 +43,6 @@ describe('CelebrationComponent', () => {
 
   afterEach(() => {
     http.verify();
-    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -128,15 +133,28 @@ describe('CelebrationComponent', () => {
     expect(texts()).toEqual(['Mira the moth moved in!']);
   });
 
-  it('only fades, without the sparkle burst, when the device asks for reduced motion (SET-03)', async () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-    }));
+  it('only fades, without the sparkle burst, with reduced motion (SET-03)', async () => {
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
     render();
 
     await getTulip(2);
 
     expect(texts()).toEqual(['New in your catalogue: Tulip']);
     expect(celebrations()[0].classList.contains('burst')).toBe(false);
+  });
+
+  it('plays a cheer for a new item and a welcome for a creature that moves in', async () => {
+    render();
+    document.dispatchEvent(new Event('pointerup'));
+    const sfx = audio.channels[1];
+
+    await getTulip(2);
+    const cheer = audio.playedOn(sfx).length;
+    expect(cheer).toBeGreaterThan(0);
+
+    const store = TestBed.inject(PlanetStore);
+    store.setSnapshot({ ...MOSSY, version: 3, creatures: [creatureAt('mira', 10, 10)] });
+    TestBed.tick();
+    expect(audio.playedOn(sfx).length).toBeGreaterThan(cheer);
   });
 });

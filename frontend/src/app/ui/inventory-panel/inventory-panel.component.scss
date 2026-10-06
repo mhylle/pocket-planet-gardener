@@ -35,7 +35,8 @@ ul {
   padding: 0.35rem 0.6rem;
   background: var(--surface);
   color: var(--fg);
-  border-color: var(--border);
+  /* Edged like the inputs, so each button stands out from the panel (WCAG 1.4.11). */
+  border-color: var(--fg-muted);
 }
 
 /* The chosen item: a thicker accent border and a filled count, not only a colour change. */

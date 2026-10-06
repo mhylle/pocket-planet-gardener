@@ -15,18 +15,23 @@
         <ng-container *ngTemplateOutlet="line; context: { $implicit: message }" />
       }
     </ol>
-    <!-- New lines here are read out as they come; older pages above are not. -->
-    <ol class="messages" role="log">
-      @if (greeting(); as greeting) {
-        <li class="message creature">
-          <span class="visually-hidden">{{ creature().name }}: </span>
-          <span class="text">{{ greeting }}</span>
-        </li>
-      }
-      @for (message of recent(); track message) {
-        <ng-container *ngTemplateOutlet="line; context: { $implicit: message }" />
-      }
-    </ol>
+    <!--
+      New lines here are read out as they come; older pages above are not. The log wraps the
+      list, since a list item must sit in a plain list.
+    -->
+    <div role="log">
+      <ol class="messages">
+        @if (greeting(); as greeting) {
+          <li class="message creature">
+            <span class="visually-hidden">{{ creature().name }}: </span>
+            <span class="text">{{ greeting }}</span>
+          </li>
+        }
+        @for (message of recent(); track message) {
+          <ng-container *ngTemplateOutlet="line; context: { $implicit: message }" />
+        }
+      </ol>
+    </div>
     @if (retry(); as text) {
       <button type="button" class="secondary small" (click)="send(text)">Try again</button>
     }

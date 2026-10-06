@@ -7,6 +7,12 @@
       <app-status-icon [icon]="mood().icon" />
       <span>{{ mood().text }}</span>
     </li>
+    @if (napping()) {
+      <li>
+        <app-status-icon [icon]="nap.icon" />
+        <span>{{ nap.text }}</span>
+      </li>
+    }
     @if (creature().want; as want) {
       <li class="want">
         <app-status-icon icon="wish" />

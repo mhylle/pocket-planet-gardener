@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
 import * as THREE from 'three';
 import { STEP_ARC, SurfacePoint, toVector } from '../core/helpers/surface-coords';
+import { MotionPreferenceService } from '../core/services/motion-preference.service';
 import { DragInput, InputService, KeyInput, PinchInput, WheelInput } from './input.service';
 import { PlanetMeshService } from './planet-mesh.service';
 import { SceneService } from './scene.service';
@@ -52,7 +53,8 @@ const FRONT = new THREE.Vector3(0, 0, 1);
  * small rotations about the camera's right and up axes, applied in world space, so there is
  * no angle where it flips or sticks. A released drag keeps spinning and slows down. Zoom is a
  * position between the near and far limits, so it stays inside them when the window or the
- * planet changes size. With reducedMotion there is no spin after a drag and no swoops.
+ * planet changes size. With reduced motion (SET-03) there is no spin after a drag and no
+ * swoops.
  */
 @Injectable()
 export class CameraControlsService {
@@ -60,9 +62,7 @@ export class CameraControlsService {
   private readonly planet = inject(PlanetMeshService);
   private readonly camera = this.sceneService.camera;
   private readonly group = this.sceneService.planetGroup;
-
-  /** Read once at start; the settings take this over later (SET-03). */
-  reducedMotion = prefersReducedMotion();
+  private readonly motion = inject(MotionPreferenceService);
 
   private readonly turns = new Subject<number>();
   /** Each turn of the planet by a drag, a key or a spin, as its angle in radians. */
@@ -91,6 +91,11 @@ export class CameraControlsService {
     input.key.pipe(takeUntilDestroyed()).subscribe((key) => this.key(key));
     this.sceneService.onFrame((dt) => this.update(dt));
     this.placeCamera();
+  }
+
+  /** True while motion is kept to a minimum, by the player's setting or the device. */
+  get reducedMotion(): boolean {
+    return this.motion.reduced();
   }
 
   /** The camera's distance from the planet centre. */
@@ -282,9 +287,4 @@ export class CameraControlsService {
   private heldTurn(direction: Direction): number {
     return [...this.heldTurnKeys].some((code) => TURN_KEYS.get(code) === direction) ? 1 : 0;
   }
-}
-
-function prefersReducedMotion(): boolean {
-  // jsdom, where the specs run, has no matchMedia.
-  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }

@@ -1,0 +1,83 @@
+/* The planet page places it, above the sky list. */
+:host {
+  display: block;
+}
+
+.garden {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--fg-muted);
+}
+
+/*
+ * Folded away until an option has the focus. It keeps its size and stays in the page, so Tab
+ * still reaches it.
+ */
+ul {
+  display: grid;
+  gap: 0.2rem;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.garden:focus-within ul {
+  max-height: 12rem;
+  margin-top: 0.3rem;
+  overflow-y: auto;
+}
+
+li {
+  max-width: 14rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* The option shown in the scene: an accent border and bold name, not only a colour change. */
+li.selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  font-weight: 600;
+}
+
+.status {
+  color: var(--fg-muted);
+  font-weight: normal;
+}
+
+.hint {
+  max-width: 14rem;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+}
+
+/* The keys only matter while an option has the focus. */
+#garden-help {
+  display: none;
+}
+
+.garden:focus-within #garden-help {
+  display: block;
+}
+
+/* Read out, not shown. */
+.announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

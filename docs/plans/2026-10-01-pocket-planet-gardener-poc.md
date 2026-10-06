@@ -7,7 +7,7 @@
 | **Scope** | The 53 Must requirements and the Must NFRs. Should/Could items are listed in Appendix A, not planned. |
 | **Nature** | Proof of concept. No authentication or authorisation (see Decision D-0). |
 | **Stack** | NestJS 11 + TypeORM + Postgres (backend, port 3101), Angular 21 standalone/signals/zoneless + three.js (frontend, port 4301). |
-| **Progress** | Phases 1–15 implemented and validated (see section 9). Next: Phase 16. |
+| **Progress** | Phases 1–16 implemented and validated (see section 9); Phase 16's browser checks are pending live servers. Next: Phase 17. |
 
 ---
 
@@ -639,6 +639,18 @@ Decisions and notes:
 - Pacing fix found in the live run: Pip's rain step made the clover soggy and the sun step made it too sunny (quarter speed, ~20 minutes). The shared growth rules now treat partial-light plants as never too sunny (ok at any light ≥ 0.1) and only call water soggy above 0.95. Worst case (soaked + sun on it) the clover blooms exactly at 10 minutes, because held rain still fills water to 1.0.
 - The tutorial step PATCH is not a command: it never bumps the version. Restart is only from -1 to 0.
 - Both Phase 15 agents were interrupted once by the account's weekly usage limit and resumed after it reset; an e2e run once wiped a live-test planet, so parallel e2e now runs in a scratch database.
+
+### Phase 16 — done at spec level (6 Oct 2026)
+
+All tasks 16.1–16.6 implemented. Gates: backend lint 0 (no rewrites), `tsc` 0, unit 999/999, e2e 238/238; PlanetSettings migration run, revert, run. Frontend `tsc` app and spec 0, tests 965/965 (78 files), build 0 with no warnings (909 kB). **Not live:** the verification servers were stopped under memory pressure before this phase and may only be restarted when the user asks, so every browser check is recorded as "pending (live)" in `2026-10-01-pocket-planet-gardener-poc-verification.md`. That covers the SET-04 screenshot, the SET-05 keyboard checklist, the live axe scan with rendered contrast, reflow and text spacing, and hearing the audio. **Not run:** backend `npm run build`.
+
+Decisions and notes:
+- Settings live on the planet (`settings` jsonb, only changed keys stored, defaults filled in on read) behind `GET/PATCH /api/planet/settings`. They are not a command: no version bump. They are not in the snapshot; the planet page loads them.
+- Audio is procedural Web Audio (no files) and starts only after the first pointer or key press. Sliders preview on input and save on change.
+- `MotionPreferenceService` replaces every ad-hoc reduced-motion read, including the component SCSS `@media` blocks, so the "Off" setting can override the device. There is no plant sway to stop; cloud drift is game state, and only the rain streaks stop.
+- Keyboard: the surface cursor is the middle of the view (the planet turns under it) rather than a separate `KeyboardSurfaceCursor`. A garden list (roving tabindex) selects plants, decorations and creatures. The scene marks the selection with a steady ring (#073b73, at least 4.3:1 on every ground colour). `?` opens the shortcut help, and picking an inventory item hands the focus to the canvas. Plants cannot be moved by anyone (GRD-07 move is in Appendix A).
+- WCAG: axe-core runs in jsdom (`testing/axe.ts`, 68 of 69 AA rules; `color-contrast` off); a token contrast spec covers contrast. No token value changed. Five template or SCSS fixes were made: the chat log role, sky-list and inventory names, and two borders moved off `--border`. The creature card now says "Napping", using a rule shared with the scene (`core/helpers/nap-rule.ts`).
+- Live-run items: whether NVDA and JAWS in browse mode pass the arrow keys to the `role="img"` canvas; the global CSS uses `:has()` (Firefox 121+).
 
 ---
 

@@ -1,0 +1,26 @@
+<section #dialog class="help" role="dialog" aria-labelledby="shortcut-help-title" tabindex="-1">
+  <div class="head">
+    <h3 id="shortcut-help-title">Keyboard shortcuts</h3>
+    <button type="button" class="secondary" (click)="closed.emit()">Close</button>
+  </div>
+  @for (group of groups; track group.id) {
+    <section [attr.aria-labelledby]="'shortcuts-' + group.id">
+      <h4 [id]="'shortcuts-' + group.id">{{ group.title }}</h4>
+      <dl>
+        @for (shortcut of group.shortcuts; track shortcut.does) {
+          <div class="shortcut">
+            <dt>
+              @for (key of shortcut.keys; track key; let last = $last) {
+                <kbd>{{ key }}</kbd>
+                @if (!last) {
+                  <span class="or">or</span>
+                }
+              }
+            </dt>
+            <dd>{{ shortcut.does }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+  }
+</section>

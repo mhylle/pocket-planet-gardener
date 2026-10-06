@@ -93,6 +93,13 @@ export const WISTFUL_TEXT: StatusText = {
   suggestion: null,
 };
 
+/** A creature asleep on the night side, lying low under a "z" in the scene (NAV-04 AC2). */
+export const NAPPING_TEXT: StatusText = {
+  icon: 'moon',
+  text: 'Napping',
+  suggestion: null,
+};
+
 /** A creature with no want at the moment. */
 export const NO_WISH_TEXT: StatusText = {
   icon: 'wish',

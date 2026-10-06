@@ -72,7 +72,7 @@ describe('SkyListComponent', () => {
 
   it('lists every cloud with its water in words, and the sun, each a Tab stop (GRD-02 AC4)', () => {
     expect(list.querySelector('[role="listbox"]')).not.toBeNull();
-    expect(labels()).toEqual(['Cloud 1 (full)', 'Cloud 2 (low)', 'Sun']);
+    expect(labels()).toEqual(['Cloud 1, full', 'Cloud 2, low', 'Sun']);
     expect(options().map((option) => option.tabIndex)).toEqual([0, 0, 0]);
     // Each status has its own icon as well as its words (SET-04).
     expect(options().every((option) => option.querySelector('svg'))).toBe(true);
@@ -112,7 +112,7 @@ describe('SkyListComponent', () => {
 
     press(options()[0], ' ');
     expect(announced()).toBe('Cloud 1 raining');
-    expect(labels()[0]).toBe('Cloud 1 (raining)');
+    expect(labels()[0]).toBe('Cloud 1, raining');
     await vi.advanceTimersByTimeAsync(2000);
     expect(commands('/garden/rain')).toHaveLength(2);
 

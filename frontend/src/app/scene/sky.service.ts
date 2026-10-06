@@ -1,12 +1,12 @@
 import { DestroyRef, Injectable, effect, inject, signal, untracked } from '@angular/core';
 import * as THREE from 'three';
 import { CloudTunables, cloudAt } from '../core/helpers/cloud-rules';
-import { prefersReducedMotion } from '../core/helpers/reduced-motion';
 import { SunOverride, sunAngleAt } from '../core/helpers/sun-model';
 import { STEP_ARC, SurfacePoint, toVector } from '../core/helpers/surface-coords';
 import { GameConfig } from '../core/models/game-config';
 import { SunStateDto } from '../core/models/planet-snapshot';
 import { GameConfigService } from '../core/services/game-config.service';
+import { MotionPreferenceService } from '../core/services/motion-preference.service';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { PickingService } from './picking.service';
 import { planetRadius } from './planet-mesh.service';
@@ -87,12 +87,11 @@ export class SkyService {
   private readonly picking = inject(PickingService);
   private readonly store = inject(PlanetStore);
   private readonly config = inject(GameConfigService).config;
+  private readonly motion = inject(MotionPreferenceService);
 
   /** Everything in the sky, inside the planet group. */
   readonly group = new THREE.Group();
   readonly sun = new THREE.Mesh(sunModel(), new THREE.MeshBasicMaterial({ vertexColors: true }));
-  /** Read once at start; the settings take this over later (SET-03). No rain falls without motion. */
-  reducedMotion = prefersReducedMotion();
 
   private readonly cloudList = signal<SkyCloud[]>([]);
   private readonly angle = signal(0);
@@ -274,7 +273,8 @@ export class SkyService {
         place(drawn.wet, cloud, radius * WET_HEIGHT, radius * rainRadiusSteps * STEP_ARC);
       }
 
-      const falls = raining && !this.reducedMotion;
+      // No rain falls while motion is reduced (SET-03).
+      const falls = raining && !this.motion.reduced();
       if (falls && !drawn.rain) {
         drawn.rain = new RainStreaks(CLOUD_HEIGHT, rainRadiusSteps * STEP_ARC * RAIN_SPREAD);
         this.group.add(drawn.rain.lines);

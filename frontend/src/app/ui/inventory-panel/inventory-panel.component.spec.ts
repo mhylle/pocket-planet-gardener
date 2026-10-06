@@ -81,6 +81,23 @@ describe('InventoryPanelComponent', () => {
     expect(clover.getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('says which kind of item was chosen, but not when one is put back (SET-05)', async () => {
+    const chosen: string[] = [];
+    fixture.componentInstance.chosen.subscribe((kind) => chosen.push(kind));
+    const [clover, pond] = buttons();
+
+    clover.click();
+    panel.querySelector('h3')!.click();
+    expect(chosen).toEqual(['seed']);
+
+    pond.click();
+    expect(chosen).toEqual(['seed', 'decoration']);
+
+    pond.click();
+    expect(placement.selected()).toBeNull();
+    expect(chosen).toEqual(['seed', 'decoration']);
+  });
+
   it('stops placing on Escape', async () => {
     buttons()[1].click();
     await fixture.whenStable();

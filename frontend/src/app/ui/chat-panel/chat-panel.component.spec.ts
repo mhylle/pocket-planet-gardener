@@ -192,10 +192,10 @@ describe('ChatPanelComponent', () => {
     it('puts the new lines in a polite log, apart from the older pages', async () => {
       await open({ messages: [line(1, 'user', 'Hello?')] });
 
-      const [older, log] = [...page.querySelectorAll('ol')];
-      expect(older.getAttribute('role')).toBeNull();
-      expect(log.getAttribute('role')).toBe('log');
-      expect(text(log)).toContain(GREETING);
+      const [older, recent] = [...page.querySelectorAll('ol')];
+      expect(older.closest('[role="log"]')).toBeNull();
+      expect(recent.parentElement!.getAttribute('role')).toBe('log');
+      expect(text(recent)).toContain(GREETING);
     });
 
     it('starts a new line with Shift and Enter instead of sending', async () => {

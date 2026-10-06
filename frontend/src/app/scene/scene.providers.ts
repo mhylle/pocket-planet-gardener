@@ -10,6 +10,7 @@ import { PlacementGhostService } from './placement-ghost.service';
 import { PlanetMeshService } from './planet-mesh.service';
 import { PlantMeshService } from './plant-mesh.service';
 import { SceneService } from './scene.service';
+import { SelectionRingService } from './selection-ring.service';
 import { SkyService } from './sky.service';
 import { SunDragController } from './sun-drag.controller';
 
@@ -30,6 +31,7 @@ export const SCENE_PROVIDERS: Provider[] = [
   CreatureMeshService,
   PlacementGhostService,
   GardenInputService,
+  SelectionRingService,
   SkyService,
   CloudDragController,
   SunDragController,

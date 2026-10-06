@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { prefersReducedMotion } from '../../core/helpers/reduced-motion';
+import { MotionPreferenceService } from '../../core/services/motion-preference.service';
 import { RECEIPT_MS, ReceiptService } from '../../core/services/receipt.service';
 
 /**
@@ -14,6 +14,6 @@ import { RECEIPT_MS, ReceiptService } from '../../core/services/receipt.service'
 })
 export class ReceiptToastComponent {
   protected readonly receipts = inject(ReceiptService).receipts;
-  protected readonly still = prefersReducedMotion();
+  protected readonly still = inject(MotionPreferenceService).reduced;
   protected readonly duration = `${RECEIPT_MS}ms`;
 }

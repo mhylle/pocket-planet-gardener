@@ -9,7 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { errorMessage, hasStatus } from '../../core/helpers/error-message';
-import { NO_WISH_TEXT, StatusText, moodText } from '../../core/helpers/status-text';
+import {
+  NAPPING_TEXT,
+  NO_WISH_TEXT,
+  StatusText,
+  moodText,
+} from '../../core/helpers/status-text';
 import { CreatureDto } from '../../core/models/creature';
 import { CatalogueService } from '../../core/services/catalogue.service';
 import { ChatService } from '../../core/services/chat.service';
@@ -18,9 +23,9 @@ import { StatusIconComponent } from '../status-icon/status-icon.component';
 
 /**
  * What the info card shows of a creature under its name (NAV-03 AC2, CRT-03 AC1): its
- * species, the one-line summary of its personality, its quirk, and its mood and want as icon
- * and words (SET-04). The want is in the creature's own voice with what it needs in plain
- * words beneath (WNT-01 AC3, WNT-02 AC2); without one, the slot says there is no wish. A
+ * species, the one-line summary of its personality, its quirk, and its mood, nap and want as
+ * icon and words (SET-04, NFR-05). The want is in the creature's own voice with what it needs
+ * in plain words beneath (WNT-01 AC3, WNT-02 AC2); without one, the slot says there is no wish. A
  * pinned card also has "Chat", which opens the chat beside the planet (CHT-01 AC1), "More",
  * which shows its traits and backstory and starts closed for each creature, and "Maybe later"
  * for a want, which sets it aside with a friendly word and no change of mood (WNT-05).
@@ -35,6 +40,8 @@ export class CreatureCardComponent {
   readonly creature = input.required<CreatureDto>();
   /** Opened by a tap; only then can the rest be read. */
   readonly pinned = input(false);
+  /** Asleep on the night side, as the scene shows it (NAV-04 AC2). */
+  readonly napping = input(false);
 
   private readonly catalogue = inject(CatalogueService);
   protected readonly chat = inject(ChatService);
@@ -46,6 +53,7 @@ export class CreatureCardComponent {
     const { mood, wistful } = this.creature();
     return moodText(mood, wistful);
   });
+  protected readonly nap = NAPPING_TEXT;
   protected readonly noWish = NO_WISH_TEXT;
   protected readonly traits = computed(() => this.creature().traits.join(', '));
   /** Changes only for another creature, not for each new snapshot of this one. */

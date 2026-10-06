@@ -1,10 +1,60 @@
 @if (planet(); as planet) {
   <section class="planet-page" aria-labelledby="planet-name">
     <app-reload-banner />
-    <div class="bar">
-      <h2 id="planet-name">{{ planet.name }}</h2>
-      <app-save-indicator />
-      <div class="row">
+    <!--
+      The menu buttons and their panels come after the planet in the page, so Tab goes from the
+      planet to what is on it, the sky, the inventory and then the menus (SET-05); the grid still
+      shows the buttons in the bar above the planet and the panels over it.
+    -->
+    <div class="play">
+      <div class="bar">
+        <h2 id="planet-name">{{ planet.name }}</h2>
+        <app-save-indicator />
+      </div>
+      <div class="stage">
+        <app-planet-view
+          [name]="planet.name"
+          [radiusLevel]="planet.radiusLevel"
+          [class.pip-target]="tutorial.highlight() === 'canvas'"
+        />
+        <!-- Where Enter acts on the planet; shows while the canvas has the keyboard focus. -->
+        <div class="keyboard-cursor" aria-hidden="true"></div>
+        <!--
+          Straight after the canvas, so Tab goes from the planet to what is on it, then to the
+          clouds and the sun.
+        -->
+        <div class="side">
+          <app-garden-list />
+          <app-sky-list [class.pip-target]="tutorial.highlight() === 'sky'" />
+        </div>
+        <!-- Pip's speech bubble, with the placement help below it. -->
+        <div class="corner">
+          <app-pip />
+          <app-placement-hud />
+        </div>
+        <app-inventory-panel
+          [class.pip-target]="tutorial.highlight() === 'inventory'"
+          (focusin)="tutorial.complete('open-inventory')"
+          (chosen)="chose($event)"
+        />
+        <p class="announcer" aria-live="polite">{{ announcement() }}</p>
+        <app-receipt-toast />
+        <app-celebration />
+        <app-info-card [class.pip-target]="tutorial.highlight() === 'card'" />
+        <!-- The journal page (JRN-01) above the welcome-back summary. -->
+        <div class="return">
+          <app-journal-page />
+          <app-welcome-back />
+        </div>
+        @if (!sceneReady()) {
+          <app-loading />
+        }
+        <!-- Before the settings, the catalogue and the journal, so they open over it. -->
+        @for (creature of chatWith(); track creature.id) {
+          <app-chat-panel [creature]="creature" />
+        }
+      </div>
+      <div class="row menu">
         <button
           type="button"
           class="secondary"
@@ -32,53 +82,36 @@
         >
           Settings
         </button>
+        <button
+          type="button"
+          class="secondary"
+          aria-controls="shortcut-help"
+          aria-keyshortcuts="?"
+          [attr.aria-expanded]="panel() === 'shortcuts'"
+          (click)="toggle('shortcuts')"
+        >
+          Shortcuts
+        </button>
       </div>
-    </div>
-    <div class="stage">
-      <app-planet-view
-        [name]="planet.name"
-        [radiusLevel]="planet.radiusLevel"
-        [class.pip-target]="tutorial.highlight() === 'canvas'"
-      />
-      <!-- Straight after the canvas, so Tab goes from the planet to the clouds and the sun. -->
-      <app-sky-list [class.pip-target]="tutorial.highlight() === 'sky'" />
-      <!-- Pip's speech bubble, with the placement help below it. -->
-      <div class="corner">
-        <app-pip />
-        <app-placement-hud />
+      <!-- Over the planet, and next after the menu buttons, so Tab goes on into an open panel. -->
+      <div class="over">
+        @switch (panel()) {
+          @case ('settings') {
+            <app-settings-panel id="settings-panel" [planet]="planet" />
+          }
+          @case ('catalogue') {
+            <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
+          }
+          @case ('journal') {
+            <app-journal-book id="journal-panel" (closed)="panel.set(null)" />
+          }
+          @case ('shortcuts') {
+            <app-shortcut-help id="shortcut-help" (closed)="panel.set(null)" />
+          }
+        }
+        <!-- Last, so a reward shows over everything else on the planet. -->
+        <app-reward-reveal />
       </div>
-      <app-inventory-panel
-        [class.pip-target]="tutorial.highlight() === 'inventory'"
-        (focusin)="tutorial.complete('open-inventory')"
-      />
-      <app-receipt-toast />
-      <app-celebration />
-      <app-info-card [class.pip-target]="tutorial.highlight() === 'card'" />
-      <!-- The journal page (JRN-01) above the welcome-back summary. -->
-      <div class="return">
-        <app-journal-page />
-        <app-welcome-back />
-      </div>
-      @if (!sceneReady()) {
-        <app-loading />
-      }
-      <!-- Before the settings, the catalogue and the journal, so they open over it. -->
-      @for (creature of chatWith(); track creature.id) {
-        <app-chat-panel [creature]="creature" />
-      }
-      @switch (panel()) {
-        @case ('settings') {
-          <app-settings-panel id="settings-panel" [planet]="planet" />
-        }
-        @case ('catalogue') {
-          <app-catalogue id="catalogue-panel" (closed)="panel.set(null)" />
-        }
-        @case ('journal') {
-          <app-journal-book id="journal-panel" (closed)="panel.set(null)" />
-        }
-      }
-      <!-- Last, so a reward shows over everything else on the planet. -->
-      <app-reward-reveal />
     </div>
   </section>
 } @else if (loadFailed()) {

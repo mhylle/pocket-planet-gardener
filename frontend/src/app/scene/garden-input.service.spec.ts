@@ -94,6 +94,25 @@ describe('GardenInputService', () => {
     expect(placement.hover()).toBeNull();
   });
 
+  it('brings the preview back to the middle of the view on a key, where Enter plants (SET-05)', () => {
+    select();
+    pointer('pointermove', 520, 240);
+    expect(placement.hover()).toEqual(surfaceAt(520, 240));
+
+    key('keydown', 'ArrowLeft', 'ArrowLeft');
+    expect(placement.hover()?.lat).toBeCloseTo(0, 6);
+    expect(placement.hover()?.lon).toBeCloseTo(0, 6);
+    key('keyup', 'ArrowLeft', 'ArrowLeft');
+    key('keydown', 'Enter', 'Enter');
+    const request = http.expectOne({ method: 'POST', url: '/api/garden/plants' });
+    expect(request.request.body.lat).toBeCloseTo(0, 6);
+    expect(request.request.body.lon).toBeCloseTo(0, 6);
+
+    // The mouse takes over again once it moves.
+    pointer('pointermove', 520, 240);
+    expect(placement.hover()).toEqual(surfaceAt(520, 240));
+  });
+
   it('plants at the tapped spot (GRD-01 AC1)', () => {
     select();
     const spot = surfaceAt(560, 200);

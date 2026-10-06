@@ -6,6 +6,7 @@ import type { MockInstance } from 'vitest';
 import { toVector } from '../core/helpers/surface-coords';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { SyncService } from '../core/services/sync.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { MOSSY } from '../testing/garden-fixtures';
 import { CameraControlsService } from './camera-controls.service';
 import { InputService } from './input.service';
@@ -35,6 +36,7 @@ describe('SunDragController', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -43,7 +45,8 @@ describe('SunDragController', () => {
     store.setSnapshot(MOSSY);
     scene = TestBed.inject(SceneService);
     scene.resize(800, 600);
-    TestBed.inject(CameraControlsService).reducedMotion = true;
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
+    TestBed.inject(CameraControlsService);
     sky = TestBed.inject(SkyService);
     picking = TestBed.inject(PickingService);
     sun = TestBed.inject(SunDragController);

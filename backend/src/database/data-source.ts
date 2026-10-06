@@ -24,6 +24,7 @@ import { CreaturesSchema1790949734700 } from './migrations/1790949734700-Creatur
 import { WantsSchema1790956158609 } from './migrations/1790956158609-WantsSchema';
 import { CreatureChatSchema1790964578421 } from './migrations/1790964578421-CreatureChatSchema';
 import { JournalSchema1790967397714 } from './migrations/1790967397714-JournalSchema';
+import { PlanetSettings1791233064197 } from './migrations/1791233064197-PlanetSettings';
 
 /**
  * The DataSource the TypeORM CLI (migration:generate / migration:run) uses.
@@ -51,6 +52,7 @@ export const MIGRATIONS = [
   WantsSchema1790956158609,
   CreatureChatSchema1790964578421,
   JournalSchema1790967397714,
+  PlanetSettings1791233064197,
 ];
 
 export default new DataSource({

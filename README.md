@@ -89,6 +89,8 @@ routes, which need an `X-Planet-Id` header with the planet's id.
 | GET    | `/api/planet/by-code/:code`            |        | `{ id }` of the planet with that code (any case); 404 if none    |
 | GET    | `/api/tutorial`                        |        | Pip's steps in order, `{ steps: [{ id, text, highlight }] }`     |
 | PATCH  | `/api/planet/tutorial`                 | yes    | Keep the tutorial step reached from `{ step }`; 200 `{ tutorialStep }` |
+| GET    | `/api/planet/settings`                 | yes    | `{ musicVolume, musicMuted, sfxVolume, sfxMuted, reducedMotion }`, defaults 0.6, false, 0.8, false, `auto` for any not set |
+| PATCH  | `/api/planet/settings`                 | yes    | Change any of them (volumes 0 to 1, `reducedMotion` `auto`, `on` or `off`); 200 with all five; not a command, the version stays |
 | DELETE | `/api/planet`                          | yes    | Delete it and all its data; needs `{ confirm: "DELETE" }`; 204   |
 | POST   | `/api/garden/plants`                   | yes    | Plant a seed from `{ itemType, lat, lon }`; 201                  |
 | POST   | `/api/garden/plants/:id/harvest`       | yes    | Pick 1 or 2 seeds from a ready bloom; 200, ready again in 1 h    |
@@ -376,6 +378,8 @@ backend/src
 │   ├── planets.service.ts   create, get, rename, open by code, delete
 │   ├── planet-code.ts       8-character planet codes (pure helper)
 │   ├── name-rules.ts        length and offensive-word checks for names (pure helper)
+│   ├── player-settings.service.ts  GET/PATCH /api/planet/settings (audio, reduced motion)
+│   ├── settings-rules.ts    player settings defaults and merging (pure helper)
 │   ├── dto/
 │   ├── planet-state/        the snapshot and mutate(), the one path every command takes (D-2)
 │   └── planet-context/      PlanetGuard (X-Planet-Id), @CurrentPlanet(), @NoPlanet()

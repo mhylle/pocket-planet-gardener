@@ -4,6 +4,7 @@ import type { MockInstance } from 'vitest';
 import { SurfacePoint, toVector } from '../core/helpers/surface-coords';
 import { PlanetSnapshotDto, PlantDto } from '../core/models/planet-snapshot';
 import { PlanetStore } from '../core/services/planet-store.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { MOSSY, plantAt } from '../testing/garden-fixtures';
 import { NullSceneRenderer } from './null-scene-renderer';
 import { PickingService } from './picking.service';
@@ -17,6 +18,7 @@ describe('PlantMeshService', () => {
   let store: PlanetStore;
   let picking: PickingService;
   let plants: PlantMeshService;
+  let motion: FakeMotionPreference;
   let onFrame: MockInstance<SceneService['onFrame']>;
 
   const front = plantAt('clover-1', 0, 0);
@@ -30,6 +32,7 @@ describe('PlantMeshService', () => {
         PickingService,
         PlanetMeshService,
         PlantMeshService,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -37,12 +40,11 @@ describe('PlantMeshService', () => {
     scene.resize(800, 600);
     store = TestBed.inject(PlanetStore);
     picking = TestBed.inject(PickingService);
+    motion = TestBed.inject(FakeMotionPreference);
     TestBed.inject(PlanetMeshService);
     onFrame = vi.spyOn(scene, 'onFrame');
     plants = TestBed.inject(PlantMeshService);
   });
-
-  afterEach(() => vi.unstubAllGlobals());
 
   const show = (list: PlantDto[], changes: Partial<PlanetSnapshotDto> = {}) => {
     store.setSnapshot({ ...MOSSY, ...changes, plants: list });
@@ -219,20 +221,26 @@ describe('PlantMeshService', () => {
     expect(render).not.toHaveBeenCalled();
   });
 
-  it('holds the sparkles still when the device asks for reduced motion (SET-03)', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-    }));
-    const calm = TestBed.runInInjectionContext(() => new PlantMeshService());
-    const [step] = onFrame.mock.calls[1];
+  it('holds the sparkles still with reduced motion, and twinkles again without it (SET-03)', () => {
+    const [step] = onFrame.mock.calls[0];
     show([{ ...back, harvestReady: true }]);
-    const still = sparkleMatrices(calm.sparkleMesh);
-    const render = vi.spyOn(scene, 'requestRender');
-
+    const still = sparkleMatrices(plants.sparkleMesh);
     step(0.4);
 
+    motion.reduced.set(true);
+    TestBed.tick();
     expect(still.length).toBeGreaterThan(0);
-    expect(sparkleMatrices(calm.sparkleMesh)).toEqual(still);
+    expect(sparkleMatrices(plants.sparkleMesh)).toEqual(still);
+    const render = vi.spyOn(scene, 'requestRender');
+    step(0.4);
+    expect(sparkleMatrices(plants.sparkleMesh)).toEqual(still);
     expect(render).not.toHaveBeenCalled();
+
+    // The frames wake up to twinkle again.
+    motion.reduced.set(false);
+    TestBed.tick();
+    expect(render).toHaveBeenCalled();
+    step(0.4);
+    expect(sparkleMatrices(plants.sparkleMesh)).not.toEqual(still);
   });
 });

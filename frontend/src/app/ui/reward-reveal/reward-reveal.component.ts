@@ -6,7 +6,7 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { prefersReducedMotion } from '../../core/helpers/reduced-motion';
+import { MotionPreferenceService } from '../../core/services/motion-preference.service';
 import { RewardRevealService } from '../../core/services/reward-reveal.service';
 import { SceneService } from '../../scene/scene.service';
 
@@ -34,7 +34,7 @@ export class RewardRevealComponent {
     const reveal = this.reveals.current();
     return reveal ? [reveal] : [];
   });
-  protected readonly still = prefersReducedMotion();
+  protected readonly still = inject(MotionPreferenceService).reduced;
 
   constructor() {
     // Runs once each reveal's button is drawn.

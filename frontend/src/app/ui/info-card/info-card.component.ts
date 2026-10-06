@@ -8,6 +8,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { lightStatus, waterStatus } from '../../core/helpers/growth-rules';
+import { isNapping } from '../../core/helpers/nap-rule';
 import { presentPlant } from '../../core/helpers/plant-presenter';
 import {
   StatusText,
@@ -54,8 +55,8 @@ interface CardView extends CardTarget {
  * needs it and waits for Confirm or Keep it (AC3), "Move" and "Put away" for a decoration
  * (ITM-02), "Chat" and "More" for a creature (CHT-01 AC1, CRT-03 AC1). The pinned card takes
  * the focus; Escape or a press anywhere else closes it, and Escape and the actions give the
- * focus back to the planet. The light is worked out here from where the sun is now, so the
- * card follows the sun as it moves.
+ * focus back to the planet. The light, and so whether a creature naps, is worked out here from
+ * where the sun is now, so the card follows the sun as it moves.
  */
 @Component({
   selector: 'app-info-card',
@@ -118,6 +119,15 @@ export class InfoCardComponent {
     }
     const title = this.catalogue.name(plant.type);
     return { ...card, title, statuses, ready: presentPlant(plant).sparkle };
+  });
+
+  /**
+   * Whether the creature on the card is asleep on the night side, as the scene shows it (NAV-04
+   * AC2), by the light on its home spot, which it never wanders far from.
+   */
+  protected readonly napping = computed(() => {
+    const creature = this.card()?.creature;
+    return creature ? isNapping(lightAt(creature, this.sky.sunAngle())) : false;
   });
 
   constructor() {

@@ -30,6 +30,7 @@ function planetRow(): Planet {
     clouds: [],
     arrivalTracking: {},
     rewardCounter: 0,
+    settings: {},
     createdAt: T0,
   };
 }

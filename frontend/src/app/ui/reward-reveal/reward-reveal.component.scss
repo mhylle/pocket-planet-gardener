@@ -72,12 +72,6 @@ p {
   font-weight: 700;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    animation-name: fade;
-  }
-}
-
 @keyframes hop {
   0% {
     opacity: 0;

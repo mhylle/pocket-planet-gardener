@@ -11,6 +11,7 @@ import { PlanetStateService } from './planet-state/planet-state.service';
 import { Planet } from './planet.entity';
 import { PlanetsController } from './planets.controller';
 import { PlanetsService } from './planets.service';
+import { PlayerSettingsService } from './player-settings.service';
 
 @Module({
   // The child entities are listed because the snapshot reads them, so this
@@ -30,6 +31,7 @@ import { PlanetsService } from './planets.service';
   providers: [
     PlanetsService,
     PlanetStateService,
+    PlayerSettingsService,
     // Registered here, not in AppModule, because it needs the Planet repository.
     { provide: APP_GUARD, useClass: PlanetGuard },
   ],

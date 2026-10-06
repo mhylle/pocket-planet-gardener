@@ -15,25 +15,77 @@
   margin-top: 1rem;
 }
 
+/*
+ * The name and the menu buttons in a bar above the planet, the panels over it; on a narrow
+ * screen the buttons go below the name.
+ */
+.play {
+  display: grid;
+  flex: 1;
+  grid-template: 'bar menu' auto 'stage stage' 1fr / 1fr auto;
+  gap: 1rem 0.5rem;
+  min-height: 0;
+}
+
+@media (max-width: 40rem) {
+  .play {
+    grid-template: 'bar' auto 'menu' auto 'stage' 1fr / 1fr;
+  }
+}
+
 .bar {
   display: flex;
   flex-wrap: wrap;
+  grid-area: bar;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.menu {
+  grid-area: menu;
+  align-self: center;
 }
 
 h2 {
   margin: 0;
 }
 
-/* The 3D view; Pip and the settings float over it. */
+/* The 3D view; Pip and the HUD float over it. */
 .stage {
   position: relative;
-  flex: 1;
+  grid-area: stage;
   min-height: 16rem;
   overflow: hidden;
   border-radius: 0.75rem;
+}
+
+/* The same room as the stage, over it; only the panels in it take presses. */
+.over {
+  position: relative;
+  grid-area: stage;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  pointer-events: none;
+}
+
+/* Top right: what is on the planet, then the sky below it. */
+.side {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+  max-width: calc(100% - 1.5rem);
+  pointer-events: none;
+}
+
+.side > * {
+  position: relative;
+  top: auto;
+  right: auto;
+  pointer-events: auto;
 }
 
 app-planet-view,
@@ -66,6 +118,7 @@ app-settings-panel {
   width: min(26rem, calc(100% - 1.5rem));
   max-height: calc(100% - 1.5rem);
   overflow: auto;
+  pointer-events: auto;
 }
 
 app-catalogue {
@@ -75,6 +128,7 @@ app-catalogue {
   width: min(48rem, calc(100% - 1.5rem));
   max-height: calc(100% - 1.5rem);
   overflow: auto;
+  pointer-events: auto;
 }
 
 app-journal-book {
@@ -84,18 +138,29 @@ app-journal-book {
   width: min(34rem, calc(100% - 1.5rem));
   max-height: calc(100% - 1.5rem);
   overflow: auto;
+  pointer-events: auto;
+}
+
+app-shortcut-help {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: min(30rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+  overflow: auto;
+  pointer-events: auto;
 }
 
 /*
  * Beside the planet at the right, leaving the middle and the inventory free to play, and
- * below the sky list where the view is tall enough for both.
+ * below the garden and sky lists where the view is tall enough for all three.
  */
 app-chat-panel {
   position: absolute;
   right: 0.75rem;
   bottom: 0.75rem;
   width: min(22rem, calc(100% - 1.5rem));
-  height: clamp(16rem, calc(100% - 11rem), 34rem);
+  height: clamp(16rem, calc(100% - 14rem), 34rem);
   max-height: calc(100% - 1.5rem);
 }
 
@@ -117,6 +182,17 @@ app-chat-panel {
 /* Nothing to show takes no room, so no gap is left over the planet. */
 .return > :empty {
   display: none;
+}
+
+/* Read out, not shown. */
+.announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .opening {

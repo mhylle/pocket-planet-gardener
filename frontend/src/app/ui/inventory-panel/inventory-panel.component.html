@@ -12,8 +12,8 @@
             [attr.aria-label]="item.name + ', ' + item.count"
             (click)="placement.select(item)"
           >
-            <span class="name">{{ item.name }}</span>
-            <span class="count">{{ item.count }}</span>
+            <!-- The space keeps the words apart, as in the label (WCAG 2.5.3). -->
+            <span class="name">{{ item.name }}</span>&ngsp;<span class="count">{{ item.count }}</span>
           </button>
         </li>
       }

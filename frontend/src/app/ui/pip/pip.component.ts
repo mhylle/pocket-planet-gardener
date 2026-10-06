@@ -7,7 +7,6 @@ import {
   inject,
   viewChild,
 } from '@angular/core';
-import { prefersReducedMotion } from '../../core/helpers/reduced-motion';
 import { TutorialService } from '../../core/services/tutorial.service';
 import { SceneService } from '../../scene/scene.service';
 import { PipCloudComponent } from '../pip-cloud/pip-cloud.component';
@@ -19,7 +18,7 @@ export const PIP_WAITING_LINE =
  * Pip, a small scripted cloud, guides a new player step by step (ONB-01). A speech bubble in
  * a corner says what to do next and which step it is, and leaves the game free to play. Each
  * new step is read out. Once the tutorial is done Pip waits as a small help button that starts
- * it again (AC3). Pip bobs gently unless the device asks for less motion (SET-03).
+ * it again (AC3). Pip bobs gently unless motion is reduced (SET-03).
  */
 @Component({
   selector: 'app-pip',
@@ -33,8 +32,6 @@ export class PipComponent {
   private readonly injector = inject(Injector);
   private readonly action = viewChild<ElementRef<HTMLButtonElement>>('action');
 
-  /** Read once at start; the settings take this over later (SET-03). */
-  protected readonly bob = !prefersReducedMotion();
   /** The step shown, counted from 1. */
   protected readonly number = computed(() => (this.tutorial.step() ?? 0) + 1);
   /** What the live region reads out: each new step, and Pip waiting once it is done. */

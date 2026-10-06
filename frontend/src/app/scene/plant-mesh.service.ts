@@ -1,8 +1,8 @@
-import { Injectable, effect, inject } from '@angular/core';
+import { Injectable, effect, inject, untracked } from '@angular/core';
 import * as THREE from 'three';
 import { presentPlant } from '../core/helpers/plant-presenter';
-import { prefersReducedMotion } from '../core/helpers/reduced-motion';
 import { PlantStage } from '../core/models/planet-snapshot';
+import { MotionPreferenceService } from '../core/services/motion-preference.service';
 import { PlanetStore } from '../core/services/planet-store.service';
 import { bloomHeight, plantModel } from './garden-models';
 import { PickingService } from './picking.service';
@@ -65,10 +65,18 @@ export class PlantMeshService {
       }
     });
 
-    const twinkles = !prefersReducedMotion();
+    // A change of the motion setting holds the sparkles still, or wakes the frames to twinkle.
+    const reduced = inject(MotionPreferenceService).reduced;
+    effect(() => {
+      reduced();
+      untracked(() => {
+        this.sparkles.twinkle(null);
+        scene.requestRender();
+      });
+    });
     let seconds = 0;
     scene.onFrame((dt) => {
-      if (twinkles && this.sparkles.mesh) {
+      if (!reduced() && this.sparkles.mesh) {
         seconds += dt;
         this.sparkles.twinkle(seconds);
         // Keeps drawing while anything sparkles; the loop rests once nothing does.

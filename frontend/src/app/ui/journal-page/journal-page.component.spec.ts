@@ -10,6 +10,7 @@ import { NullSceneRenderer } from '../../scene/null-scene-renderer';
 import { SCENE_RENDERER } from '../../scene/scene-renderer';
 import { SCENE_PROVIDERS } from '../../scene/scene.providers';
 import { SceneService } from '../../scene/scene.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../../testing/fake-motion';
 import { MOSSY } from '../../testing/garden-fixtures';
 import { FRIDAY_ENTRY, journalEntry } from '../../testing/journal-fixtures';
 import { JournalPageComponent } from './journal-page.component';
@@ -30,6 +31,7 @@ describe('JournalPageComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         SCENE_PROVIDERS,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -39,10 +41,7 @@ describe('JournalPageComponent', () => {
     focusCanvas = vi.spyOn(TestBed.inject(SceneService), 'focusCanvas');
   });
 
-  afterEach(() => {
-    http.verify();
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => http.verify());
 
   async function render() {
     fixture = TestBed.createComponent(JournalPageComponent);
@@ -110,10 +109,8 @@ describe('JournalPageComponent', () => {
     expect(dialog()!.classList.contains('turn')).toBe(true);
   });
 
-  it('opens without the page turn when the device asks for reduced motion (SET-03)', async () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query === '(prefers-reduced-motion: reduce)',
-    }));
+  it('opens without the page turn with reduced motion (SET-03)', async () => {
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
     await render();
 
     await syncWith({ summary: [], journalEntry: FRIDAY_ENTRY });

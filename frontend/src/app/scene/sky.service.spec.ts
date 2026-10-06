@@ -8,6 +8,7 @@ import { STEP_ARC, SurfacePoint, toVector } from '../core/helpers/surface-coords
 import { DEFAULT_GAME_CONFIG } from '../core/models/game-config';
 import { PlanetSnapshotDto } from '../core/models/planet-snapshot';
 import { PlanetStore } from '../core/services/planet-store.service';
+import { FAKE_MOTION_PROVIDERS, FakeMotionPreference } from '../testing/fake-motion';
 import { MOSSY } from '../testing/garden-fixtures';
 import { NullSceneRenderer } from './null-scene-renderer';
 import { PickingService } from './picking.service';
@@ -42,6 +43,7 @@ describe('SkyService', () => {
         SceneService,
         PickingService,
         SkyService,
+        FAKE_MOTION_PROVIDERS,
         { provide: SCENE_RENDERER, useClass: NullSceneRenderer },
       ],
     });
@@ -179,9 +181,20 @@ describe('SkyService', () => {
   });
 
   it('lets no rain fall with reduced motion, but still shows where it lands (SET-03)', () => {
-    sky.reducedMotion = true;
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
 
     sky.setRaining('cloud-1', true);
+
+    expect(sky.rainOf('cloud-1')).toBeNull();
+    expect(sky.wetPatchOf('cloud-1')).not.toBeNull();
+  });
+
+  it('stops the falling rain within a second of motion being reduced', () => {
+    sky.setRaining('cloud-1', true);
+    expect(sky.rainOf('cloud-1')).not.toBeNull();
+
+    TestBed.inject(FakeMotionPreference).reduced.set(true);
+    vi.advanceTimersByTime(1000);
 
     expect(sky.rainOf('cloud-1')).toBeNull();
     expect(sky.wetPatchOf('cloud-1')).not.toBeNull();
